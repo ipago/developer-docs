@@ -32,7 +32,7 @@ function ArrowIcon() {
 
 const tiles = [
   {
-    href: "/creators",
+    href: "/creators/welcome",
     icon: <StoreIcon />,
     eyebrow: "For creators & sellers",
     title: "Creators",
