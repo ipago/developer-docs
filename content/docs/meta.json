@@ -1,4 +1,3 @@
 {
-  "title": "Docs",
-  "pages": ["index", "api-overview"]
+  "pages": ["index", "---Products---", "webstores", "checkout", "developer-api"]
 }
