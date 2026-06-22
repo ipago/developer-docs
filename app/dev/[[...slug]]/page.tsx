@@ -1,4 +1,4 @@
-import { source } from "@/lib/source";
+import { devSource as source } from "@/lib/source";
 import {
   DocsPage,
   DocsBody,
