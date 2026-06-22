@@ -1,0 +1,45 @@
+---
+title: Overview
+description: Signed event callbacks that keep your systems in sync with 2Pay.
+---
+
+**Webhooks** are how 2Pay tells your systems that something happened, a sale was
+paid, an item was delivered, an order was refunded, in real time. They power the
+Developer API and Game API integrations.
+
+## How it works
+
+1. Register an endpoint URL (in **app.2pay.gg** or via the API).
+2. 2Pay sends a signed `POST` request to it for each event you subscribe to.
+3. Your server verifies the signature and reacts (for example, grants an item).
+4. Failed deliveries are retried with backoff.
+
+## Verifying signatures
+
+Every request includes a `2Pay-Signature` header containing an HMAC of the raw
+request body. Compute the HMAC with your webhook secret and compare, in constant
+time, before trusting the payload.
+
+```ts
+import { createHmac, timingSafeEqual } from "node:crypto";
+
+function verify(rawBody: string, signature: string, secret: string) {
+  const expected = createHmac("sha256", secret).update(rawBody).digest("hex");
+  return timingSafeEqual(Buffer.from(signature), Buffer.from(expected));
+}
+```
+
+## Events
+
+| Event | When it fires |
+| --- | --- |
+| `order.paid` | A purchase has been paid for. |
+| `delivery.pending` | An item is awaiting delivery by your server. |
+| `delivery.completed` | Delivery was confirmed. |
+| `delivery.failed` | Delivery could not be completed. |
+| `order.refunded` | An order was refunded. |
+
+<Callout type="info">
+  Always respond `2xx` quickly and process asynchronously. 2Pay retries any
+  delivery that doesn't return a success status.
+</Callout>
