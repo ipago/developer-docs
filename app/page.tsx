@@ -34,9 +34,10 @@ const tiles = [
   {
     href: "/creators",
     icon: <StoreIcon />,
-    eyebrow: "For creators",
+    eyebrow: "For creators & sellers",
     title: "Creators",
-    body: "General product guides for Webstores and Checkout. Start selling and run your store.",
+    body: "Launch your store, add your products, and start getting paid, with step-by-step guides and no code required.",
+    cta: "Start selling",
     accent: "#8B7CFF",
   },
   {
@@ -44,7 +45,8 @@ const tiles = [
     icon: <CodeIcon />,
     eyebrow: "For developers",
     title: "Developers",
-    body: "Integration docs: the Developer API, Game API, webhooks, and affiliates.",
+    body: "Bring 2Pay into your own site, app, or game, and automate everything with our APIs and webhooks.",
+    cta: "Start building",
     accent: "#FF6A4D",
   },
 ];
@@ -60,10 +62,11 @@ export default function HomePage() {
           2Pay <span className="text-white/30">/</span> Documentation
         </p>
         <h1 className="text-4xl sm:text-5xl font-extrabold tracking-tight mb-4">
-          What are you here to do?
+          Get started with 2Pay
         </h1>
         <p className="text-white/60 text-lg max-w-xl mx-auto">
-          Pick a track. Each has its own guides, navigation, and search.
+          Whether you&apos;re setting up your first store or building a custom
+          integration, you&apos;re in the right place.
         </p>
       </div>
 
@@ -95,7 +98,7 @@ export default function HomePage() {
               className="relative inline-flex items-center gap-1.5 text-sm font-bold group-hover:gap-2.5 transition-all"
               style={{ color: t.accent }}
             >
-              Browse docs
+              {t.cta}
               <ArrowIcon />
             </span>
           </Link>
