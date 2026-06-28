@@ -1,4 +1,9 @@
 {
   "title": "Getting Started",
-  "pages": ["account-structure", "project-verification", "intellectual-property"]
+  "pages": [
+    "account-structure",
+    "project-verification",
+    "intellectual-property",
+    "adult-content-guidelines"
+  ]
 }
