@@ -1,0 +1,128 @@
+---
+title: Events
+description: Every webhook event type and the payload it carries.
+---
+
+This is the catalog of events 2Pay can push to your
+[endpoints](/dev/webhooks/endpoints). Every payload is a standard
+[event object](/dev/developer-api/events): a `type`, a `created` timestamp, and a
+`data.object` holding the resource the event is about.
+
+Subscribe an endpoint to the specific types it needs, or to `*` to receive all
+current and future types.
+
+## Order events
+
+### `order.paid`
+
+Fires when a buyer completes payment. This is the trigger for fulfillment.
+
+```json
+{
+  "object": "event",
+  "id": "evt_01HA0ABC",
+  "type": "order.paid",
+  "created": "2026-06-28T11:42:11Z",
+  "data": {
+    "object": "order",
+    "id": "ord_01HA0XYZ",
+    "status": "paid",
+    "customer": { "email": "player@example.com", "country": "DE" },
+    "items": [
+      { "id": "oi_01HA0...", "product": "prod_01H9Z4ABCDEF", "quantity": 1, "delivery": "dlv_01HA0..." }
+    ],
+    "totals": { "total": { "amount": 1189, "currency": "eur" } },
+    "delivery_status": "pending"
+  }
+}
+```
+
+### `order.refunded`
+
+Fires on a full or partial refund. Inspect `status` (`refunded` vs
+`partially_refunded`) and the `totals` to see how much came back. Reverse any
+entitlement you granted if your policy requires it.
+
+### `order.disputed`
+
+Fires when a chargeback or payment dispute opens against an order
+(`status: "disputed"`). Most disputes are handled for you under the Seller
+Protection Program; use this event to flag the account or pause further perks
+while it resolves.
+
+## Delivery events
+
+These drive the fulfillment loop. The `data.object` is a
+[delivery](/dev/developer-api/deliveries).
+
+### `delivery.pending`
+
+A paid line item is waiting to be granted. For game products, your
+[Game API](/dev/game-api/overview) queue will surface the same work; for
+backend-fulfilled products, this is your cue to grant and then confirm.
+
+```json
+{
+  "object": "event",
+  "id": "evt_01HA0DEF",
+  "type": "delivery.pending",
+  "created": "2026-06-28T11:42:12Z",
+  "data": {
+    "object": "delivery",
+    "id": "dlv_01HA0...",
+    "order": "ord_01HA0XYZ",
+    "product": "prod_01H9Z4ABCDEF",
+    "status": "pending",
+    "target": "manual"
+  }
+}
+```
+
+### `delivery.completed`
+
+Fires when a delivery is confirmed, whether by your backend, by the Game API, or
+by 2Pay for directly-delivered goods. Useful for updating your own records or
+notifying the buyer.
+
+### `delivery.failed`
+
+Fires when a delivery attempt fails. `data.object.last_error` carries the reason.
+The delivery stays eligible for retry.
+
+## Product events
+
+The `data.object` is a [product](/dev/developer-api/products). Use these to keep a
+mirrored catalog in sync without polling.
+
+| Type | Fires when |
+| --- | --- |
+| `product.created` | A new product is published in the panel. |
+| `product.updated` | A product's name, price, availability, or other details change. |
+
+## Affiliate events
+
+### `referral.created`
+
+Fires when a sale is attributed to an [affiliate](/dev/affiliate-api/overview).
+The `data.object` is a referral, including which affiliate and order it links and
+the commission earned.
+
+## Full reference table
+
+| Type | `data.object` | Fires when |
+| --- | --- | --- |
+| `order.paid` | `order` | Payment completes. |
+| `order.refunded` | `order` | Full or partial refund. |
+| `order.disputed` | `order` | A dispute or chargeback opens. |
+| `delivery.pending` | `delivery` | A paid item awaits fulfillment. |
+| `delivery.completed` | `delivery` | A delivery is confirmed. |
+| `delivery.failed` | `delivery` | A delivery attempt fails. |
+| `product.created` | `product` | A product is published. |
+| `product.updated` | `product` | A product changes. |
+| `referral.created` | `referral` | A referred sale is attributed. |
+| `endpoint.validation` | `{ challenge }` | A new endpoint is being validated. See [Endpoints](/dev/webhooks/endpoints#validation). |
+
+<Callout type="info">
+  New types are added over time. Always ignore an unrecognized `type` instead of
+  erroring, so future events never break your handler.
+</Callout>

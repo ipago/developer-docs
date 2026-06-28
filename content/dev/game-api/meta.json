@@ -1,4 +1,9 @@
 {
   "title": "Game API",
-  "pages": ["overview"]
+  "pages": [
+    "overview",
+    "authentication",
+    "delivery-queue",
+    "plugins"
+  ]
 }

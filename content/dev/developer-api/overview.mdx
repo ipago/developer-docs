@@ -1,31 +1,92 @@
 ---
 title: Overview
-description: A headless API to manage your products and track their delivery.
+description: The headless HTTP API for reading your catalog, tracking orders, and confirming delivery.
 ---
 
-The **Developer API** is 2Pay's **headless API**: a management and communication
-layer for the products you already have in your store.
+The **Developer API** is the headless, server-to-server HTTP interface for your
+store. It is how your own backend reads what you sell, watches what gets bought,
+confirms that buyers received what they paid for, and stays in sync with 2Pay.
 
-## What it's for
+It is built to be predictable: resource-oriented URLs, JSON request and response
+bodies, standard HTTP verbs and status codes, bearer-token auth, and the same
+conventions on every endpoint.
 
-- **Manage your products** that live in your store.
-- **Track delivery** of purchases, see what has been delivered and what has
-  not.
-- **React to events** so your systems stay in sync with 2Pay.
+## What you can do with it
 
-## What it is not
+- **Read your catalog.** List and fetch the products and categories that you
+  configured in the panel, including prices, availability, and metadata.
+- **Track sales.** List and fetch orders, inspect their status, line items,
+  customer, totals, and fees.
+- **Manage delivery.** See which line items are delivered, pending, or failed,
+  and confirm a delivery once your system has granted it.
+- **Stay in sync.** Read the immutable event log and register webhook endpoints
+  so 2Pay pushes changes to you instead of you polling.
 
-The Developer API is **not** a way to define custom, one-off products on the fly.
-Products are always created and managed in the admin panel at **app.2pay.gg**;
-the API works with those existing products.
+## Scope
+
+This API is intentionally narrow. It manages and observes a store whose
+**products are defined in the panel**, it is not a toolkit for inventing
+products or building checkouts in code.
+
+**In scope today**
+
+- Reading products and categories.
+- Reading orders and their line items.
+- Reading and confirming deliveries.
+- Reading the event log and managing webhook endpoints.
+- Creating a checkout that references existing products (see
+  [Checkout](/dev/checkout/overview)).
+
+**Deliberately out of scope, for now**
+
+- **Creating ad-hoc products in the request body.** Products live in the panel;
+  the API references them by `id`. (This is the main thing we do differently from
+  Tebex's "Checkout API" pattern.)
+- **Editing pricing, themes, or store configuration.** Those are panel
+  operations.
+- **Baskets, subscriptions, refunds, payouts, and coupons as public write
+  endpoints.** These exist in the platform but are not part of the public API
+  surface yet.
 
 <Callout type="info">
-  If you've used Tebex, this is **not** the same as their "Checkout API" for
-  building ad-hoc custom products. We deliberately keep product definition in the
-  panel for now.
+  Some of these may open up over time. If a missing endpoint is blocking you,
+  tell us at [support@2pay.io](mailto:support@2pay.io), real use cases drive what
+  we expose next.
 </Callout>
 
-## Conventions
+## The shape of a request
 
-The API is resource-oriented, returns JSON, and authenticates with API keys.
-Full endpoint references are coming soon.
+Every call is an HTTPS request to `https://api.2pay.io/v1` carrying a secret key
+as a bearer token:
+
+```bash
+curl https://api.2pay.io/v1/products \
+  -H "Authorization: Bearer sk_live_..."
+```
+
+Responses are JSON. Single resources carry an `object` field naming their type;
+lists wrap their results in a `{ "object": "list", "data": [...], "has_more": ... }`
+envelope.
+
+## Where to go next
+
+<Cards>
+  <Card title="Authentication" href="/dev/developer-api/authentication">
+    Key types, test vs live mode, scopes, and rotation.
+  </Card>
+  <Card title="Conventions" href="/dev/developer-api/conventions">
+    Base URL, errors, pagination, idempotency, money, IDs, and rate limits.
+  </Card>
+  <Card title="Products" href="/dev/developer-api/products">
+    Read the catalog you configured in the panel.
+  </Card>
+  <Card title="Orders" href="/dev/developer-api/orders">
+    Inspect sales, line items, customers, and totals.
+  </Card>
+  <Card title="Deliveries" href="/dev/developer-api/deliveries">
+    Track fulfillment state and confirm deliveries.
+  </Card>
+  <Card title="Events" href="/dev/developer-api/events">
+    The immutable log behind webhooks.
+  </Card>
+</Cards>

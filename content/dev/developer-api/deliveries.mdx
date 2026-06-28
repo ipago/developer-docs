@@ -1,0 +1,137 @@
+---
+title: Deliveries
+description: Track per-item fulfillment state and confirm a delivery once granted.
+---
+
+A **delivery** is the fulfillment record for a single order line item. It answers
+one question: has the buyer actually received this thing yet? Every line item on
+a paid order has exactly one delivery, identified by a `dlv_` id.
+
+Deliveries are where your integration does its real work. 2Pay handles the money;
+**you** grant the rank, send the key, or run the command, then tell 2Pay it is
+done.
+
+## The delivery object
+
+```json
+{
+  "object": "delivery",
+  "id": "dlv_01HA0...",
+  "order": "ord_01HA0XYZ",
+  "order_item": "oi_01HA0...",
+  "product": "prod_01H9Z4ABCDEF",
+  "status": "pending",
+  "target": "game_server",
+  "attempts": 0,
+  "last_error": null,
+  "completed_at": null,
+  "created": "2026-06-28T11:42:11Z"
+}
+```
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `id` | string | Delivery id (`dlv_`). |
+| `order` | string | The owning order. |
+| `order_item` | string | The specific line item being fulfilled. |
+| `product` | string | The product purchased. |
+| `status` | string | `pending`, `completed`, or `failed`. |
+| `target` | string | How it is fulfilled: `game_server`, `manual`, or `none`. |
+| `attempts` | integer | How many times fulfillment has been attempted. |
+| `last_error` | string \| null | Reason of the most recent failure, if any. |
+| `completed_at` | string \| null | When it was confirmed complete. |
+| `created` | string | When the delivery was created (at payment). |
+
+## Status lifecycle
+
+```
+pending ──▶ completed
+   │
+   └──────▶ failed ──▶ (retry) ──▶ pending
+```
+
+- **`pending`**: payment succeeded; the item is owed but not yet granted.
+- **`completed`**: you confirmed the buyer received it. Terminal for a healthy
+  order.
+- **`failed`**: fulfillment was attempted and could not finish (player never
+  joined, command errored, key pool empty). A failed delivery can be retried.
+
+## List deliveries for an order
+
+```
+GET /v1/orders/{id}/deliveries
+```
+
+```bash
+curl https://api.2pay.io/v1/orders/ord_01HA0XYZ/deliveries \
+  -H "Authorization: Bearer sk_live_..."
+```
+
+Returns every delivery on that order, so you can see, line by line, what is done
+and what is outstanding.
+
+## Retrieve a delivery
+
+```
+GET /v1/deliveries/{id}
+```
+
+## Confirm a delivery
+
+Once your system has granted the item, mark the delivery complete:
+
+```
+POST /v1/deliveries/{id}/complete
+```
+
+```bash
+curl -X POST https://api.2pay.io/v1/deliveries/dlv_01HA0.../complete \
+  -H "Authorization: Bearer sk_live_..." \
+  -H "Idempotency-Key: $(uuidgen)"
+```
+
+Returns the updated delivery with `status: "completed"`. This call is **idempotent
+by id**: confirming an already-completed delivery returns the same result rather
+than erroring, and sending the same [idempotency key](/dev/developer-api/conventions#idempotency)
+on a retry is always safe.
+
+Completing a delivery emits a [`delivery.completed`](/dev/developer-api/events)
+event.
+
+<Callout type="warn">
+  Confirm a delivery **only after** the item is actually granted, not before. If
+  you confirm first and the grant then fails, your records say delivered while the
+  buyer has nothing.
+</Callout>
+
+## Report a failure
+
+If you cannot fulfill (and want it recorded rather than silently retried), mark
+it failed with a reason:
+
+```
+POST /v1/deliveries/{id}/fail
+```
+
+```bash
+curl -X POST https://api.2pay.io/v1/deliveries/dlv_01HA0.../fail \
+  -H "Authorization: Bearer sk_live_..." \
+  -H "Idempotency-Key: $(uuidgen)" \
+  -d "reason=key_pool_empty"
+```
+
+This sets `status: "failed"`, stores `reason` in `last_error`, and emits
+[`delivery.failed`](/dev/developer-api/events). The delivery remains eligible for
+a later retry.
+
+## Who confirms what
+
+| Fulfillment type | Who confirms |
+| --- | --- |
+| In-game items, ranks, commands | Your game server, via the [Game API](/dev/game-api/overview) (which confirms deliveries for you). |
+| License keys, roles, account flags handled by your backend | Your backend, via `POST /deliveries/{id}/complete`. |
+| Digital goods 2Pay delivers directly | 2Pay; no action needed. |
+
+For the game-server path you generally never call these endpoints by hand, the
+Game API queue handles confirmation. Use them directly when **your own backend**
+owns fulfillment.

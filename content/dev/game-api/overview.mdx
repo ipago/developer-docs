@@ -1,31 +1,84 @@
 ---
 title: Overview
-description: Deliver purchases in-game from your game server or plugin.
+description: The runtime endpoint your game server polls to deliver purchases in-game and report them complete.
 ---
 
-The **Game API** is the integration your game server, plugin, or bot uses to
-**deliver purchases in-game** and report back. Where the
-[Developer API](/dev/developer-api/overview) is for managing your store, the
-Game API is the runtime side that runs on (or next to) your server.
+The **Game API** is the runtime side of 2Pay: the interface your game server,
+plugin, or bot talks to in order to **grant what players bought** and tell 2Pay
+it is done. Where the [Developer API](/dev/developer-api/overview) manages and
+observes your store from a backend, the Game API runs on (or right next to) the
+machine that actually applies a rank, drops an item, or executes a command.
+
+It is built around a **command queue**. 2Pay turns paid orders into per-player
+commands; your server pulls that queue, runs each command in-game, and deletes it
+to confirm. That design means your server only needs **outbound** HTTPS, no open
+ports, no inbound webhooks on the game host itself.
 
 ## What it's for
 
-- **Fetch pending deliveries** for your server, the items players bought that
-  still need to be granted.
-- **Run the delivery** (give the rank, currency, crate, or run a command).
-- **Confirm completion** so 2Pay marks the order delivered.
+- **Pull what's owed.** Ask 2Pay which players have purchases waiting and what to
+  run for them.
+- **Apply it in-game.** Give the rank, currency, crate, or run your configured
+  command, whether the player is online now or offline.
+- **Confirm it.** Delete completed commands so 2Pay marks the matching
+  [delivery](/dev/developer-api/deliveries) complete and never re-sends it.
+
+## How it relates to the rest of 2Pay
+
+```
+Buyer pays (Webstore / Checkout)
+        │
+        ▼
+2Pay creates an order + deliveries  ──▶  order.paid / delivery.pending webhooks
+        │                                         (your backend, optional)
+        ▼
+2Pay enqueues per-player commands
+        │
+        ▼
+Your game server polls the Game API ──▶ runs commands ──▶ deletes them (confirm)
+        │
+        ▼
+2Pay marks deliveries completed     ──▶  delivery.completed webhook
+```
+
+You do **not** have to consume webhooks to use the Game API; polling the queue is
+self-contained. Webhooks are useful when a separate backend also needs to know
+about sales.
 
 ## Typical flow
 
-1. A player buys on your Webstore or embedded Checkout.
-2. Your server learns about it, either from a `delivery.pending`
-   [webhook](/dev/webhooks/overview) or by polling pending deliveries.
-3. Your plugin grants the item in-game.
-4. Your server confirms delivery, and 2Pay marks it complete.
+1. A player buys on your [Webstore](/dev/webstores/overview) or embedded
+   [Checkout](/dev/checkout/overview).
+2. 2Pay creates the order and queues commands for the purchased products.
+3. Your server [polls the queue](/dev/game-api/delivery-queue), gets the list of
+   players with work waiting, and fetches their commands.
+4. Your plugin runs each command (online or offline as appropriate).
+5. Your server [deletes the executed commands](/dev/game-api/delivery-queue#confirming-execution),
+   confirming delivery.
 
-## Authentication
+## Authentication in one line
 
-The Game API authenticates with a **server token** scoped to a single store, so
-you can safely ship it inside a plugin or run it on your game host.
+The Game API uses a **server token** scoped to a single store, sent in the
+`X-2Pay-Server-Token` header, so it is safe to ship inside a plugin or config on
+your game host. Details in [Authentication](/dev/game-api/authentication).
 
-<Callout>Per-game guides (Minecraft, Rust, and more) and the full endpoint reference are coming soon.</Callout>
+## Use a plugin if one exists
+
+For popular games you should not write this loop yourself, our open-source
+plugins already implement polling, execution, retries, and confirmation. See
+[Plugins](/dev/game-api/plugins). Build directly against the API only for games we
+do not yet support, or for a custom integration.
+
+## Where to go next
+
+<Cards>
+  <Card title="Authentication" href="/dev/game-api/authentication">
+    The server token, the base URL, and how to scope it safely.
+  </Card>
+  <Card title="Delivery queue" href="/dev/game-api/delivery-queue">
+    The full queue endpoints and the poll-run-confirm loop.
+  </Card>
+  <Card title="Plugins" href="/dev/game-api/plugins">
+    Official plugins and the RCON adapter for unsupported games.
+  </Card>
+</Cards>

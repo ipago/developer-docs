@@ -1,0 +1,203 @@
+---
+title: Delivery queue
+description: The poll-run-confirm loop and the queue endpoints your server calls.
+---
+
+The Game API hands your server work as a **command queue**. Each paid product
+that targets a game server becomes one or more **commands**, run a console
+command, give an item, grant a rank, tied to the player who bought it. Your
+server's job is a simple loop: **poll** the queue, **run** the commands,
+**delete** them to confirm.
+
+All requests use the Game API base URL and
+[server token](/dev/game-api/authentication):
+
+```
+https://game.2pay.io/v1
+X-2Pay-Server-Token: srv_live_...
+```
+
+## Online vs offline commands
+
+Commands split into two kinds, because some deliveries need the player present
+and some do not:
+
+- **Online commands** require the player to be connected (give an item, teleport,
+  open a crate). They are fetched per online player.
+- **Offline commands** can run whether or not the player is connected (grant a
+  permission, set a database flag, add currency). They run on a schedule
+  independent of presence.
+
+## The loop
+
+```
+            ┌──────────────────────────────────────────┐
+            ▼                                            │
+  GET /queue  ──▶ due players? ──▶ for each online player:
+       │                              GET /queue/online-commands/{id}
+       │                              run them
+       │                              DELETE /queue (their command ids)
+       │
+       └──▶ execute_offline_commands? ──▶ GET /queue/offline-commands
+                                          run them
+                                          DELETE /queue (their command ids)
+```
+
+### 1. Poll the queue
+
+```
+GET /v1/queue
+```
+
+```bash
+curl https://game.2pay.io/v1/queue \
+  -H "X-2Pay-Server-Token: srv_live_..."
+```
+
+```json
+{
+  "object": "queue",
+  "meta": {
+    "execute_offline_commands": true,
+    "next_check": 60,
+    "more": false
+  },
+  "players": [
+    { "id": "qp_01HA0...", "name": "Steve", "uuid": "069a79f4-44e9-4726-a5be-fca90e38aaf5" }
+  ]
+}
+```
+
+| Field | Meaning |
+| --- | --- |
+| `meta.execute_offline_commands` | If `true`, fetch and run [offline commands](#3-run-offline-commands) this cycle. |
+| `meta.next_check` | Seconds to wait before polling again. Respect this instead of hammering the endpoint. |
+| `meta.more` | `true` if there are more due players than returned in this page; poll again to drain. |
+| `players` | Players who have online commands waiting. Each has a queue id, name, and game identity (for example a UUID). |
+
+### 2. Run online commands per player
+
+For each player in `players` who is currently connected to your server:
+
+```
+GET /v1/queue/online-commands/{playerId}
+```
+
+```bash
+curl https://game.2pay.io/v1/queue/online-commands/qp_01HA0... \
+  -H "X-2Pay-Server-Token: srv_live_..."
+```
+
+```json
+{
+  "object": "command_list",
+  "player": { "id": "qp_01HA0...", "name": "Steve", "uuid": "069a79f4-..." },
+  "commands": [
+    {
+      "id": "cmd_01HA0AAA",
+      "command": "lp user {username} parent add vip",
+      "delivery": "dlv_01HA0...",
+      "product": "prod_01H9Z4ABCDEF",
+      "conditions": { "delay": 0, "slots": 1 }
+    }
+  ]
+}
+```
+
+Run each `command`, substituting placeholders (such as `{username}` and
+`{uuid}`) with the player's values. `conditions.slots` tells you how much free
+inventory space the player needs before an item command should run; `delay` is an
+optional wait in seconds.
+
+### 3. Run offline commands
+
+When `meta.execute_offline_commands` is `true`, fetch the batch that does not
+need a connected player:
+
+```
+GET /v1/queue/offline-commands
+```
+
+```json
+{
+  "object": "command_list",
+  "commands": [
+    {
+      "id": "cmd_01HA0BBB",
+      "command": "eco give {username} 5000",
+      "delivery": "dlv_01HA0...",
+      "product": "prod_01H9Z4CURR",
+      "player": { "name": "Steve", "uuid": "069a79f4-..." },
+      "conditions": { "delay": 0 }
+    }
+  ]
+}
+```
+
+Each offline command carries its own `player` block, since there is no
+per-player fetch step.
+
+### 4. Confirm execution
+
+After a command runs successfully, **delete it** so 2Pay marks its delivery
+complete and never re-sends it:
+
+```
+DELETE /v1/queue
+```
+
+```bash
+curl -X DELETE https://game.2pay.io/v1/queue \
+  -H "X-2Pay-Server-Token: srv_live_..." \
+  -H "Idempotency-Key: $(uuidgen)" \
+  -d "commands[]=cmd_01HA0AAA" \
+  -d "commands[]=cmd_01HA0BBB"
+```
+
+Batch the ids of everything you ran this cycle into one call. Deleting a command
+confirms its [delivery](/dev/developer-api/deliveries) and emits
+`delivery.completed`.
+
+<Callout type="warn">
+  Only delete a command **after** it actually ran. If you delete first and the
+  command then fails, the player is charged but never receives the item, and the
+  queue will not retry it. Run, verify, then delete.
+</Callout>
+
+## Command object reference
+
+| Field | Description |
+| --- | --- |
+| `id` | Command id (`cmd_`). Pass this to `DELETE /queue` to confirm. |
+| `command` | The string to execute, with `{username}` / `{uuid}` placeholders. |
+| `delivery` | The `dlv_` id this command fulfills. |
+| `product` | The product that generated it. |
+| `player` | Player identity (present on offline commands; fetched separately for online). |
+| `conditions.delay` | Seconds to wait before running. |
+| `conditions.slots` | Free inventory slots required (online item commands). |
+
+## Polling cadence and retries
+
+- Respect `meta.next_check`; it adapts to how busy your queue is.
+- If you cannot run a command this cycle (player has no inventory space, server is
+  restarting), **do not delete it**. It stays queued and reappears next poll.
+- Network failure on `DELETE`? Retry with the same
+  [idempotency key](/dev/developer-api/conventions#idempotency); re-confirming an
+  already-confirmed command is harmless.
+
+## Server information
+
+```
+GET /v1/information
+```
+
+Returns the store and server this token is bound to, handy for a plugin to show
+which account it is connected to:
+
+```json
+{
+  "object": "server_information",
+  "server": { "id": "srv_01HA0...", "name": "Survival" },
+  "store": { "id": "str_01H9Z...", "name": "My Store", "currency": "eur" }
+}
+```

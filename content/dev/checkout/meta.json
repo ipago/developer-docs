@@ -1,4 +1,9 @@
 {
   "title": "Checkout",
-  "pages": ["overview"]
+  "pages": [
+    "overview",
+    "integrating",
+    "configuration",
+    "events"
+  ]
 }

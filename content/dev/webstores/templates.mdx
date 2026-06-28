@@ -1,0 +1,168 @@
+---
+title: Templates
+description: "The templating engine behind Webstores: pages, variables, tags, filters, and conditionals."
+---
+
+A Webstore is rendered from **templates**: HTML documents with placeholders that
+2Pay fills in with your store's live data, the product list, the current basket,
+the logged-in customer, and so on. The engine is a familiar, logic-light syntax:
+you interpolate variables, loop over collections, and branch on conditions,
+without writing a backend.
+
+This page is a working reference for the syntax and the data available to it.
+
+## How rendering works
+
+When a visitor opens a page, 2Pay:
+
+1. Picks the template for that page (the storefront, a category, a package, the
+   basket).
+2. Builds a **context**, a bag of variables describing the store and this request.
+3. Renders the template against that context and serves the HTML.
+
+You edit templates in the panel under **Appearance**. Changes apply to your store
+on save.
+
+## Pages
+
+A Webstore is made of a small set of page templates. Each receives the global
+context plus variables specific to that page:
+
+| Template | Renders | Page-specific context |
+| --- | --- | --- |
+| `layout` | The shared shell (head, header, footer) that wraps every page. | `page.content` |
+| `home` | The storefront landing page. | `categories`, `featured` |
+| `category` | A single category and its products. | `category`, `category.packages` |
+| `package` | A single product's detail page. | `package` |
+| `basket` | The current basket and checkout entry point. | `basket` |
+| `checkout` | Post-purchase confirmation. | `order` |
+
+## Interpolation
+
+Output a value with double braces:
+
+```html
+<h1>{{ store.name }}</h1>
+<p>Welcome back, {{ customer.username }}.</p>
+```
+
+If a variable is missing or null, it renders as empty rather than erroring.
+
+## Tags
+
+Logic uses `{% ... %}` tags.
+
+### Loops
+
+```html
+<ul>
+  {% for package in category.packages %}
+    <li>
+      <a href="{{ package.url }}">{{ package.name }}</a>
+      <span>{{ package.price | money }}</span>
+    </li>
+  {% endfor %}
+</ul>
+```
+
+Inside a loop you also get `loop.index` (1-based), `loop.first`, and `loop.last`.
+
+### Conditionals
+
+```html
+{% if customer %}
+  <a href="/account">My account</a>
+{% else %}
+  <a href="{{ login_url }}">Sign in</a>
+{% endif %}
+```
+
+```html
+{% if package.sale %}
+  <del>{{ package.base_price | money }}</del>
+  <strong>{{ package.price | money }}</strong>
+{% endif %}
+```
+
+### Includes
+
+Reuse a partial across pages:
+
+```html
+{% include "partials/product-card" with package %}
+```
+
+## Filters
+
+Filters transform a value with the pipe (`|`) operator and can be chained:
+
+| Filter | Example | Result |
+| --- | --- | --- |
+| `money` | `{{ package.price \| money }}` | Formats minor-unit amount as currency, e.g. `€9.99`. |
+| `upper` / `lower` | `{{ store.name \| upper }}` | Case conversion. |
+| `truncate` | `{{ package.description \| truncate(120) }}` | Cuts to length with an ellipsis. |
+| `date` | `{{ order.created \| date("d M Y") }}` | Formats a timestamp. |
+| `default` | `{{ customer.username \| default("guest") }}` | Falls back when empty. |
+
+## The context
+
+These objects are available across templates (those marked page-specific only on
+their page):
+
+### `store`
+
+| Variable | Description |
+| --- | --- |
+| `store.name` | Your store's name. |
+| `store.currency` | ISO currency code. |
+| `store.url` | Canonical store URL. |
+
+### `package` (a product)
+
+| Variable | Description |
+| --- | --- |
+| `package.id` | The `prod_` id. |
+| `package.name` | Display name. |
+| `package.description` | Long description. |
+| `package.price` | Current price (minor units; use the `money` filter). |
+| `package.base_price` | Price before any sale. |
+| `package.sale` | Whether a discount is active. |
+| `package.image` | Image URL. |
+| `package.url` | Link to the package page. |
+
+### `category`
+
+| Variable | Description |
+| --- | --- |
+| `category.name` | Category name. |
+| `category.packages` | The products in it. |
+
+### `basket`
+
+| Variable | Description |
+| --- | --- |
+| `basket.items` | Items currently in the basket. |
+| `basket.total` | Basket total (minor units). |
+| `basket.checkout_url` | Where to send the buyer to pay. |
+
+### `customer`
+
+Present only when a visitor is signed in; falsy otherwise (use it in an `if`).
+
+| Variable | Description |
+| --- | --- |
+| `customer.username` | The signed-in identity. |
+| `customer.id` | Customer identifier. |
+
+<Callout type="info">
+  Need a variable, tag, or filter that is not here yet? Tell us at
+  [support@2pay.io](mailto:support@2pay.io). The templating context grows directly
+  from what designers ask for.
+</Callout>
+
+## Linking checkout
+
+Product and basket templates expose URLs (`basket.checkout_url`,
+`package.url`) that drive the hosted purchase flow. A Webstore handles checkout
+for you, no script needed. If instead you want to embed payment in a fully custom
+site, that is the [Checkout](/dev/checkout/overview) product.

@@ -1,0 +1,132 @@
+---
+title: Products
+description: Read the products and categories you configured in the panel.
+---
+
+A **product** is something a buyer can purchase: a rank, a kit, an item bundle, a
+license, a one-off donation perk. Products are created and priced in the panel at
+[app.2pay.gg](https://app.2pay.gg); over the API they are **read-only**. You list
+them and fetch them, you reference them by `id` at [checkout](/dev/checkout/overview),
+and you read which product a given order line item maps to.
+
+A **category** groups products for display. It mirrors the structure shown on
+your Webstore.
+
+## The product object
+
+```json
+{
+  "object": "product",
+  "id": "prod_01H9Z4ABCDEF",
+  "name": "VIP Rank",
+  "description": "Permanent VIP rank with cosmetic perks.",
+  "active": true,
+  "category": "cat_01H9Z3KQ",
+  "price": { "amount": 999, "currency": "eur" },
+  "type": "single",
+  "delivery_target": "game_server",
+  "image_url": "https://cdn.2pay.io/p/prod_01H9Z4.png",
+  "created": "2026-05-02T08:14:00Z",
+  "updated": "2026-06-20T19:03:11Z"
+}
+```
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `id` | string | Unique product id (`prod_`). |
+| `name` | string | Display name, as set in the panel. |
+| `description` | string | Long description, may contain formatting. |
+| `active` | boolean | Whether the product is currently purchasable. Inactive products stay readable for historical orders. |
+| `category` | string \| null | Id of the category it belongs to. |
+| `price` | object | [Money](/dev/developer-api/conventions#money): `amount` (minor units) and `currency`. |
+| `type` | string | `single` (one-time) or `subscription`. |
+| `delivery_target` | string | Where fulfillment happens: `game_server`, `manual`, or `none`. Drives whether the [Game API](/dev/game-api/overview) sees it. |
+| `image_url` | string \| null | Product image. |
+| `created` / `updated` | string | RFC 3339 timestamps. |
+
+<Callout type="info">
+  The API never returns a price you can override per request. Pricing, sales, and
+  currency are panel settings. If you need a buyer-specific price, model it as a
+  separate product or a coupon configured in the panel.
+</Callout>
+
+## List products
+
+```
+GET /v1/products
+```
+
+Returns a [paginated list](/dev/developer-api/conventions#pagination) of
+products.
+
+**Query parameters**
+
+| Parameter | Description |
+| --- | --- |
+| `active` | `true` / `false` to filter by availability. |
+| `category` | Restrict to one category id. |
+| `limit` | Page size, 1 to 100 (default 20). |
+| `starting_after` / `ending_before` | Cursor for paging. |
+
+```bash
+curl "https://api.2pay.io/v1/products?active=true&limit=50" \
+  -H "Authorization: Bearer sk_live_..."
+```
+
+```json
+{
+  "object": "list",
+  "data": [
+    { "object": "product", "id": "prod_01H9Z4ABCDEF", "name": "VIP Rank", "price": { "amount": 999, "currency": "eur" } }
+  ],
+  "has_more": false
+}
+```
+
+## Retrieve a product
+
+```
+GET /v1/products/{id}
+```
+
+```bash
+curl https://api.2pay.io/v1/products/prod_01H9Z4ABCDEF \
+  -H "Authorization: Bearer sk_live_..."
+```
+
+Returns the full product object, or `404` if no product with that id exists in
+the key's mode (test vs live).
+
+## Categories
+
+```
+GET /v1/categories
+GET /v1/categories/{id}
+```
+
+A category object:
+
+```json
+{
+  "object": "category",
+  "id": "cat_01H9Z3KQ",
+  "name": "Ranks",
+  "order": 1,
+  "parent": null
+}
+```
+
+Pass `?include=products` on either endpoint to embed each category's products
+inline, which is handy when you are rendering a full storefront in one pass:
+
+```bash
+curl "https://api.2pay.io/v1/categories?include=products" \
+  -H "Authorization: Bearer sk_live_..."
+```
+
+## Keeping a local copy in sync
+
+If you mirror the catalog locally (for a custom storefront, say), do not poll on
+a tight loop. Instead, subscribe to the `product.updated` and `product.created`
+[events](/dev/developer-api/events) and refetch only what changed. Fall back to a
+periodic full `GET /products` reconcile as a safety net.

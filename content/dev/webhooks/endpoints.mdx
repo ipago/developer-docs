@@ -1,0 +1,111 @@
+---
+title: Endpoints
+description: Register a webhook URL, complete the validation handshake, and manage subscriptions.
+---
+
+A **webhook endpoint** is a public HTTPS URL you own, plus the list of event
+types you want delivered to it and a signing secret. You can run several
+endpoints, for example one for fulfillment and one for analytics, each subscribed
+to a different set of events.
+
+## Registering an endpoint
+
+In the panel, open **Developers → Webhooks → Add endpoint**, paste your URL,
+tick the [event types](/dev/webhooks/events) you want, and save. You can also
+create endpoints over the API:
+
+```bash
+curl https://api.2pay.io/v1/webhook_endpoints \
+  -H "Authorization: Bearer sk_live_..." \
+  -H "Idempotency-Key: $(uuidgen)" \
+  -d "url=https://example.com/hooks/2pay" \
+  -d "events[]=order.paid" \
+  -d "events[]=delivery.pending"
+```
+
+The endpoint object returned includes its **signing secret**, shown once:
+
+```json
+{
+  "object": "webhook_endpoint",
+  "id": "we_01HA0...",
+  "url": "https://example.com/hooks/2pay",
+  "events": ["order.paid", "delivery.pending"],
+  "secret": "whsec_3f9a...",
+  "status": "pending_validation",
+  "created": "2026-06-28T12:00:00Z"
+}
+```
+
+| Field | Description |
+| --- | --- |
+| `id` | Endpoint id (`we_`). |
+| `url` | Where events are delivered. Must be HTTPS. |
+| `events` | The subscribed event types. Use `["*"]` to receive all current and future types. |
+| `secret` | The key used to [sign](/dev/webhooks/verifying-signatures) each request. Store it now; it is not retrievable later. |
+| `status` | `pending_validation`, `active`, or `disabled`. |
+
+<Callout type="warn">
+  Store the `secret` immediately and treat it like a password. It is how you
+  prove a delivery is genuinely from 2Pay. If it leaks, roll it (create a new
+  endpoint or rotate the secret in the panel) and update your handler.
+</Callout>
+
+## Validation
+
+A newly created endpoint starts `pending_validation`. Before sending real
+events, 2Pay sends a one-time **validation request** to confirm the URL is yours
+and live:
+
+```json
+{
+  "object": "event",
+  "id": "evt_validation_01HA0...",
+  "type": "endpoint.validation",
+  "created": "2026-06-28T12:00:02Z",
+  "data": { "challenge": "evt_validation_01HA0..." }
+}
+```
+
+Your endpoint must respond `200 OK` with the **challenge value** in the body
+(the validation event's id). Until it does, the endpoint stays
+`pending_validation` and receives no other events.
+
+```ts
+// Express handler
+app.post("/hooks/2pay", express.raw({ type: "*/*" }), (req, res) => {
+  const event = JSON.parse(req.body.toString());
+
+  if (event.type === "endpoint.validation") {
+    return res.status(200).send(event.data.challenge);
+  }
+
+  // ...verify signature and handle real events
+  res.sendStatus(200);
+});
+```
+
+Once validated, `status` flips to `active`.
+
+## Managing endpoints
+
+```
+GET    /v1/webhook_endpoints           # list
+GET    /v1/webhook_endpoints/{id}      # retrieve
+DELETE /v1/webhook_endpoints/{id}      # remove
+```
+
+To change which events an endpoint receives, update it in the panel or recreate
+it. Deleting an endpoint stops all delivery to that URL immediately.
+
+```bash
+curl https://api.2pay.io/v1/webhook_endpoints \
+  -H "Authorization: Bearer sk_live_..."
+```
+
+## Test mode vs live mode
+
+Endpoints created with a [test key](/dev/developer-api/authentication) receive
+only test-mode events; endpoints created with a live key receive only live
+events. Keep separate endpoints (and ideally separate handler deployments) for
+the two so a sandbox sale never hits production fulfillment.

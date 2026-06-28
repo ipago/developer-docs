@@ -1,0 +1,118 @@
+---
+title: Verifying signatures
+description: Prove a webhook request genuinely came from 2Pay before acting on it.
+---
+
+A webhook URL is public, so anyone could `POST` a fake `order.paid` to it and try
+to trick you into granting items for free. The signature is what stops that:
+every genuine request carries an HMAC computed with your endpoint's secret, which
+only you and 2Pay know. **Verify it before you trust a single byte of the body.**
+
+## The signature header
+
+Each request includes a `2Pay-Signature` header:
+
+```
+2Pay-Signature: t=1751110929,v1=4f8e2a...c91
+```
+
+| Part | Meaning |
+| --- | --- |
+| `t` | Unix timestamp (seconds) when the request was signed. |
+| `v1` | Hex HMAC-SHA256 of the signed payload, using your endpoint secret as the key. |
+
+The **signed payload** is the timestamp, a dot, and the **raw request body**:
+
+```
+signed_payload = "{t}." + raw_body
+expected_v1    = HMAC_SHA256(secret, signed_payload)   // hex
+```
+
+<Callout type="warn">
+  Compute the HMAC over the **exact raw bytes** of the body, before any JSON
+  parsing or reserialization. Frameworks that auto-parse JSON will change
+  whitespace and key order, which breaks the signature. Capture the raw body
+  first.
+</Callout>
+
+## Verifying, step by step
+
+1. Read the raw request body as a string or buffer.
+2. Parse `t` and `v1` out of the `2Pay-Signature` header.
+3. Recompute `HMAC_SHA256(secret, "{t}." + raw_body)`.
+4. Compare your value to `v1` in **constant time**.
+5. Reject if `t` is too old (say, more than 5 minutes) to blunt replay attacks.
+
+## Node.js
+
+```ts
+import { createHmac, timingSafeEqual } from "node:crypto";
+
+const TOLERANCE_SECONDS = 300;
+
+export function verifyWebhook(rawBody: string, header: string, secret: string) {
+  const parts = Object.fromEntries(
+    header.split(",").map((kv) => kv.split("=") as [string, string]),
+  );
+  const timestamp = Number(parts.t);
+  const signature = parts.v1;
+  if (!timestamp || !signature) return false;
+
+  // Reject stale requests (replay protection).
+  const ageSeconds = Math.floor(Date.now() / 1000) - timestamp;
+  if (Math.abs(ageSeconds) > TOLERANCE_SECONDS) return false;
+
+  const expected = createHmac("sha256", secret)
+    .update(`${timestamp}.${rawBody}`)
+    .digest("hex");
+
+  const a = Buffer.from(signature);
+  const b = Buffer.from(expected);
+  return a.length === b.length && timingSafeEqual(a, b);
+}
+```
+
+Wire it in with the **raw** body, then parse only after it passes:
+
+```ts
+app.post("/hooks/2pay", express.raw({ type: "*/*" }), (req, res) => {
+  const raw = req.body.toString("utf8");
+  const ok = verifyWebhook(raw, req.header("2Pay-Signature") ?? "", SECRET);
+  if (!ok) return res.sendStatus(400);
+
+  const event = JSON.parse(raw);
+  // ...handle event
+  res.sendStatus(200);
+});
+```
+
+## PHP
+
+```php
+function verify_webhook(string $rawBody, string $header, string $secret): bool {
+    $parts = [];
+    foreach (explode(',', $header) as $kv) {
+        [$k, $v] = explode('=', $kv, 2);
+        $parts[$k] = $v;
+    }
+    if (empty($parts['t']) || empty($parts['v1'])) return false;
+    if (abs(time() - (int) $parts['t']) > 300) return false;
+
+    $expected = hash_hmac('sha256', $parts['t'] . '.' . $rawBody, $secret);
+    return hash_equals($expected, $parts['v1']);
+}
+```
+
+## Why constant-time comparison matters
+
+A naive `==` returns as soon as two bytes differ, and that timing difference can,
+in principle, leak the correct signature one byte at a time. Always use a
+constant-time comparator: `timingSafeEqual` in Node, `hash_equals` in PHP,
+`hmac.compare_digest` in Python.
+
+## Defense in depth
+
+Signature verification is the primary control. You can layer the
+[IP allowlist](/dev/webhooks/delivery-and-testing#ip-allowlist) on top, but never
+rely on the allowlist alone, signatures are what actually authenticate the
+payload.

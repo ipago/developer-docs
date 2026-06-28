@@ -1,0 +1,153 @@
+---
+title: Integrating
+description: Install the browser library, create a checkout ident server-side, and launch the overlay.
+---
+
+A working Checkout integration is three small pieces: a backend call that creates
+a checkout, the browser library on your page, and a launch when the buyer clicks
+"pay". This page walks all three, then shows the complete result.
+
+## 1. Create a checkout (server side)
+
+When a buyer decides to pay, your **backend** creates a checkout that references
+the products they chose. This uses your [secret key](/dev/developer-api/authentication),
+so it must run on your server.
+
+```bash
+curl https://api.2pay.io/v1/checkouts \
+  -H "Authorization: Bearer sk_live_..." \
+  -H "Idempotency-Key: $(uuidgen)" \
+  -d "items[0][product]=prod_01H9Z4ABCDEF" \
+  -d "items[0][quantity]=1" \
+  -d "customer[email]=player@example.com" \
+  -d "success_url=https://example.com/thanks"
+```
+
+| Parameter | Required | Description |
+| --- | --- | --- |
+| `items[n][product]` | yes | A `prod_` id from your catalog. |
+| `items[n][quantity]` | no | Defaults to `1`. |
+| `customer[email]` | no | Pre-fills the buyer's email. |
+| `customer[username]` | no | In-game username, for products that deliver to a player. |
+| `success_url` | no | Where to send the buyer after payment (used on mobile, where checkout opens in a tab). |
+| `coupon` | no | A coupon code configured in the panel. |
+
+The response is a checkout object with the `ident` your frontend needs:
+
+```json
+{
+  "object": "checkout",
+  "id": "chk_01HA0...",
+  "ident": "a1b2c3d4e5f6",
+  "status": "open",
+  "expires_at": "2026-06-28T12:30:00Z",
+  "total": { "amount": 1189, "currency": "eur" }
+}
+```
+
+Return only the `ident` to the browser. It is a short-lived, single-checkout
+handle, it carries no account-level power, so it is safe to expose.
+
+## 2. Load the library (client side)
+
+Add the script to your page. Use a versioned URL so a future major release never
+changes behavior under you:
+
+```html
+<script defer src="https://js.2pay.io/v1.js"></script>
+```
+
+Or install it as a module:
+
+```bash
+npm install @2pay/checkout
+```
+
+```js
+import Checkout from "@2pay/checkout";
+```
+
+When you load via the script tag, wait for the page `load` event before calling
+into the library.
+
+## 3. Launch the overlay
+
+Fetch the `ident` from your backend, initialize, and launch:
+
+```js
+Checkout.init({ ident });
+Checkout.launch();
+```
+
+- On **desktop**, `launch()` opens the checkout as an overlay on your page.
+- On **mobile**, it opens in a new browser tab (which is why `success_url`
+  matters there).
+
+## Full example
+
+```html
+<script defer src="https://js.2pay.io/v1.js"></script>
+
+<button id="buy">Buy VIP Rank</button>
+
+<script>
+  window.addEventListener("load", () => {
+    const buy = document.getElementById("buy");
+
+    buy.addEventListener("click", async () => {
+      // Ask YOUR backend to create the checkout; it returns just the ident.
+      const { ident } = await fetch("/api/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ product: "prod_01H9Z4ABCDEF" }),
+      }).then((r) => r.json());
+
+      if (!ident) return;
+
+      Checkout.on("payment:complete", () => {
+        // Update the UI only. Real fulfillment is driven by the order.paid webhook.
+        window.location.href = "/thanks";
+      });
+
+      Checkout.init({
+        ident,
+        theme: "dark",
+        locale: "en_US",
+        closeOnComplete: true,
+        colors: [
+          { name: "primary", color: "#5b2eff" },
+          { name: "secondary", color: "#22c55e" },
+        ],
+      });
+
+      Checkout.launch();
+    });
+  });
+</script>
+```
+
+All init options are documented in [Configuration](/dev/checkout/configuration);
+all events in [Events](/dev/checkout/events).
+
+## Confirm the sale server-side
+
+<Callout type="warn">
+  Never grant the purchase based on the browser. The `payment:complete` event is
+  for UI only. Fulfill from the [`order.paid` webhook](/dev/webhooks/events),
+  which is signed, retried, and impossible to spoof from a client.
+</Callout>
+
+## Testing
+
+Create the checkout with a [test key](/dev/developer-api/authentication)
+(`sk_test_...`) and the overlay runs in sandbox mode. Use these test cards:
+
+| Card number | Result |
+| --- | --- |
+| `4242 4242 4242 4242` | Payment succeeds. |
+| `4000 0000 0000 0002` | Card declined. |
+| `4000 0000 0000 9995` | Insufficient funds. |
+
+Any future expiry date and any CVC work in test mode. Test-mode checkouts emit
+real `order.paid` events to your [test-mode webhook endpoints](/dev/webhooks/endpoints#test-mode-vs-live-mode),
+so you can exercise the full loop without moving money.

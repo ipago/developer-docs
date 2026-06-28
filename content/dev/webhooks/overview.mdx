@@ -1,45 +1,85 @@
 ---
 title: Overview
-description: Signed event callbacks that keep your systems in sync with 2Pay.
+description: Signed, retried event callbacks that push store changes to your backend in real time.
 ---
 
-**Webhooks** are how 2Pay tells your systems that something happened, a sale was
-paid, an item was delivered, an order was refunded, in real time. They power the
-Developer API and Game API integrations.
+**Webhooks** are how 2Pay tells your systems that something happened, the moment
+it happens: a payment cleared, an item is ready to deliver, an order was
+refunded. Instead of polling our API on a loop, you register a URL once and 2Pay
+sends a signed `POST` to it for each event you care about.
 
-## How it works
+Webhooks are the real-time backbone of both the
+[Developer API](/dev/developer-api/overview) and the
+[Game API](/dev/game-api/overview): they are what wakes your fulfillment code up.
 
-1. Register an endpoint URL (in **app.2pay.gg** or via the API).
-2. 2Pay sends a signed `POST` request to it for each event you subscribe to.
-3. Your server verifies the signature and reacts (for example, grants an item).
-4. Failed deliveries are retried with backoff.
+## How it works, end to end
 
-## Verifying signatures
+1. You [register an endpoint](/dev/webhooks/endpoints) (a public HTTPS URL) and
+   subscribe it to one or more event types.
+2. 2Pay sends a one-time **validation request** to confirm you own the URL. Your
+   endpoint must echo it back. See [Endpoints](/dev/webhooks/endpoints#validation).
+3. From then on, whenever a subscribed event occurs, 2Pay `POST`s the
+   [event object](/dev/developer-api/events) to your URL, signed with a secret.
+4. Your server [verifies the signature](/dev/webhooks/verifying-signatures),
+   acks fast with a `2xx`, and processes the event asynchronously.
+5. If your endpoint is down or returns a non-`2xx`, 2Pay
+   [retries with backoff](/dev/webhooks/delivery-and-testing#retries).
 
-Every request includes a `2Pay-Signature` header containing an HMAC of the raw
-request body. Compute the HMAC with your webhook secret and compare, in constant
-time, before trusting the payload.
+## The payload
 
-```ts
-import { createHmac, timingSafeEqual } from "node:crypto";
+Every webhook body is a standard event object, identical to what
+[`GET /events`](/dev/developer-api/events) returns:
 
-function verify(rawBody: string, signature: string, secret: string) {
-  const expected = createHmac("sha256", secret).update(rawBody).digest("hex");
-  return timingSafeEqual(Buffer.from(signature), Buffer.from(expected));
+```json
+{
+  "object": "event",
+  "id": "evt_01HA0ABC",
+  "type": "order.paid",
+  "created": "2026-06-28T11:42:11Z",
+  "data": {
+    "object": "order",
+    "id": "ord_01HA0XYZ",
+    "status": "paid",
+    "delivery_status": "pending"
+  }
 }
 ```
 
-## Events
+Dispatch on `type`, then act on `data.object`. The full catalog of types and
+their payloads is in [Events](/dev/webhooks/events).
 
-| Event | When it fires |
-| --- | --- |
-| `order.paid` | A purchase has been paid for. |
-| `delivery.pending` | An item is awaiting delivery by your server. |
-| `delivery.completed` | Delivery was confirmed. |
-| `delivery.failed` | Delivery could not be completed. |
-| `order.refunded` | An order was refunded. |
+## The four rules that keep webhooks reliable
 
-<Callout type="info">
-  Always respond `2xx` quickly and process asynchronously. 2Pay retries any
-  delivery that doesn't return a success status.
+<Callout type="warn">
+  These are not optional. Skipping any one of them is the usual cause of
+  double-grants, missed sales, or spoofed deliveries.
 </Callout>
+
+1. **Verify every signature** before trusting a body. Anyone can `POST` to a
+   public URL; the signature is what proves it was us. See
+   [Verifying signatures](/dev/webhooks/verifying-signatures).
+2. **Respond `2xx` quickly** (within a few seconds) and do the real work after.
+   Slow handlers get treated as failures and retried.
+3. **Be idempotent.** The same event can arrive more than once (retries,
+   network hiccups). Deduplicate on `event.id`.
+4. **Reconcile.** Webhooks are best-effort delivery of a perfect log. Periodically
+   sweep the [Orders](/dev/developer-api/orders#reconciliation-pattern) or
+   [Events](/dev/developer-api/events#catching-up-after-downtime) API to catch
+   anything you missed.
+
+## Where to go next
+
+<Cards>
+  <Card title="Endpoints" href="/dev/webhooks/endpoints">
+    Register a URL, the validation handshake, and managing subscriptions.
+  </Card>
+  <Card title="Verifying signatures" href="/dev/webhooks/verifying-signatures">
+    Prove a request really came from 2Pay.
+  </Card>
+  <Card title="Events" href="/dev/webhooks/events">
+    Every event type and the shape of its payload.
+  </Card>
+  <Card title="Delivery & testing" href="/dev/webhooks/delivery-and-testing">
+    Retries, the IP allowlist, and how to test locally.
+  </Card>
+</Cards>

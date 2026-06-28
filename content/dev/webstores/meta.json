@@ -1,4 +1,8 @@
 {
   "title": "Webstores",
-  "pages": ["overview"]
+  "pages": [
+    "overview",
+    "templates",
+    "assets-and-config"
+  ]
 }

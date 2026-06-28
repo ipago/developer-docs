@@ -1,0 +1,158 @@
+---
+title: Quick start
+description: From a fresh account to your first confirmed in-game delivery, end to end.
+---
+
+This guide takes you through a complete integration loop: create a key, read your
+catalog, take a payment, and confirm delivery. It should take about ten minutes
+and assumes you already have an account and at least one product configured in
+[app.2pay.gg](https://app.2pay.gg).
+
+## Before you start
+
+You will need:
+
+- A 2Pay account with a verified project. If you are not there yet, follow
+  [Getting started](/creators/getting-started) first.
+- **At least one product** created in the panel. The APIs read and act on
+  products that already exist, they never create them.
+- A backend you control where you can store a secret key safely. Never put a
+  secret key in a browser, a mobile app binary, or a public repository.
+
+## 1. Create an API key
+
+In the panel, open **Developers → API keys** and create a key. You get two
+flavors:
+
+- **Test keys** (`sk_test_...`) talk to an isolated sandbox. No real money
+  moves, and you can use [test cards](/dev/checkout/integrating#testing) freely.
+- **Live keys** (`sk_live_...`) act on your real store.
+
+Build against a test key first, then swap to live when you are happy.
+
+```bash
+export TWOPAY_KEY="sk_test_your_key_here"
+```
+
+See [Authentication](/dev/developer-api/authentication) for key types, scopes,
+and rotation.
+
+## 2. Read your catalog
+
+Confirm the key works by listing the products already in your store. Every
+request goes to `https://api.2pay.io/v1` and carries your key as a bearer token.
+
+```bash
+curl https://api.2pay.io/v1/products \
+  -H "Authorization: Bearer $TWOPAY_KEY"
+```
+
+A successful response is a paginated list:
+
+```json
+{
+  "object": "list",
+  "data": [
+    {
+      "object": "product",
+      "id": "prod_01H9Z4...",
+      "name": "VIP Rank",
+      "active": true,
+      "price": { "amount": 999, "currency": "eur" }
+    }
+  ],
+  "has_more": false
+}
+```
+
+Note the product `id` (here `prod_01H9Z4...`), you will reference it at checkout.
+
+## 3. Let the buyer pay
+
+Pick the surface that fits your product:
+
+- **No frontend, fastest path:** turn on a [Webstore](/dev/webstores/overview)
+  and send buyers to your 2Pay subdomain. You are done; skip to step 4.
+- **Pay inside your own site or app:** use [Checkout](/dev/checkout/overview).
+  Your backend creates a checkout for the chosen product and returns its
+  `ident`, then your frontend opens it with our browser library.
+
+A minimal Checkout creation call looks like this:
+
+```bash
+curl https://api.2pay.io/v1/checkouts \
+  -H "Authorization: Bearer $TWOPAY_KEY" \
+  -H "Idempotency-Key: $(uuidgen)" \
+  -d "items[0][product]=prod_01H9Z4..." \
+  -d "items[0][quantity]=1"
+```
+
+The response contains an `ident` your frontend hands to the library. The full
+browser flow is covered in [Checkout → Integrating](/dev/checkout/integrating).
+
+## 4. Hear about the sale
+
+Do **not** rely on the browser to tell you a payment succeeded; a closed tab or a
+dropped connection would lose it. Instead, let 2Pay notify your backend.
+
+Register a webhook endpoint (in the panel under **Developers → Webhooks**, or via
+the API) and subscribe to `order.paid` and `delivery.pending`. When the buyer
+pays, 2Pay sends a signed `POST` to your URL:
+
+```json
+{
+  "object": "event",
+  "id": "evt_01HA0...",
+  "type": "order.paid",
+  "created": "2026-06-28T11:42:09Z",
+  "data": {
+    "object": "order",
+    "id": "ord_01HA0...",
+    "status": "paid",
+    "deliveries": [{ "id": "dlv_01HA0...", "status": "pending" }]
+  }
+}
+```
+
+Always verify the `2Pay-Signature` header before trusting the body. See
+[Verifying signatures](/dev/webhooks/verifying-signatures).
+
+## 5. Deliver and confirm
+
+How you deliver depends on what you sell:
+
+- **A game item, rank, or command:** your game server or plugin uses the
+  [Game API](/dev/game-api/overview) to pull the pending delivery, run it
+  in-game, and confirm it.
+- **Anything your backend handles directly** (a license key, a role, an account
+  flag): grant it, then confirm the delivery over the Developer API:
+
+```bash
+curl -X POST https://api.2pay.io/v1/deliveries/dlv_01HA0.../complete \
+  -H "Authorization: Bearer $TWOPAY_KEY" \
+  -H "Idempotency-Key: $(uuidgen)"
+```
+
+Once confirmed, 2Pay emits `delivery.completed` and the order is fully settled on
+both sides.
+
+## You now have a full loop
+
+You read your catalog, took a payment, received a signed event, and confirmed
+delivery. From here, go deeper:
+
+<Cards>
+  <Card title="Conventions" href="/dev/developer-api/conventions">
+    Errors, pagination, idempotency, money, and IDs, the rules every endpoint
+    follows.
+  </Card>
+  <Card title="Orders" href="/dev/developer-api/orders">
+    The full order object, statuses, and how to reconcile sales.
+  </Card>
+  <Card title="Webhooks" href="/dev/webhooks/overview">
+    Every event type, payload shapes, retries, and testing.
+  </Card>
+  <Card title="Game API" href="/dev/game-api/overview">
+    The delivery queue your server polls, and how plugins consume it.
+  </Card>
+</Cards>

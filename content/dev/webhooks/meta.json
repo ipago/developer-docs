@@ -1,4 +1,10 @@
 {
   "title": "Webhooks",
-  "pages": ["overview"]
+  "pages": [
+    "overview",
+    "endpoints",
+    "verifying-signatures",
+    "events",
+    "delivery-and-testing"
+  ]
 }

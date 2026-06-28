@@ -1,0 +1,99 @@
+---
+title: Delivery & testing
+description: Retry behavior, the source IP allowlist, and how to test webhooks locally.
+---
+
+This page covers the operational side of webhooks: what happens when delivery
+fails, how to lock down where requests come from, and how to exercise your
+handler before going live.
+
+## Acknowledging a delivery
+
+2Pay considers a webhook delivered when your endpoint returns any **`2xx`** status
+(`200` to `299`) **within a few seconds**. Anything else, a `4xx`, a `5xx`, a
+timeout, a connection reset, counts as a failure and triggers a retry.
+
+<Callout type="warn">
+  Do your real work after acking. Acknowledge fast, push the event onto a queue
+  or background job, and process it there. A handler that grants items inline and
+  takes ten seconds will time out, get retried, and risks double-processing.
+</Callout>
+
+## Retries
+
+When a delivery fails, 2Pay retries it on an **exponential backoff with jitter**,
+over roughly **72 hours**. Early retries are minutes apart; later ones stretch to
+hours. Each retry carries the same `event.id`, which is exactly why your handler
+must [deduplicate on `event.id`](/dev/webhooks/overview#the-four-rules-that-keep-webhooks-reliable).
+
+If an endpoint keeps failing across the whole retry window, it is marked
+`disabled` and delivery stops. You then re-enable it in the panel (which may
+require re-validation) and backfill the gap from the
+[Events API](/dev/developer-api/events#catching-up-after-downtime).
+
+| Behavior | Detail |
+| --- | --- |
+| Success | Any `2xx`. |
+| Retry trigger | Non-`2xx`, timeout, or connection error. |
+| Schedule | Exponential backoff with jitter, ~72h total. |
+| Same event | Identical `event.id` on every retry. |
+| Give-up | Endpoint disabled after sustained failure. |
+
+## IP allowlist
+
+All webhook requests originate from a fixed set of 2Pay IP addresses. If you
+firewall your endpoint, allow these source addresses:
+
+```
+203.0.113.10
+203.0.113.11
+```
+
+<Callout type="info">
+  The current, authoritative list is shown in the panel under
+  **Developers → Webhooks**, and the addresses above are illustrative. Treat the
+  allowlist as defense in depth only: it narrows who can reach your URL, but
+  [signature verification](/dev/webhooks/verifying-signatures) is what actually
+  authenticates each request.
+</Callout>
+
+## Testing
+
+### Send a test event
+
+From **Developers → Webhooks → Send test**, pick an event type and a reference
+(an order id, for `order.*` events) and 2Pay delivers a real, signed payload to
+your endpoint. Use this to confirm your signature check and your handler logic
+end to end.
+
+### Test mode
+
+Point a [test-mode endpoint](/dev/webhooks/endpoints#test-mode-vs-live-mode) at
+your staging handler and drive real sandbox purchases with
+[test cards](/dev/checkout/integrating#testing). You get genuine event sequences,
+`order.paid` then `delivery.pending`, without moving money.
+
+### Local development
+
+Your endpoint must be reachable over public HTTPS, so for local work put a
+tunnel in front of your machine:
+
+```bash
+# example with a tunneling tool of your choice
+ngrok http 3000
+# then register the https://<id>.ngrok.app/hooks/2pay URL as an endpoint
+```
+
+Register the tunnel URL as a test-mode endpoint, complete the
+[validation handshake](/dev/webhooks/endpoints#validation), and trigger events
+with Send test or sandbox checkouts.
+
+## A reliable consumer, in summary
+
+1. Capture the raw body and
+   [verify the signature](/dev/webhooks/verifying-signatures).
+2. Return `2xx` immediately.
+3. Enqueue the event; process it in a background worker.
+4. Deduplicate on `event.id`; make handlers idempotent.
+5. Reconcile periodically against the
+   [Events](/dev/developer-api/events) or [Orders](/dev/developer-api/orders) API.

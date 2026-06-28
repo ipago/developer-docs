@@ -1,0 +1,68 @@
+---
+title: Plugins
+description: Official plugins that implement the delivery loop for you, and the RCON adapter for everything else.
+---
+
+You rarely need to write the [queue loop](/dev/game-api/delivery-queue) yourself.
+For supported games, 2Pay ships **open-source plugins** that already handle
+polling, placeholder substitution, online and offline command execution, retries,
+and confirmation. You install the plugin, paste your
+[server token](/dev/game-api/authentication), and deliveries just work.
+
+## Using an official plugin
+
+1. In the panel, open **Developers → Game servers** and create a server entry for
+   the game you run. Copy its server token.
+2. Download the matching plugin for your game and install it like any other plugin
+   on your host.
+3. Set the server token in the plugin's config.
+4. Restart, then run a test purchase (use [test mode](/dev/game-api/authentication#the-server-token))
+   and confirm the reward is delivered in-game.
+
+The plugin polls on the cadence the API returns (`meta.next_check`) and confirms
+each command after it runs, so completed orders show as delivered in your panel
+and emit [`delivery.completed`](/dev/webhooks/events) webhooks automatically.
+
+## Mapping products to commands
+
+What a plugin actually *does* for a purchase is defined by the **commands you
+attach to each product** in the panel:
+
+- **Online commands** run while the player is connected (give an item, open a
+  crate). The plugin waits for the player and checks inventory `slots` first.
+- **Offline commands** run regardless of presence (grant a permission, add
+  currency). They execute on the next poll whether or not the player is online.
+
+Use placeholders like `{username}` and `{uuid}` in your commands; the plugin
+fills them in per player from the queue payload.
+
+## Games without a plugin
+
+If we do not yet ship a plugin for your game, you have two options:
+
+### Build directly against the Game API
+
+Implement the [delivery queue](/dev/game-api/delivery-queue) loop yourself in
+whatever language your server extends with. It is a small loop: `GET /queue`, run
+online and offline commands, `DELETE /queue` to confirm. This is the right path
+for a fully custom integration.
+
+### Use the RCON adapter
+
+Many game servers expose **RCON**, a standard remote-console protocol. The RCON
+adapter is a small standalone process that runs the queue loop for you and pushes
+each command to your server over RCON, no in-process plugin required. Point it at
+your server's RCON host, port, and password, give it your 2Pay server token, and
+it delivers commands as if you had a native plugin.
+
+<Callout type="info">
+  RCON is the universal fallback: if your game speaks RCON, you can deliver 2Pay
+  purchases to it today, even without a dedicated plugin.
+</Callout>
+
+## Need a plugin we don't have yet?
+
+Tell us which game you run at [support@2pay.io](mailto:support@2pay.io). Demand
+directly shapes which plugins we build next, and in the meantime the
+[Game API](/dev/game-api/delivery-queue) and the RCON adapter cover any server
+you can reach.

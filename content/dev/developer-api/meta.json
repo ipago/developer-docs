@@ -1,4 +1,12 @@
 {
   "title": "Developer API",
-  "pages": ["overview"]
+  "pages": [
+    "overview",
+    "authentication",
+    "conventions",
+    "products",
+    "orders",
+    "deliveries",
+    "events"
+  ]
 }

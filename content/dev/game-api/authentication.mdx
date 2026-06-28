@@ -1,0 +1,70 @@
+---
+title: Authentication
+description: The per-store server token, the base URL, and how to keep it scoped.
+---
+
+The Game API authenticates with a **server token**: a secret bound to a single
+store (and, where you run more than one game server, to a single server
+configuration). Unlike a Developer API key, it is designed to live on the game
+host, so it grants only the narrow set of queue operations and nothing else.
+
+## Base URL
+
+```
+https://game.2pay.io/v1
+```
+
+The Game API has its own host, separate from `api.2pay.io`, precisely because the
+credential and the traffic pattern (frequent polling from game servers) are
+different from the backend Developer API.
+
+## The server token
+
+Generate a token in the panel under **Developers → Game servers**, create a
+server entry, and copy its token. Send it on every request in the
+`X-2Pay-Server-Token` header:
+
+```bash
+curl https://game.2pay.io/v1/queue \
+  -H "X-2Pay-Server-Token: srv_live_..."
+```
+
+| Token prefix | Mode |
+| --- | --- |
+| `srv_test_` | Sandbox; pairs with test-mode orders. |
+| `srv_live_` | Live store. |
+
+A missing or wrong token returns `401`; a valid token used against a store it does
+not belong to returns `403`.
+
+## What the token can and cannot do
+
+A server token is intentionally limited. It can:
+
+- Read the command queue for its store/server.
+- Fetch online and offline commands.
+- Delete (confirm) executed commands.
+- Read its own server information.
+
+It **cannot** read orders or customers in full, list your catalog's private
+fields, manage webhooks, or do anything the [Developer API](/dev/developer-api/overview)
+does. If a leaked token is the worst case, the blast radius is limited to the
+delivery queue of one store.
+
+<Callout type="warn">
+  Even so, treat the token as a secret. Put it in your server config or a secrets
+  store, not in a public repository or a client players can download. If it leaks,
+  roll it in the panel; the old token stops working immediately.
+</Callout>
+
+## One token per server
+
+If you run multiple game servers (for example a Survival and a Creative server)
+that should deliver different products or be tracked separately, create a
+**separate server entry and token for each**. Commands are scoped per server, so
+each host only ever pulls what is meant for it.
+
+## Errors
+
+The Game API uses the same [error shape and status codes](/dev/developer-api/conventions#errors)
+as the rest of the platform, so you can reuse one error handler across both APIs.

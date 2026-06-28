@@ -1,28 +1,81 @@
 ---
 title: Overview
-description: "Run a referral program: track affiliates, referrals, and commissions."
+description: "Run a referral program: manage affiliates, attribute referred sales, and read commissions."
 ---
 
-The **Affiliate API** lets you run a referral program on top of your store:
-reward creators and partners for the sales they drive.
+The **Affiliate API** lets you build a referral program on top of your store, so
+creators, streamers, and partners earn a cut of the sales they drive. You create
+affiliates, hand each one a referral code or link, and 2Pay attributes the orders
+they bring in and records the commission owed.
+
+It is part of the same HTTP surface as the [Developer API](/dev/developer-api/overview):
+same base URL, same [authentication](/dev/developer-api/authentication), and the
+same [conventions](/dev/developer-api/conventions) for errors, pagination,
+idempotency, money, and IDs. If you have read those, you already know how this
+API behaves.
 
 ## What it's for
 
-- **Manage affiliates**, create and list the partners promoting your store.
-- **Track referrals**, attribute orders to an affiliate via referral codes or
-  links.
-- **See commissions**, read what each affiliate has earned per sale.
+- **Manage affiliates.** Create, list, fetch, and deactivate the partners
+  promoting your store.
+- **Attribute referrals.** When a buyer arrives through an affiliate's code or
+  link, 2Pay ties the resulting order to that affiliate.
+- **Read commissions.** See what each affiliate earned per sale and in total.
 
-## How it fits together
+## How attribution works
 
-1. You create an affiliate and share their referral code or link.
-2. When a referred buyer purchases, 2Pay attributes the order to that affiliate.
-3. The earned commission is recorded and available through the API and in
-   **app.2pay.gg**.
+```
+You create an affiliate ──▶ share code "ALEX" or link ?ref=ALEX
+        │
+        ▼
+Buyer visits with the code and purchases
+        │
+        ▼
+2Pay records a referral on the order  ──▶ referral.created webhook
+        │
+        ▼
+A commission is calculated from your panel rules and recorded
+```
+
+1. You create an affiliate and share its **code** (or a link containing it).
+2. A buyer who arrives with that code and completes a purchase has the order
+   attributed to the affiliate.
+3. 2Pay creates a [referral](/dev/affiliate-api/referrals-and-commissions) linking
+   the order and the affiliate, and records the
+   [commission](/dev/affiliate-api/referrals-and-commissions#commissions) based on
+   the rate configured in the panel.
+
+## What the panel owns vs what the API owns
+
+Commission **rates**, attribution **windows**, and payout **rules** are configured
+in the panel under your affiliate program settings. The API is the
+**read-and-manage** layer on top of that configuration: it creates affiliates and
+reads the referrals and commissions the rules produce. It does not set rates or
+pay affiliates out.
 
 <Callout type="info">
-  Commission rates and payout rules are configured in the admin panel. The API
-  is read-and-manage on top of that configuration.
+  Affiliate **payouts** (actually sending earnings to partners) are handled by
+  2Pay under your program settings, not through this API.
 </Callout>
 
-<Callout>The full Affiliate API reference is coming soon.</Callout>
+## Authentication
+
+Use a [Developer API key](/dev/developer-api/authentication) with the affiliate
+scopes:
+
+| Scope | Grants |
+| --- | --- |
+| `affiliates:read` | List and fetch affiliates. |
+| `affiliates:write` | Create and deactivate affiliates. |
+| `referrals:read` | Read referrals and commissions. |
+
+## Where to go next
+
+<Cards>
+  <Card title="Affiliates" href="/dev/affiliate-api/affiliates">
+    Create, list, and manage the partners promoting your store.
+  </Card>
+  <Card title="Referrals & commissions" href="/dev/affiliate-api/referrals-and-commissions">
+    Read attributed sales and what each affiliate earned.
+  </Card>
+</Cards>

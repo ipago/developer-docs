@@ -1,40 +1,91 @@
 ---
 title: Developers
-description: Integrate with 2Pay, the Developer API, Game API, webhooks, and affiliates.
+description: Integrate 2Pay into your site, app, or game with the Developer API, Game API, webhooks, and affiliates.
 ---
 
-The **2Pay Developer docs** cover everything you need to integrate 2Pay into your
-own systems. Products are created in your admin panel at **app.2pay.gg**; these
-products and APIs let you read, sync, and react to them.
+The **2Pay Developer docs** are the technical reference for wiring 2Pay into
+software you already run: a website, a backend service, a game server, or a
+storefront. Everything here assumes one thing about your account, so let's get it
+out of the way first.
+
+## How 2Pay is shaped
+
+2Pay is a **Merchant of Record (MoR)**. When a buyer pays, 2Pay is the seller on
+record, so 2Pay owns the parts of a sale that are painful to build yourself:
+payment processing, sales tax and VAT, fraud screening, chargebacks, and your
+payouts. Your integration never touches card data and never has to register for
+tax in dozens of jurisdictions.
+
+Because of that, the developer surface is split cleanly in two:
+
+- **The admin panel at [app.2pay.gg](https://app.2pay.gg)** is where products,
+  prices, categories, themes, payout details, and program settings are
+  **created and configured**. This is the source of truth.
+- **The APIs documented here** let your own systems **read** that catalog,
+  **watch** what sells, **confirm** delivery, and **react** to events in real
+  time. They are a synchronization and runtime layer, not a place to define new
+  products on the fly.
+
+<Callout type="info">
+  If your mental model comes from Tebex: we cover the same ground (a hosted
+  store, an embeddable checkout, webhooks, and a game-server delivery API), but
+  we deliberately keep product creation inside the panel rather than exposing an
+  ad-hoc "build a product in the request" API. See
+  [What we intentionally leave out](/dev/developer-api/overview#scope) for the
+  full list.
+</Callout>
+
+## Pick your starting point
+
+New here? Start with the [Quick start](/dev/quick-start), it walks the whole
+path from creating a key to confirming your first delivery in about ten minutes.
 
 ## Products
 
+These are the two ways a buyer can actually reach a checkout.
+
 <Cards>
   <Card title="Webstores" href="/dev/webstores/overview">
-    Hosted storefronts on a 2Pay subdomain. The fastest way to start selling.
+    A hosted storefront on your own 2Pay subdomain (or custom domain), styled
+    with templates, themes, and assets. No frontend code required.
   </Card>
   <Card title="Checkout" href="/dev/checkout/overview">
-    Embed the 2Pay checkout directly into your own site or app.
+    Drop the 2Pay checkout straight into your existing site or app with our
+    browser library, so buyers pay without ever leaving your page.
   </Card>
 </Cards>
 
 ## Integrate
 
+These are the programmatic interfaces your servers talk to.
+
 <Cards>
   <Card title="Developer API" href="/dev/developer-api/overview">
-    A headless API to manage your products and track delivery.
+    The headless HTTP API: read products and orders, track and confirm
+    delivery, and manage your webhook endpoints.
   </Card>
   <Card title="Game API" href="/dev/game-api/overview">
-    Deliver purchases in-game from your game server or plugin.
+    The runtime endpoint a game server or plugin polls to fetch and execute
+    in-game deliveries, then report them complete.
   </Card>
   <Card title="Webhooks" href="/dev/webhooks/overview">
-    Signed event callbacks that keep your systems in sync.
+    Signed, retried event callbacks that push order and delivery changes to
+    your backend the moment they happen.
   </Card>
   <Card title="Affiliate API" href="/dev/affiliate-api/overview">
-    Run a referral program with affiliates and commissions.
+    Run a referral program: manage affiliates, attribute referred sales, and
+    read the commissions each partner has earned.
   </Card>
 </Cards>
 
+## Conventions used across these docs
+
+Every HTTP API in this section shares the same base URL, authentication scheme,
+error format, pagination, and idempotency rules. Rather than repeat them on each
+page, they live in one place:
+[Developer API → Conventions](/dev/developer-api/conventions).
+
 <Callout type="info">
-  Looking for general product info? See the [Creator docs](/creators).
+  Looking for plans, fees, payouts, or general product information instead of
+  integration details? Head to the [Creator docs](/creators).
 </Callout>

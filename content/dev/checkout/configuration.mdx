@@ -1,0 +1,75 @@
+---
+title: Configuration
+description: Every option you can pass to Checkout.init, plus theming and localization.
+---
+
+`Checkout.init(config)` configures the overlay before you `launch()` it. Only
+`ident` is required; everything else tunes appearance, language, and behavior.
+
+```js
+Checkout.init({
+  ident,                 // required
+  theme: "auto",
+  locale: "en_US",
+  closeOnComplete: false,
+  colors: [
+    { name: "primary", color: "#5b2eff" },
+    { name: "secondary", color: "#22c55e" },
+  ],
+});
+```
+
+## Options
+
+| Option | Type | Default | Description |
+| --- | --- | --- | --- |
+| `ident` | string | required | The checkout identifier returned by your server's [`POST /v1/checkouts`](/dev/checkout/integrating#1-create-a-checkout-server-side) call. |
+| `theme` | string | `"default"` | `"light"`, `"dark"`, `"auto"` (follow the device), or `"default"` (your store's configured theme). |
+| `locale` | string | buyer's browser locale | A locale such as `"en_US"`, `"de_DE"`, `"pl_PL"`. Sets the checkout's language and number formatting. |
+| `colors` | array | store defaults | Brand accent overrides; see [Theming](#theming). |
+| `defaultPaymentMethod` | string | none | Pre-select a payment method (for example `"paypal"`). |
+| `closeOnComplete` | boolean | `false` | Automatically close the overlay after a successful payment. |
+| `popupOnMobile` | boolean | `true` | On mobile, open checkout in a new tab. When `false`, render inline where supported. |
+
+<Callout type="info">
+  Unknown options are ignored, so adding a new option in a later library version
+  will not break older code. Pin the library URL (`/v1.js`) to keep behavior
+  stable.
+</Callout>
+
+## Theming
+
+Match the checkout to your brand with the `colors` array. Each entry names a slot
+and a hex color:
+
+```js
+colors: [
+  { name: "primary",   color: "#5b2eff" }, // buttons, active states, links
+  { name: "secondary", color: "#22c55e" }, // success accents, highlights
+];
+```
+
+| Slot | Affects |
+| --- | --- |
+| `primary` | Primary buttons, active inputs, links. |
+| `secondary` | Secondary accents and success states. |
+
+Combine `colors` with `theme` to control both the base palette (light/dark) and
+your accent colors. For deeper styling of a full storefront, use the
+[Webstore Builder](/dev/webstores/overview) instead, the embedded checkout is
+intentionally a focused payment surface, not a fully themeable page.
+
+## Localization
+
+Set `locale` to control language and formatting. If you omit it, the buyer's
+browser locale is used. Currency display always follows the
+[product's currency](/dev/developer-api/conventions#money) configured in the
+panel; `locale` affects formatting, not the currency itself.
+
+## Re-using and re-initializing
+
+Each `ident` is for **one** checkout. To start another purchase (different
+products, or after one completed), create a fresh checkout server-side to get a
+new `ident`, then `init` and `launch` again. Idents are short-lived and expire
+(`expires_at` on the checkout object); create them when the buyer is about to pay,
+not far in advance.
