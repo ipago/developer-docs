@@ -1,6 +1,9 @@
 {
   "pages": [
     "index",
+    "---Products---",
+    "webstores",
+    "checkout",
     "---Integrate---",
     "developer-api",
     "game-api",
