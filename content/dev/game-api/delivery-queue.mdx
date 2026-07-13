@@ -3,6 +3,8 @@ title: Delivery queue
 description: The poll-run-confirm loop and the queue endpoints your server calls.
 ---
 
+<Callout type="warn">Preview: this Game API (`/v1/queue`) is planned and not available yet. To deliver purchases in-game today, use the Developer API deliveries endpoints (`/v1/deliveries`).</Callout>
+
 The Game API hands your server work as a **command queue**. Each paid product
 that targets a game server becomes one or more **commands**, run a console
 command, give an item, grant a rank, tied to the player who bought it. Your
