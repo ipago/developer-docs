@@ -6,7 +6,7 @@ import { creatorsOptions } from "../layout.config";
 
 export default function Layout({ children }: { children: ReactNode }) {
   return (
-    <RootProvider search={{ options: { api: "/api/search/creators" } }}>
+    <RootProvider search={{ options: { api: "/api/search/creators" } }} theme={{ enabled: false }}>
       <DocsLayout tree={creatorsSource.pageTree} {...creatorsOptions}>
         {children}
       </DocsLayout>

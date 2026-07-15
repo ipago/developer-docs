@@ -1,3 +1,73 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/*
+ * Stripe-style LIGHT documentation theme.
+ * Dark mode is disabled at the provider (RootProvider theme={{ enabled: false }}), so only
+ * :root applies. Fumadocs colors are HSL triplets consumed as hsl(var(--fd-x) / alpha); we
+ * override them here with a clean, cool, near-white palette and a 2Pay coral accent that keeps
+ * AA contrast on white.
+ */
+:root {
+  --fd-background: 0 0% 100%;
+  --fd-foreground: 222 24% 12%;
+  --fd-muted: 220 24% 97.5%;
+  --fd-muted-foreground: 220 10% 42%;
+  --fd-popover: 0 0% 100%;
+  --fd-popover-foreground: 222 24% 12%;
+  --fd-card: 0 0% 100%;
+  --fd-card-foreground: 222 24% 12%;
+  --fd-border: 220 18% 91%;
+  --fd-primary: 12 82% 46%;
+  --fd-primary-foreground: 0 0% 100%;
+  --fd-secondary: 220 26% 97.5%;
+  --fd-secondary-foreground: 222 24% 16%;
+  --fd-accent: 220 26% 96%;
+  --fd-accent-foreground: 222 26% 14%;
+  --fd-ring: 12 82% 46%;
+
+  /* Brand fonts (wired in app/layout.tsx via next/font). */
+  --docs-font-sans: var(--font-geist), ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --docs-font-display: var(--font-hanken), var(--font-geist), sans-serif;
+  --docs-font-mono: var(--font-geist-mono), ui-monospace, "SF Mono", monospace;
+}
+
+@layer base {
+  body {
+    font-family: var(--docs-font-sans);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+  /* Editorial, tightly-set headings like a Stripe reference page. */
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-family: var(--docs-font-display);
+    letter-spacing: -0.018em;
+  }
+  code,
+  pre,
+  kbd,
+  samp {
+    font-family: var(--docs-font-mono);
+  }
+}
+
+@layer components {
+  /* Crisper prose: readable measure, softer links, refined inline code. */
+  .prose {
+    font-size: 15.5px;
+    line-height: 1.72;
+  }
+  .prose a {
+    text-decoration-thickness: 1px;
+    text-underline-offset: 3px;
+  }
+  .prose :not(pre) > code {
+    font-size: 0.86em;
+    font-weight: 500;
+    border-radius: 5px;
+  }
+}

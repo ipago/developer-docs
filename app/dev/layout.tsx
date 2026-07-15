@@ -6,7 +6,7 @@ import { devOptions } from "../layout.config";
 
 export default function Layout({ children }: { children: ReactNode }) {
   return (
-    <RootProvider search={{ options: { api: "/api/search/dev" } }}>
+    <RootProvider search={{ options: { api: "/api/search/dev" } }} theme={{ enabled: false }}>
       <DocsLayout tree={devSource.pageTree} {...devOptions}>
         {children}
       </DocsLayout>

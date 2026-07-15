@@ -9,6 +9,8 @@ import { notFound } from "next/navigation";
 import defaultMdxComponents from "fumadocs-ui/mdx";
 import { Card, Cards } from "fumadocs-ui/components/card";
 import { Callout } from "fumadocs-ui/components/callout";
+import PageActions from "@/components/PageActions";
+import { readRawMarkdown } from "@/lib/raw";
 
 export default async function Page(props: {
   params: Promise<{ slug?: string[] }>;
@@ -18,11 +20,13 @@ export default async function Page(props: {
   if (!page) notFound();
 
   const MDXContent = page.data.body;
+  const raw = readRawMarkdown("dev", page.file.path);
 
   return (
     <DocsPage toc={page.data.toc} full={page.data.full}>
       <DocsTitle>{page.data.title}</DocsTitle>
       <DocsDescription>{page.data.description}</DocsDescription>
+      <PageActions markdown={raw} mdHref={`/md${page.url}`} />
       <DocsBody>
         <MDXContent components={{ ...defaultMdxComponents, Card, Cards, Callout }} />
       </DocsBody>
