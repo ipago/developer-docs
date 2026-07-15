@@ -1,0 +1,45 @@
+---
+title: Balance & ledger
+description: Read your available and pending balance and the underlying ledger entries.
+---
+
+2Pay keeps a double-entry ledger behind every sale, refund, payout, and dispute.
+You can read your balance and the raw entries through the API. These are read-only:
+money moves through checkout, refunds, and payouts, never through direct writes.
+
+## Balance
+
+```bash
+curl https://api.2pay.gg/v1/balance \
+  -H "Authorization: Bearer sk_live_..."
+```
+
+```json
+{
+  "object": "balance",
+  "available": [ { "currency": "eur", "amount": 48210 } ],
+  "pending": [ { "currency": "eur", "amount": 12500 } ]
+}
+```
+
+Amounts are integers in the currency's smallest unit (cents for EUR). `pending`
+covers earnings still inside the payout hold window; `available` is what can be
+paid out now.
+
+<Callout type="info">
+  Tax collected as Merchant of Record is a platform liability that 2Pay remits.
+  It is never part of your balance. See [Tax & VAT](/dev/developer-api/tax).
+</Callout>
+
+## Ledger entries
+
+For a line-by-line view, list `ledger_entries`:
+
+```bash
+curl "https://api.2pay.gg/v1/ledger_entries?limit=50" \
+  -H "Authorization: Bearer sk_live_..."
+```
+
+Each entry records a debit or credit against an account (for example
+`creator_payable`, `platform_revenue`, or `gateway_fee_charged`) for one
+transaction, so a sale's fees and your net payable are fully auditable.

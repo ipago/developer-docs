@@ -1,0 +1,29 @@
+---
+title: Storefront API overview
+description: The public, slug-scoped API that powers a store's buyer-facing pages, baskets, and checkout.
+---
+
+The **Storefront API** is the public surface a buyer-facing store uses. Every
+route is scoped to a store by its slug, `/v1/storefront/{slug}/...`, and serves
+the data and actions a shopper needs: browse the catalog, build a basket, and
+check out.
+
+Use it to build a custom storefront in front of 2Pay, or to embed buying into your
+own site or game. Product and price definitions still live in the panel; the
+Storefront API reads them and turns a basket into a paid order.
+
+## What it exposes
+
+- **Store & catalog:** `GET /v1/storefront/{slug}`, `GET /v1/storefront/{slug}/products`,
+  `GET /v1/storefront/{slug}/categories`, and a single product by id.
+- **Baskets:** create a basket, add and remove items, apply a coupon or gift card,
+  then check out. See [Baskets & checkout](/dev/storefront/baskets).
+- **Order lookup:** `GET /v1/storefront/{slug}/orders/by-session/{sessionId}` to
+  resolve the order after a buyer returns from checkout.
+- **Subscriptions:** `POST /v1/storefront/{slug}/subscribe` for recurring products.
+
+<Callout type="info">
+  The Storefront API is read-and-buy only. It never creates products or changes
+  prices. To manage the catalog, use the panel or the
+  [Developer API](/dev/developer-api/overview).
+</Callout>

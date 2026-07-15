@@ -4,9 +4,16 @@
     "overview",
     "authentication",
     "conventions",
+    "idempotency",
+    "errors",
+    "rate-limits",
+    "pagination",
     "products",
     "orders",
+    "balance",
     "deliveries",
-    "events"
+    "events",
+    "payment-methods",
+    "tax"
   ]
 }

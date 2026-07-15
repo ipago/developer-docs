@@ -1,0 +1,30 @@
+---
+title: Payment methods
+description: How 2Pay offers 100+ payment methods and how a store controls which ones appear.
+---
+
+2Pay presents buyers the payment methods most likely to convert for their country
+and currency, drawn from cards and wallets (Visa, Mastercard, Apple Pay, Google
+Pay), local rails (BLIK, iDEAL, Przelewy24, Bancontact, SEPA), buy-now-pay-later
+(Klarna), PayPal, and more. You never touch card data: the hosted checkout
+collects and tokenizes it.
+
+## One integration, many methods
+
+Because 2Pay is the Merchant of Record, adding a method is an account-level
+setting, not code. Your [checkout](/dev/checkout/overview) automatically offers the
+eligible methods for each buyer, so a new market is a configuration change rather
+than an integration.
+
+## Per-store selection
+
+A store can narrow the offered set from its settings (for example, cards and BLIK
+only). This is materialized per store on the payment provider and applied at
+checkout. A store that has not customized the list uses the account default
+(dynamic methods chosen per buyer).
+
+<Callout type="info">
+  A method only appears if it is both enabled for the store and eligible for the
+  buyer's currency and country. Restricting methods too tightly can lower
+  conversion for international buyers.
+</Callout>

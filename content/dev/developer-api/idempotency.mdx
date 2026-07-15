@@ -1,0 +1,38 @@
+---
+title: Idempotency
+description: Safely retry write requests without creating duplicates using the Idempotency-Key header.
+---
+
+Any request that changes state can be retried safely by sending an
+`Idempotency-Key` header. If a request with the same key has already succeeded,
+2Pay replays the original response instead of performing the action again. This
+protects you against network timeouts, dropped connections, and double-clicks.
+
+## How it works
+
+Generate a unique key per logical operation (a UUID is a good choice) and send it
+on the request:
+
+```bash
+curl https://api.2pay.gg/v1/storefront/myshop/baskets/bsk_123/checkout \
+  -H "Authorization: Bearer sk_live_..." \
+  -H "Idempotency-Key: 5f0c2b1a-9d3e-4a7c-8f2b-1c9e2d3f4a5b" \
+  -H "Content-Type: application/json" \
+  -d '{}'
+```
+
+- The **first** call performs the operation and stores the result under the key.
+- Any **later** call with the same key returns that stored result, byte for byte,
+  even if the original is still in flight.
+
+<Callout type="warn">
+  Reuse a key only for a retry of the exact same operation. Sending a different
+  body with a key that was already used returns the original response, not a new
+  action.
+</Callout>
+
+## When to use it
+
+Send an `Idempotency-Key` on every non-idempotent write: creating baskets,
+checking out, and any mutation you might retry. Read requests (`GET`) are already
+idempotent and do not need the header.

@@ -1,0 +1,47 @@
+---
+title: Errors
+description: The 2Pay error object, HTTP status codes, and error types you should handle.
+---
+
+2Pay uses conventional HTTP status codes and returns a structured error object so
+your code can branch on a stable machine-readable field rather than parsing prose.
+
+## The error object
+
+```json
+{
+  "error": {
+    "type": "invalid_request_error",
+    "code": "resource_missing",
+    "message": "No such product: prod_123",
+    "param": "product"
+  }
+}
+```
+
+- `type` groups the error. Branch on this first.
+- `code` is a stable, specific identifier for the exact problem.
+- `message` is a human-readable description. Do not match on it.
+- `param` is present when a specific field caused the error.
+
+## Error types
+
+| `type` | HTTP | Meaning |
+| --- | --- | --- |
+| `invalid_request_error` | 400 / 404 / 409 | The request was malformed, referenced something that does not exist, or conflicted with current state. |
+| `authentication_error` | 401 | The API key is missing, malformed, or invalid. |
+| `permission_error` | 403 | The key is valid but lacks the scope or access for this action. |
+| `rate_limit_error` | 429 | Too many requests. See [Rate limits](/dev/developer-api/rate-limits). |
+| `api_error` | 500 / 503 | Something went wrong on our side, or a dependency is unavailable. |
+
+<Callout type="info">
+  A `404` uses `invalid_request_error` with `code: "resource_missing"`. To avoid
+  leaking whether a resource exists across accounts, some endpoints return `404`
+  rather than `403` for objects you cannot access.
+</Callout>
+
+## Handling errors
+
+Treat `4xx` as caller mistakes to fix, and `5xx` (plus `429`) as transient.
+Retry `5xx` and `429` with backoff and an [Idempotency-Key](/dev/developer-api/idempotency);
+do not retry `4xx` without changing the request.

@@ -1,0 +1,35 @@
+---
+title: Pagination
+description: Cursor pagination for list endpoints with limit, starting_after, and has_more.
+---
+
+List endpoints return a consistent envelope and paginate with cursors.
+
+## The list envelope
+
+```json
+{
+  "object": "list",
+  "data": [ { "object": "product", "id": "prod_123" } ],
+  "has_more": true
+}
+```
+
+- `data` holds the page of objects, newest first.
+- `has_more` tells you whether another page exists.
+
+## Paging with cursors
+
+Use `limit` to size the page and `starting_after` (an object id) to fetch the
+next one:
+
+```bash
+curl "https://api.2pay.gg/v1/orders?limit=50" \
+  -H "Authorization: Bearer sk_live_..."
+
+# next page: pass the id of the last item you received
+curl "https://api.2pay.gg/v1/orders?limit=50&starting_after=ord_last" \
+  -H "Authorization: Bearer sk_live_..."
+```
+
+Keep requesting while `has_more` is `true`. Use `ending_before` to page backwards.

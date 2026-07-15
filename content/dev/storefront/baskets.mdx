@@ -1,0 +1,64 @@
+---
+title: Baskets & checkout
+description: Build a basket, apply discounts, and turn it into a hosted checkout session.
+---
+
+A **basket** collects what a buyer wants before they pay. You create one, add
+items, optionally apply a coupon or gift card, and then check out to get a hosted
+payment session.
+
+## 1. Create a basket
+
+```bash
+curl -X POST https://api.2pay.gg/v1/storefront/myshop/baskets \
+  -H "Content-Type: application/json" \
+  -d '{ "game_username": "Steve" }'
+```
+
+If the store requires a player identifier, collect it now (the label is set in the
+store's settings). The response returns a basket id.
+
+## 2. Add items
+
+```bash
+curl -X POST https://api.2pay.gg/v1/storefront/myshop/baskets/bsk_123/items \
+  -H "Content-Type: application/json" \
+  -d '{ "product": "prod_123", "quantity": 1 }'
+```
+
+Remove an item with `DELETE .../items/{itemId}`.
+
+## 3. Apply a coupon or gift card (optional)
+
+```bash
+curl -X POST https://api.2pay.gg/v1/storefront/myshop/baskets/bsk_123/coupon \
+  -H "Content-Type: application/json" \
+  -d '{ "code": "LAUNCH10" }'
+```
+
+There are matching gift-card endpoints, and `DELETE` variants to remove either.
+
+## 4. Check out
+
+```bash
+curl -X POST https://api.2pay.gg/v1/storefront/myshop/baskets/bsk_123/checkout \
+  -H "Idempotency-Key: <uuid>" \
+  -H "Content-Type: application/json" \
+  -d '{ "return_url": "https://yourgame.example/thanks" }'
+```
+
+The response contains a `client_secret` for the embedded checkout. Mount it with
+the checkout component (see [Checkout](/dev/checkout/overview)). Always send an
+[Idempotency-Key](/dev/developer-api/idempotency) so a retry never double-charges.
+
+## 5. Resolve the order
+
+After the buyer pays and returns to your `return_url`, look the order up by its
+checkout session:
+
+```bash
+curl https://api.2pay.gg/v1/storefront/myshop/orders/by-session/cs_test_123
+```
+
+For fulfillment, prefer the `order.paid` [webhook](/dev/webhooks/overview) over
+polling, so delivery is driven by the confirmed event.

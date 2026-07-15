@@ -1,8 +1,11 @@
 import Link from "next/link";
 
+// Light, Stripe-style documentation hub. Uses the same light Fumadocs palette + brand fonts as
+// the docs (see app/global.css). No dark styling: the docs are always light.
+
 function StoreIcon() {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="w-7 h-7">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" className="h-6 w-6">
       <path d="M3 9 4.5 4.5A1 1 0 0 1 5.5 4h13a1 1 0 0 1 1 .5L21 9" />
       <path d="M4 9v10a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1V9" />
       <path d="M3 9a2.5 2.5 0 0 0 4.5 1.5A2.5 2.5 0 0 0 12 11a2.5 2.5 0 0 0 4.5-.5A2.5 2.5 0 0 0 21 9" />
@@ -10,100 +13,142 @@ function StoreIcon() {
     </svg>
   );
 }
-
 function CodeIcon() {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="w-7 h-7">
-      <path d="m8 8-4 4 4 4" />
-      <path d="m16 8 4 4-4 4" />
-      <path d="m13.5 6-3 12" />
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" className="h-6 w-6">
+      <path d="m8 8-4 4 4 4" /><path d="m16 8 4 4-4 4" /><path d="m13.5 6-3 12" />
     </svg>
   );
 }
-
-function ArrowIcon() {
+function Arrow() {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
-      <path d="M5 12h14" />
-      <path d="m12 5 7 7-7 7" />
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
+      <path d="M5 12h14" /><path d="m12 5 7 7-7 7" />
     </svg>
   );
 }
 
-const tiles = [
+const modules = [
   {
     href: "/creators/welcome",
     icon: <StoreIcon />,
     eyebrow: "For creators & sellers",
-    title: "Creators",
-    body: "Launch your store, add your products, and start getting paid, with step-by-step guides and no code required.",
+    title: "Creator guides",
+    body: "Launch your store, add products, set pricing, and get paid. Step by step, no code required.",
     cta: "Start selling",
-    accent: "#8B7CFF",
+    accent: "#7C5CFF",
   },
   {
     href: "/dev",
     icon: <CodeIcon />,
     eyebrow: "For developers",
-    title: "Developers",
-    body: "Bring 2Pay into your own site, app, or game, and automate everything with our APIs and webhooks.",
+    title: "Developer docs",
+    body: "Read your catalog, confirm delivery, and react to events with the API, storefront endpoints, and webhooks.",
     cta: "Start building",
-    accent: "#FF6A4D",
+    accent: "#E2492E",
   },
+];
+
+const popular = [
+  { href: "/dev/quick-start", title: "Quick start", desc: "From an API key to your first authenticated request." },
+  { href: "/dev/developer-api/authentication", title: "Authentication", desc: "API keys, test and live modes, and scopes." },
+  { href: "/dev/checkout/overview", title: "Checkout", desc: "Embed the hosted, tax-inclusive checkout." },
+  { href: "/dev/webhooks/overview", title: "Webhooks", desc: "Subscribe to sales, refunds, and disputes." },
+  { href: "/creators/getting-started", title: "Get verified", desc: "Identity and project verification to go live." },
+  { href: "/creators/pricing", title: "Pricing & fees", desc: "How platform and gateway fees work." },
 ];
 
 export default function HomePage() {
   return (
-    <main className="relative min-h-screen flex flex-col items-center justify-center px-6 bg-[#0b0d0f] text-white overflow-hidden">
-      <div className="pointer-events-none absolute -top-40 left-1/3 -translate-x-1/2 h-96 w-[40rem] rounded-full bg-[#8B7CFF]/10 blur-3xl" />
-      <div className="pointer-events-none absolute -bottom-40 right-1/3 h-96 w-[40rem] rounded-full bg-[#FF6A4D]/10 blur-3xl" />
-
-      <div className="relative text-center mb-12">
-        <p className="text-sm font-bold tracking-wide text-white/50 mb-4">
-          2Pay <span className="text-white/30">/</span> Documentation
-        </p>
-        <h1 className="text-4xl sm:text-5xl font-extrabold tracking-tight mb-4">
-          Get started with 2Pay
-        </h1>
-        <p className="text-white/60 text-lg max-w-xl mx-auto">
-          Whether you&apos;re setting up your first store or building a custom
-          integration, you&apos;re in the right place.
-        </p>
-      </div>
-
-      <div className="relative grid grid-cols-1 sm:grid-cols-2 gap-5 w-full max-w-3xl">
-        {tiles.map((t) => (
-          <Link
-            key={t.href}
-            href={t.href}
-            className="group relative flex flex-col rounded-2xl border border-white/10 bg-white/[0.03] p-8 transition-all duration-300 hover:-translate-y-1 hover:bg-white/[0.05]"
-          >
-            <span
-              className="pointer-events-none absolute -inset-px rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity"
-              style={{ boxShadow: `0 0 0 1px ${t.accent}66, 0 20px 60px -20px ${t.accent}55` }}
-            />
-            <span
-              className="relative w-14 h-14 rounded-2xl flex items-center justify-center mb-6"
-              style={{ backgroundColor: `${t.accent}22`, color: t.accent }}
+    <main className="min-h-screen bg-[hsl(var(--fd-background))] text-[hsl(var(--fd-foreground))]">
+      {/* Hero */}
+      <section className="relative overflow-hidden border-b border-[hsl(var(--fd-border))]">
+        <div className="pointer-events-none absolute -top-32 left-1/2 h-72 w-[46rem] -translate-x-1/2 rounded-full bg-[#E2492E]/[0.06] blur-3xl" />
+        <div className="pointer-events-none absolute -top-20 right-10 h-64 w-64 rounded-full bg-[#7C5CFF]/[0.06] blur-3xl" />
+        <div className="relative mx-auto max-w-5xl px-6 py-20 text-center sm:py-24">
+          <p className="mb-4 font-mono text-xs font-medium uppercase tracking-[0.18em] text-[hsl(var(--fd-muted-foreground))]">
+            2Pay Documentation
+          </p>
+          <h1 className="mx-auto max-w-2xl text-4xl font-extrabold tracking-tight sm:text-5xl">
+            Everything you need to sell and build on 2Pay
+          </h1>
+          <p className="mx-auto mt-5 max-w-xl text-lg leading-relaxed text-[hsl(var(--fd-muted-foreground))]">
+            2Pay is your Merchant of Record. We handle payments, tax, and payouts. These docs cover
+            running your store and integrating the API, webhooks, and storefront.
+          </p>
+          <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
+            <Link
+              href="/dev/quick-start"
+              className="inline-flex items-center gap-2 rounded-lg bg-[hsl(var(--fd-primary))] px-5 py-2.5 text-sm font-semibold text-[hsl(var(--fd-primary-foreground))] transition-opacity hover:opacity-90"
             >
-              {t.icon}
-            </span>
-            <p className="relative text-xs uppercase tracking-widest text-white/40 mb-1.5">
-              {t.eyebrow}
-            </p>
-            <h2 className="relative text-2xl font-bold mb-2">{t.title}</h2>
-            <p className="relative text-white/60 text-sm leading-relaxed mb-6 flex-1">
-              {t.body}
-            </p>
-            <span
-              className="relative inline-flex items-center gap-1.5 text-sm font-bold group-hover:gap-2.5 transition-all"
-              style={{ color: t.accent }}
+              Quick start <Arrow />
+            </Link>
+            <Link
+              href="/creators/welcome"
+              className="inline-flex items-center gap-2 rounded-lg border border-[hsl(var(--fd-border))] px-5 py-2.5 text-sm font-semibold transition-colors hover:bg-[hsl(var(--fd-muted))]"
             >
-              {t.cta}
-              <ArrowIcon />
-            </span>
-          </Link>
-        ))}
-      </div>
+              Creator guides
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* Module split */}
+      <section className="mx-auto max-w-5xl px-6 py-14">
+        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+          {modules.map((m) => (
+            <Link
+              key={m.href}
+              href={m.href}
+              className="group relative flex flex-col rounded-2xl border border-[hsl(var(--fd-border))] bg-[hsl(var(--fd-card))] p-7 transition-all hover:-translate-y-0.5 hover:shadow-[0_16px_50px_-24px_rgba(20,20,40,0.28)]"
+            >
+              <span
+                className="mb-5 inline-flex h-12 w-12 items-center justify-center rounded-xl"
+                style={{ backgroundColor: `${m.accent}14`, color: m.accent }}
+              >
+                {m.icon}
+              </span>
+              <p className="text-xs font-medium uppercase tracking-widest text-[hsl(var(--fd-muted-foreground))]">
+                {m.eyebrow}
+              </p>
+              <h2 className="mt-1 text-xl font-bold">{m.title}</h2>
+              <p className="mt-2 flex-1 text-sm leading-relaxed text-[hsl(var(--fd-muted-foreground))]">
+                {m.body}
+              </p>
+              <span
+                className="mt-5 inline-flex items-center gap-1.5 text-sm font-semibold transition-all group-hover:gap-2.5"
+                style={{ color: m.accent }}
+              >
+                {m.cta} <Arrow />
+              </span>
+            </Link>
+          ))}
+        </div>
+      </section>
+
+      {/* Popular topics */}
+      <section className="mx-auto max-w-5xl px-6 pb-24">
+        <h3 className="mb-5 text-sm font-semibold uppercase tracking-widest text-[hsl(var(--fd-muted-foreground))]">
+          Popular topics
+        </h3>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {popular.map((p) => (
+            <Link
+              key={p.href}
+              href={p.href}
+              className="group rounded-xl border border-[hsl(var(--fd-border))] bg-[hsl(var(--fd-card))] p-5 transition-colors hover:border-[hsl(var(--fd-primary))]/40 hover:bg-[hsl(var(--fd-muted))]"
+            >
+              <div className="flex items-center justify-between">
+                <span className="font-semibold">{p.title}</span>
+                <span className="text-[hsl(var(--fd-muted-foreground))] transition-transform group-hover:translate-x-0.5">
+                  <Arrow />
+                </span>
+              </div>
+              <p className="mt-1.5 text-sm text-[hsl(var(--fd-muted-foreground))]">{p.desc}</p>
+            </Link>
+          ))}
+        </div>
+      </section>
     </main>
   );
 }

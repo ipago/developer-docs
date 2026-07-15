@@ -1,0 +1,30 @@
+---
+title: Rate limits
+description: How 2Pay rate-limits the API and how to back off cleanly.
+---
+
+The API is rate-limited to keep it fast and fair. Sensitive and write-heavy
+endpoints (checkout creation, key management, payouts, refunds, onboarding) have
+tighter limits than plain reads.
+
+## What you get back
+
+When you exceed a limit the API responds with `429` and a `rate_limit_error`:
+
+```json
+{
+  "error": {
+    "type": "rate_limit_error",
+    "code": "rate_limited",
+    "message": "Too many requests. Please retry later."
+  }
+}
+```
+
+## Backing off
+
+- Retry `429` responses with **exponential backoff and jitter**, not a tight loop.
+- Cache catalog reads (products, categories) rather than fetching them per page
+  view. The catalog changes rarely, so a short local cache removes most traffic.
+- Prefer [webhooks](/dev/webhooks/overview) over polling for order and delivery
+  state. Reacting to an event is both faster and lighter than a poll loop.

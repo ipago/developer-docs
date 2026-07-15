@@ -1,0 +1,31 @@
+---
+title: Tax & VAT
+description: How 2Pay handles sales tax and VAT as Merchant of Record, and inclusive vs exclusive pricing.
+---
+
+As Merchant of Record, 2Pay is the legal seller, so **we calculate, collect, and
+remit sales tax and VAT**. You never register for tax in the jurisdictions your
+buyers are in, and tax is never part of your balance or payout.
+
+## Where tax shows up
+
+Tax is computed at checkout based on the buyer's location and added to the order.
+On a paid order you can see the tax that was collected, clearly separated from
+your revenue. In the ledger it is booked to a dedicated `tax_payable` liability
+account that 2Pay settles with the tax authorities.
+
+## Inclusive vs exclusive
+
+A store chooses, in its settings, how prices are shown:
+
+- **Exclusive** (default): the listed price is pre-tax, and tax is added on top at
+  checkout.
+- **Inclusive**: the listed price already contains tax, and the tax portion is
+  broken out of the total.
+
+Either way, your taxable base (the amount fees are computed on) and your payout
+exclude the tax. The only difference is what the buyer sees as the sticker price.
+
+<Callout type="info">
+  The platform fee is always computed on the pre-tax base, never on the tax.
+</Callout>
