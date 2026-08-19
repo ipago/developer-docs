@@ -3,8 +3,6 @@ title: Delivery queue
 description: The poll-run-confirm loop and the queue endpoints your server calls.
 ---
 
-<Callout type="warn">Preview: this Game API (`/v1/queue`) is planned and not available yet. To deliver purchases in-game today, use the Developer API deliveries endpoints (`/v1/deliveries`).</Callout>
-
 The Game API hands your server work as a **command queue**. Each paid product
 that targets a game server becomes one or more **commands**, run a console
 command, give an item, grant a rank, tied to the player who bought it. Your
@@ -15,7 +13,7 @@ All requests use the Game API base URL and
 [server token](/dev/game-api/authentication):
 
 ```
-https://game.2pay.io/v1
+https://game.2pay.gg/v1
 X-2Pay-Server-Token: srv_live_...
 ```
 
@@ -29,6 +27,11 @@ and some do not:
 - **Offline commands** can run whether or not the player is connected (grant a
   permission, set a database flag, add currency). They run on a schedule
   independent of presence.
+
+Which servers a command reaches is set per command on the package: name one or more of
+your servers, or name none at all, which means every server of the store. A command with
+a delay is simply withheld until it is due, so anything the queue hands you is ready to
+run now.
 
 ## The loop
 
@@ -52,7 +55,7 @@ GET /v1/queue
 ```
 
 ```bash
-curl https://game.2pay.io/v1/queue \
+curl https://game.2pay.gg/v1/queue \
   -H "X-2Pay-Server-Token: srv_live_..."
 ```
 
@@ -65,7 +68,7 @@ curl https://game.2pay.io/v1/queue \
     "more": false
   },
   "players": [
-    { "id": "qp_01HA0...", "name": "Steve", "uuid": "069a79f4-44e9-4726-a5be-fca90e38aaf5" }
+    { "id": "qp_01HA0...", "name": "Steve", "uuid": null }
   ]
 }
 ```
@@ -75,7 +78,7 @@ curl https://game.2pay.io/v1/queue \
 | `meta.execute_offline_commands` | If `true`, fetch and run [offline commands](#3-run-offline-commands) this cycle. |
 | `meta.next_check` | Seconds to wait before polling again. Respect this instead of hammering the endpoint. |
 | `meta.more` | `true` if there are more due players than returned in this page; poll again to drain. |
-| `players` | Players who have online commands waiting. Each has a queue id, name, and game identity (for example a UUID). |
+| `players` | Players who have online commands waiting. Each has a queue id and the name captured at checkout. `uuid` is reserved and is `null` for now, so match players by name. |
 
 ### 2. Run online commands per player
 
@@ -86,7 +89,7 @@ GET /v1/queue/online-commands/{playerId}
 ```
 
 ```bash
-curl https://game.2pay.io/v1/queue/online-commands/qp_01HA0... \
+curl https://game.2pay.gg/v1/queue/online-commands/qp_01HA0... \
   -H "X-2Pay-Server-Token: srv_live_..."
 ```
 
@@ -98,7 +101,7 @@ curl https://game.2pay.io/v1/queue/online-commands/qp_01HA0... \
     {
       "id": "cmd_01HA0AAA",
       "command": "lp user {username} parent add vip",
-      "delivery": "dlv_01HA0...",
+      "delivery": "del_01HA0...",
       "product": "prod_01H9Z4ABCDEF",
       "conditions": { "delay": 0, "slots": 1 }
     }
@@ -127,7 +130,7 @@ GET /v1/queue/offline-commands
     {
       "id": "cmd_01HA0BBB",
       "command": "eco give {username} 5000",
-      "delivery": "dlv_01HA0...",
+      "delivery": "del_01HA0...",
       "product": "prod_01H9Z4CURR",
       "player": { "name": "Steve", "uuid": "069a79f4-..." },
       "conditions": { "delay": 0 }
@@ -149,16 +152,27 @@ DELETE /v1/queue
 ```
 
 ```bash
-curl -X DELETE https://game.2pay.io/v1/queue \
+curl -X DELETE https://game.2pay.gg/v1/queue \
   -H "X-2Pay-Server-Token: srv_live_..." \
-  -H "Idempotency-Key: $(uuidgen)" \
-  -d "commands[]=cmd_01HA0AAA" \
-  -d "commands[]=cmd_01HA0BBB"
+  -H "Content-Type: application/json" \
+  -d '{"commands":["cmd_01HA0AAA","cmd_01HA0BBB"]}'
 ```
 
-Batch the ids of everything you ran this cycle into one call. Deleting a command
-confirms its [delivery](/dev/developer-api/deliveries) and emits
-`delivery.completed`.
+The response tells you how many of the ids actually moved:
+
+```json
+{ "object": "queue_confirmation", "confirmed": 2 }
+```
+
+Batch the ids of everything you ran this cycle into one call. Ids that are unknown,
+already confirmed, or queued for a different server are ignored, which is what makes
+retrying a `DELETE` safe.
+
+A package can queue several commands, and they can be spread across several servers.
+The [delivery](/dev/developer-api/deliveries) is completed, and `delivery.completed`
+emitted, only once **every** command it generated has been confirmed. Confirming some of
+them leaves the delivery pending, which is the truthful state: the player has had part of
+what they bought.
 
 <Callout type="warn">
   Only delete a command **after** it actually ran. If you delete first and the
@@ -172,10 +186,10 @@ confirms its [delivery](/dev/developer-api/deliveries) and emits
 | --- | --- |
 | `id` | Command id (`cmd_`). Pass this to `DELETE /queue` to confirm. |
 | `command` | The string to execute, with `{username}` / `{uuid}` placeholders. |
-| `delivery` | The `dlv_` id this command fulfills. |
+| `delivery` | The `del_` id this command fulfills. |
 | `product` | The product that generated it. |
 | `player` | Player identity (present on offline commands; fetched separately for online). |
-| `conditions.delay` | Seconds to wait before running. |
+| `conditions.delay` | Seconds still to wait. Always `0` today: the queue withholds a delayed command until it is due, so there is nothing left to wait for. |
 | `conditions.slots` | Free inventory slots required (online item commands). |
 
 ## Polling cadence and retries

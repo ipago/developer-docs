@@ -3,8 +3,6 @@ title: Authentication
 description: The per-store server token, the base URL, and how to keep it scoped.
 ---
 
-<Callout type="warn">Preview: this Game API (`/v1/queue`) is planned and not available yet. To deliver purchases in-game today, use the Developer API deliveries endpoints (`/v1/deliveries`).</Callout>
-
 The Game API authenticates with a **server token**: a secret bound to a single
 store (and, where you run more than one game server, to a single server
 configuration). Unlike a Developer API key, it is designed to live on the game
@@ -13,21 +11,22 @@ host, so it grants only the narrow set of queue operations and nothing else.
 ## Base URL
 
 ```
-https://game.2pay.io/v1
+https://game.2pay.gg/v1
 ```
 
-The Game API has its own host, separate from `api.2pay.io`, precisely because the
+The Game API has its own host, separate from `api.2pay.gg`, precisely because the
 credential and the traffic pattern (frequent polling from game servers) are
 different from the backend Developer API.
 
 ## The server token
 
-Generate a token in the panel under **Developers → Game servers**, create a
-server entry, and copy its token. Send it on every request in the
+Generate a token in the panel under **Integration → Game servers**, add a server,
+and copy its token. It is shown once, at that moment, and stored only as a hash
+afterwards; if you lose it, roll the token and paste the new one. Send it on every request in the
 `X-2Pay-Server-Token` header:
 
 ```bash
-curl https://game.2pay.io/v1/queue \
+curl https://game.2pay.gg/v1/queue \
   -H "X-2Pay-Server-Token: srv_live_..."
 ```
 
