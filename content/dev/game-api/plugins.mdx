@@ -4,10 +4,14 @@ description: Official plugins that implement the delivery loop for you, and the 
 ---
 
 You rarely need to write the [queue loop](/dev/game-api/delivery-queue) yourself.
-For supported games, 2Pay ships **open-source plugins** that already handle
+For supported games, 2Pay ships **ready-made plugins** that already handle
 polling, placeholder substitution, online and offline command execution, retries,
 and confirmation. You install the plugin, paste your
 [server token](/dev/game-api/authentication), and deliveries just work.
+
+Available today: **Minecraft** (Paper and Spigot 1.20 or newer). Other games are
+still on the [Game API](/dev/game-api/delivery-queue) directly, or on the RCON
+adapter described below.
 
 ## Using an official plugin
 
@@ -22,6 +26,27 @@ and confirmation. You install the plugin, paste your
 The plugin polls on the cadence the API returns (`meta.next_check`) and confirms
 each command after it runs, so completed orders show as delivered in your panel
 and emit [`delivery.completed`](/dev/webhooks/events) webhooks automatically.
+
+## Minecraft
+
+1. In the panel, open **Integration → Game servers**, add a server, and copy its
+   token. It is shown once.
+2. Drop `2pay-minecraft-<version>.jar` into your server's `plugins/` directory and
+   restart once. That writes `plugins/2pay/config.yml`.
+3. Paste the token into `token:` in that file, then restart again.
+4. Run `/2pay status` in the console. It reports where the plugin is pointed, when
+   it last polled, and the last error if there was one.
+
+Commands attached to a package as **online** wait until the buyer is connected and
+check they have the free inventory slots the command asks for; **offline** commands
+run either way. A command is reported back to 2Pay only after it has actually run,
+so a restart, a full inventory, or a failed command leaves the purchase queued
+rather than quietly dropping it.
+
+<Callout type="info">
+  The plugin is not published for download yet. While it is in private testing, ask
+  us for a build and we will send you the jar.
+</Callout>
 
 ## Mapping products to commands
 
