@@ -3,9 +3,23 @@ title: Rate limits
 description: How 2Pay rate-limits the API and how to back off cleanly.
 ---
 
-The API is rate-limited to keep it fast and fair. Sensitive and write-heavy
-endpoints (checkout creation, key management, payouts, refunds, onboarding) have
-tighter limits than plain reads.
+The API is rate-limited per API key, so one integration's traffic never eats
+another's budget. Limits are a backstop against runaway loops, not a quota you
+are expected to plan around: normal integrations never reach them.
+
+## The limits
+
+| Requests | Limit |
+| --- | --- |
+| Reads (`GET`) | 300 per minute |
+| Writes (`POST`, `PATCH`, `DELETE`) | 60 per minute |
+
+Some endpoints are tighter than the defaults above, because the operation itself
+is sensitive or expensive: payouts, refunds, API key management, store
+onboarding and identity-document uploads. Treat the numbers above as the ceiling,
+not a guarantee, and always read the response headers rather than assuming.
+
+Each key gets its own budget. Rotating a key resets it.
 
 ## What you get back
 
@@ -15,15 +29,26 @@ When you exceed a limit the API responds with `429` and a `rate_limit_error`:
 {
   "error": {
     "type": "rate_limit_error",
-    "code": "rate_limited",
-    "message": "Too many requests. Please retry later."
+    "code": "rate_limit_exceeded",
+    "message": "Rate limit exceeded, retry in 1 minute",
+    "request_id": "req_..."
   }
 }
 ```
 
+Every response carries your current budget, so you never have to guess:
+
+| Header | Meaning |
+| --- | --- |
+| `RateLimit-Limit` | Requests allowed in the current window. |
+| `RateLimit-Remaining` | Requests left in it. |
+| `RateLimit-Reset` | Seconds until the window resets. |
+| `Retry-After` | On a `429`, seconds to wait before retrying. |
+
 ## Backing off
 
 - Retry `429` responses with **exponential backoff and jitter**, not a tight loop.
+  Honour `Retry-After` when it is present.
 - Cache catalog reads (products, categories) rather than fetching them per page
   view. The catalog changes rarely, so a short local cache removes most traffic.
 - Prefer [webhooks](/dev/webhooks/overview) over polling for order and delivery
