@@ -63,7 +63,7 @@ GET /v1/orders/{id}/deliveries
 ```
 
 ```bash
-curl https://api.2pay.io/v1/orders/ord_01HA0XYZ/deliveries \
+curl https://api.2pay.gg/v1/orders/ord_01HA0XYZ/deliveries \
   -H "Authorization: Bearer sk_live_..."
 ```
 
@@ -85,7 +85,7 @@ POST /v1/deliveries/{id}/complete
 ```
 
 ```bash
-curl -X POST https://api.2pay.io/v1/deliveries/dlv_01HA0.../complete \
+curl -X POST https://api.2pay.gg/v1/deliveries/dlv_01HA0.../complete \
   -H "Authorization: Bearer sk_live_..." \
   -H "Idempotency-Key: $(uuidgen)"
 ```
@@ -114,7 +114,7 @@ POST /v1/deliveries/{id}/fail
 ```
 
 ```bash
-curl -X POST https://api.2pay.io/v1/deliveries/dlv_01HA0.../fail \
+curl -X POST https://api.2pay.gg/v1/deliveries/dlv_01HA0.../fail \
   -H "Authorization: Bearer sk_live_..." \
   -H "Idempotency-Key: $(uuidgen)" \
   -d "reason=key_pool_empty"

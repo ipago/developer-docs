@@ -74,7 +74,7 @@ GET /v1/events
 | `limit`, `starting_after`, `ending_before` | [Pagination](/dev/developer-api/conventions#pagination). |
 
 ```bash
-curl "https://api.2pay.io/v1/events?type=order.paid&limit=100" \
+curl "https://api.2pay.gg/v1/events?type=order.paid&limit=100" \
   -H "Authorization: Bearer sk_live_..."
 ```
 
@@ -96,7 +96,7 @@ If your webhook consumer was offline, do not wait for retries to trickle in.
 Instead, pull the gap directly:
 
 ```bash
-curl "https://api.2pay.io/v1/events?created[gte]=2026-06-28T09:00:00Z" \
+curl "https://api.2pay.gg/v1/events?created[gte]=2026-06-28T09:00:00Z" \
   -H "Authorization: Bearer sk_live_..."
 ```
 

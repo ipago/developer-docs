@@ -10,7 +10,7 @@ they hold everywhere.
 ## Base URL and versioning
 
 ```
-https://api.2pay.io/v1
+https://api.2pay.gg/v1
 ```
 
 The major version is pinned in the path (`/v1`). We add new fields and new
@@ -96,7 +96,7 @@ List endpoints are **cursor-based**. They return at most `limit` items (default
 To page forward, pass the last id you saw as `starting_after`:
 
 ```bash
-curl "https://api.2pay.io/v1/orders?limit=50&starting_after=ord_03..." \
+curl "https://api.2pay.gg/v1/orders?limit=50&starting_after=ord_03..." \
   -H "Authorization: Bearer sk_live_..."
 ```
 
@@ -111,7 +111,7 @@ Every `POST` accepts an **`Idempotency-Key`** header: a unique value you generat
 2Pay returns the original result instead of performing the action twice.
 
 ```bash
-curl -X POST https://api.2pay.io/v1/deliveries/dlv_01.../complete \
+curl -X POST https://api.2pay.gg/v1/deliveries/dlv_01.../complete \
   -H "Authorization: Bearer sk_live_..." \
   -H "Idempotency-Key: 0d5a1f2e-..."
 ```

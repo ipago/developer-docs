@@ -3,6 +3,8 @@ title: Overview
 description: Embed the 2Pay checkout directly in your own site or app, no redirect.
 ---
 
+<Callout type="warn">Preview: the drop-in overlay described on this page (a script tag, an `ident`, `launch()`) is the planned shape. What ships today is a mountable payment form you embed yourself, and it is what [Integrating](/dev/checkout/integrating) documents.</Callout>
+
 **Checkout** lets you drop the 2Pay payment experience straight into your own
 website or app. The buyer pays in an overlay on your page instead of being sent
 off to a separate domain, which keeps your branding intact and lifts conversion.
@@ -26,8 +28,8 @@ A Checkout integration has two halves, and the split matters for security:
 
 1. **Server side.** Your backend calls the
    [Developer API](/dev/developer-api/overview) to create a *checkout* for the
-   products the buyer chose. This returns a short-lived `ident`. This step uses
-   your secret key, so it must happen on your server, never in the browser.
+   products the buyer chose. This returns a short-lived `client_secret`. This step
+   uses your secret key, so it must happen on your server, never in the browser.
 2. **Client side.** Your frontend loads the 2Pay browser library, passes it the
    `ident`, and launches the overlay. No secret key is exposed; the `ident` is a
    one-time handle to a checkout your server already authorized.

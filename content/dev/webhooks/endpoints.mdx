@@ -15,7 +15,7 @@ tick the [event types](/dev/webhooks/events) you want, and save. You can also
 create endpoints over the API:
 
 ```bash
-curl https://api.2pay.io/v1/webhook_endpoints \
+curl https://api.2pay.gg/v1/webhook_endpoints \
   -H "Authorization: Bearer sk_live_..." \
   -H "Idempotency-Key: $(uuidgen)" \
   -d "url=https://example.com/hooks/2pay" \
@@ -99,7 +99,7 @@ To change which events an endpoint receives, update it in the panel or recreate
 it. Deleting an endpoint stops all delivery to that URL immediately.
 
 ```bash
-curl https://api.2pay.io/v1/webhook_endpoints \
+curl https://api.2pay.gg/v1/webhook_endpoints \
   -H "Authorization: Bearer sk_live_..."
 ```
 

@@ -40,10 +40,10 @@ and rotation.
 ## 2. Read your catalog
 
 Confirm the key works by listing the products already in your store. Every
-request goes to `https://api.2pay.io/v1` and carries your key as a bearer token.
+request goes to `https://api.2pay.gg/v1` and carries your key as a bearer token.
 
 ```bash
-curl https://api.2pay.io/v1/products \
+curl https://api.2pay.gg/v1/products \
   -H "Authorization: Bearer $TWOPAY_KEY"
 ```
 
@@ -80,7 +80,7 @@ Pick the surface that fits your product:
 A minimal Checkout creation call looks like this:
 
 ```bash
-curl https://api.2pay.io/v1/checkouts \
+curl https://api.2pay.gg/v1/checkouts \
   -H "Authorization: Bearer $TWOPAY_KEY" \
   -H "Idempotency-Key: $(uuidgen)" \
   -d "items[0][product]=prod_01H9Z4..." \
@@ -128,7 +128,7 @@ How you deliver depends on what you sell:
   flag): grant it, then confirm the delivery over the Developer API:
 
 ```bash
-curl -X POST https://api.2pay.io/v1/deliveries/dlv_01HA0.../complete \
+curl -X POST https://api.2pay.gg/v1/deliveries/dlv_01HA0.../complete \
   -H "Authorization: Bearer $TWOPAY_KEY" \
   -H "Idempotency-Key: $(uuidgen)"
 ```

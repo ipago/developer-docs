@@ -45,7 +45,7 @@ POST /v1/affiliates
 ```
 
 ```bash
-curl https://api.2pay.io/v1/affiliates \
+curl https://api.2pay.gg/v1/affiliates \
   -H "Authorization: Bearer sk_live_..." \
   -H "Idempotency-Key: $(uuidgen)" \
   -d "name=Alex Streams" \
@@ -78,7 +78,7 @@ GET /v1/affiliates
 | `limit`, `starting_after`, `ending_before` | [Pagination](/dev/developer-api/conventions#pagination). |
 
 ```bash
-curl "https://api.2pay.io/v1/affiliates?active=true" \
+curl "https://api.2pay.gg/v1/affiliates?active=true" \
   -H "Authorization: Bearer sk_live_..."
 ```
 
@@ -98,7 +98,7 @@ POST /v1/affiliates/{id}/deactivate
 ```
 
 ```bash
-curl -X POST https://api.2pay.io/v1/affiliates/aff_01HA0.../deactivate \
+curl -X POST https://api.2pay.gg/v1/affiliates/aff_01HA0.../deactivate \
   -H "Authorization: Bearer sk_live_..." \
   -H "Idempotency-Key: $(uuidgen)"
 ```

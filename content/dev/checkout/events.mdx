@@ -3,6 +3,8 @@ title: Events
 description: React to the checkout opening, closing, and payment outcomes in the browser.
 ---
 
+<Callout type="warn">Preview: the overlay library described here (`Checkout.init`, `Checkout.launch`, `Checkout.on`, themes and colours) is a planned design and is **not built yet**. What ships today is a mountable payment form, documented in [Integrating](/dev/checkout/integrating).</Callout>
+
 The Checkout library emits browser events through `Checkout.on(name, callback)`.
 Use them to drive your **UI**: show a spinner, redirect after success, re-enable a
 button if the buyer closes the overlay. They are *not* a fulfillment signal.

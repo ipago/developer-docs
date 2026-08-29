@@ -1,11 +1,19 @@
 ---
 title: Integrating
-description: Install the browser library, create a checkout ident server-side, and launch the overlay.
+description: Create a checkout server-side, then mount the payment form on your page.
 ---
 
-A working Checkout integration is three small pieces: a backend call that creates
-a checkout, the browser library on your page, and a launch when the buyer clicks
-"pay". This page walks all three, then shows the complete result.
+A working Checkout integration is two pieces: a backend call that creates a
+checkout and returns a client secret, and the browser library that mounts the
+payment form on your page.
+
+<Callout type="warn">
+  The library is not published to a registry or a CDN yet, so today you build it
+  from `packages/checkout` in the monorepo. The API below is what the code
+  actually does; the overlay API described in
+  [Configuration](/dev/checkout/configuration) and [Events](/dev/checkout/events)
+  is a planned design and is not built.
+</Callout>
 
 ## 1. Create a checkout (server side)
 
@@ -14,133 +22,102 @@ the products they chose. This uses your [secret key](/dev/developer-api/authenti
 so it must run on your server.
 
 ```bash
-curl https://api.2pay.io/v1/checkouts \
+curl https://api.2pay.gg/v1/checkouts \
   -H "Authorization: Bearer sk_live_..." \
   -H "Idempotency-Key: $(uuidgen)" \
-  -d "items[0][product]=prod_01H9Z4ABCDEF" \
-  -d "items[0][quantity]=1" \
-  -d "customer[email]=player@example.com" \
-  -d "success_url=https://example.com/thanks"
+  -H "Content-Type: application/json" \
+  -d '{
+    "items": [{ "product": "prod_01H9Z4ABCDEF", "quantity": 1 }],
+    "customer_email": "player@example.com",
+    "delivery_target": "Steve",
+    "country": "PL",
+    "return_url": "https://example.com/thanks"
+  }'
 ```
 
-| Parameter | Required | Description |
+| Field | Required | Description |
 | --- | --- | --- |
-| `items[n][product]` | yes | A `prod_` id from your catalog. |
-| `items[n][quantity]` | no | Defaults to `1`. |
-| `customer[email]` | no | Pre-fills the buyer's email. |
-| `customer[username]` | no | In-game username, for products that deliver to a player. |
-| `success_url` | no | Where to send the buyer after payment (used on mobile, where checkout opens in a tab). |
-| `coupon` | no | A coupon code configured in the panel. |
+| `items[].product` | yes | A `prod_` id from your catalog. |
+| `items[].quantity` | no | Defaults to `1`. |
+| `customer_email` | no | Pre-fills the buyer's email and receives the receipt. |
+| `delivery_target` | no | In-game username, for products that deliver to a player. |
+| `country` | no | ISO 3166-1 alpha-2 buyer country, used to compute VAT. Omit for non-taxable. |
+| `return_url` | no | Where to send the buyer after payment. |
 
-The response is a checkout object with the `ident` your frontend needs:
+Always send an `Idempotency-Key`. Retrying a checkout without one is how a single
+purchase becomes two charges.
+
+The response carries the `client_secret` your frontend needs:
 
 ```json
 {
   "object": "checkout",
   "id": "chk_01HA0...",
-  "ident": "a1b2c3d4e5f6",
+  "client_secret": "cs_test_..._secret_...",
   "status": "open",
-  "expires_at": "2026-06-28T12:30:00Z",
   "total": { "amount": 1189, "currency": "eur" }
 }
 ```
 
-Return only the `ident` to the browser. It is a short-lived, single-checkout
-handle, it carries no account-level power, so it is safe to expose.
+Return only the `client_secret` to the browser. It is scoped to this one payment
+and carries no account-level power.
 
-## 2. Load the library (client side)
+## 2. Mount the form (client side)
 
-Add the script to your page. Use a versioned URL so a future major release never
-changes behavior under you:
-
-```html
-<script defer src="https://js.2pay.io/v1.js"></script>
-```
-
-Or install it as a module:
-
-```bash
-npm install @2pay/checkout
-```
+The library renders the fields you ask for, then swaps them for the payment
+element once the buyer submits.
 
 ```js
-import Checkout from "@2pay/checkout";
-```
+import { mount } from "@2pay/checkout";
 
-When you load via the script tag, wait for the page `load` event before calling
-into the library.
-
-## 3. Launch the overlay
-
-Fetch the `ident` from your backend, initialize, and launch:
-
-```js
-Checkout.init({ ident });
-Checkout.launch();
-```
-
-- On **desktop**, `launch()` opens the checkout as an overlay on your page.
-- On **mobile**, it opens in a new browser tab (which is why `success_url`
-  matters there).
-
-## Full example
-
-```html
-<script defer src="https://js.2pay.io/v1.js"></script>
-
-<button id="buy">Buy VIP Rank</button>
-
-<script>
-  window.addEventListener("load", () => {
-    const buy = document.getElementById("buy");
-
-    buy.addEventListener("click", async () => {
-      // Ask YOUR backend to create the checkout; it returns just the ident.
-      const { ident } = await fetch("/api/checkout", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ product: "prod_01H9Z4ABCDEF" }),
-      }).then((r) => r.json());
-
-      if (!ident) return;
-
-      Checkout.on("payment:complete", () => {
-        // Update the UI only. Real fulfillment is driven by the order.paid webhook.
-        window.location.href = "/thanks";
-      });
-
-      Checkout.init({
-        ident,
-        theme: "dark",
-        locale: "en_US",
-        closeOnComplete: true,
-        colors: [
-          { name: "primary", color: "#5b2eff" },
-          { name: "secondary", color: "#22c55e" },
-        ],
-      });
-
-      Checkout.launch();
+const handle = mount({
+  element: "#checkout",
+  publishableKey: "pk_live_...",   // your payment provider's publishable key
+  fields: [
+    { key: "username", label: "Minecraft username", type: "text", required: true },
+    { key: "email", label: "Email", type: "email", required: true },
+  ],
+  createSession: async (values) => {
+    // Ask YOUR backend to create the checkout. The secret key never reaches the browser.
+    const res = await fetch("/api/checkout", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ product: "prod_01H9Z4ABCDEF", ...values }),
     });
-  });
-</script>
+    return res.json(); // { clientSecret }
+  },
+  onError: (err) => console.error(err),
+});
+
+// later, if you need to tear it down
+handle.unmount();
 ```
 
-All init options are documented in [Configuration](/dev/checkout/configuration);
-all events in [Events](/dev/checkout/events).
+The split matters: **the library never talks to the 2Pay API**. It knows only
+your `createSession` callback and a publishable key, so a secret key can never
+leak into a page.
+
+| Option | Required | Description |
+| --- | --- | --- |
+| `element` | yes | A CSS selector or an `HTMLElement` to render into. |
+| `publishableKey` | yes | The payment provider's publishable key. Safe in the browser. |
+| `fields` | yes | The inputs to collect before payment. `text`, `email`, `number` or `select`. |
+| `createSession` | yes | Called with the collected values; must return `{ clientSecret }`. |
+| `onError` | no | Called when session creation or payment mounting fails. |
 
 ## Confirm the sale server-side
 
 <Callout type="warn">
-  Never grant the purchase based on the browser. The `payment:complete` event is
-  for UI only. Fulfill from the [`order.paid` webhook](/dev/webhooks/events),
-  which is signed, retried, and impossible to spoof from a client.
+  Never grant the purchase based on the browser. Fulfil from the
+  [`order.paid` webhook](/dev/webhooks/events), which is signed, retried, and
+  impossible to spoof from a client. Verify it with
+  `constructWebhookEvent` from `@2pay/sdk`.
 </Callout>
 
 ## Testing
 
 Create the checkout with a [test key](/dev/developer-api/authentication)
-(`sk_test_...`) and the overlay runs in sandbox mode. Use these test cards:
+(`sk_test_...`) and the form runs in sandbox mode. Use these test cards:
 
 | Card number | Result |
 | --- | --- |
