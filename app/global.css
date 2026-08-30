@@ -71,3 +71,8 @@
     border-radius: 5px;
   }
 }
+
+/* The wordmark's accent dot. #3d5afe is muddy on the dark theme, so the dark
+   scheme lightens it; the mark itself takes currentColor. */
+:root { --logo-dot: #3d5afe; }
+.dark { --logo-dot: #7d90ff; }
