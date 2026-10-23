@@ -1,0 +1,20 @@
+{
+  "title": "API reference",
+  "pages": [
+    "index",
+    "---Developer API---",
+    "catalog",
+    "checkouts",
+    "orders",
+    "refunds",
+    "disputes",
+    "balance-and-payouts",
+    "deliveries",
+    "webhook-endpoints",
+    "---Storefront API---",
+    "storefront",
+    "baskets",
+    "---Game API---",
+    "game-api"
+  ]
+}
