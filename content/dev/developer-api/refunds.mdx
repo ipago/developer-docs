@@ -1,0 +1,112 @@
+---
+title: Refunds
+description: Refund a paid order in full and track the refund until it lands.
+---
+
+A **refund** sends a buyer's money back for an order. Over the API you refund a
+**whole order**: the buyer gets back everything they were charged, VAT included.
+Partial refunds are not available on this surface; they are issued by 2Pay staff.
+
+Creating a refund requires `refunds:write`; reading requires `refunds:read`.
+
+## The refund object
+
+```json
+{
+  "object": "refund",
+  "id": "re_01M5MX2G7Q9C4V3B8N6K1T0Y5H",
+  "order": "ord_01M5MWDACTVABBZT3E8T2B6QA5",
+  "amount": 999,
+  "currency": "eur",
+  "status": "pending",
+  "reason": "Player asked to cancel",
+  "created": "2026-10-24T09:12:30.881Z",
+  "completed_at": null
+}
+```
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `id` | string | Refund id (`re_`). |
+| `order` | string | The refunded order. |
+| `amount` | integer | The net amount returned, **excluding VAT**, in minor units. For a full refund this equals the order's `total`. The buyer receives this plus the order's `tax_amount`. |
+| `currency` | string | The order's currency. |
+| `status` | string | `pending`, `succeeded`, or `failed`. |
+| `reason` | string \| null | The reason you gave, for your own records. |
+| `created` | string | When the refund was requested. |
+| `completed_at` | string \| null | When the payment provider confirmed it. |
+
+## Lifecycle
+
+A refund starts as `pending` while the payment provider processes it, then
+becomes:
+
+- **`succeeded`**: the money is on its way back to the buyer. The order's status
+  becomes `refunded` and 2Pay emits an
+  [`order.refunded`](/dev/developer-api/events) event. The refunded amount is
+  taken out of your balance.
+- **`failed`**: the provider could not refund the payment. The order stays
+  `paid`, and you can try again.
+
+## Create a refund
+
+```
+POST /v1/refunds
+```
+
+| Parameter | Required | Description |
+| --- | --- | --- |
+| `order` | yes | The `ord_` id to refund. It must be `paid`. |
+| `reason` | no | Free text kept on the refund. |
+
+```bash
+curl https://api.2pay.gg/v1/refunds \
+  -H "Authorization: Bearer sk_live_..." \
+  -H "Content-Type: application/json" \
+  -H "Idempotency-Key: 7c1e0f4a-3b2d-4e8f-9a6b-5d4c3b2a1f0e" \
+  -d '{ "order": "ord_01M5MWDACTVABBZT3E8T2B6QA5", "reason": "Player asked to cancel" }'
+```
+
+Returns `201` with the refund, usually still `pending`. Always send an
+[Idempotency-Key](/dev/developer-api/idempotency) so a retried request cannot
+start a second refund.
+
+A test key refunds test orders through the test payment provider; see
+[Test mode](/dev/developer-api/test-mode).
+
+### Errors
+
+| Status | `code` | When |
+| --- | --- | --- |
+| `404` | `resource_missing` | No such order in this store and mode. |
+| `400` | `order_not_refundable` | The order is not `paid` (for example `pending`, `refunded`, or `disputed`), or it already has a refund that has not failed. `param` is `order`. |
+| `400` | `provider_unavailable` | The payment provider that took this order is no longer configured. |
+| `503` | `test_payments_unconfigured` | A test-mode order, on a deployment with no test payment provider. |
+| `409` | `idempotency_key_reuse` | The `Idempotency-Key` was already used for a different request. |
+
+You will not get `refund_in_progress` (`409`) from this endpoint. That code
+belongs to partial refunds, which only 2Pay staff issue. A full refund requested
+while any other refund on the order is pending or has succeeded gets
+`order_not_refundable` instead.
+
+## List refunds
+
+```
+GET /v1/refunds
+```
+
+| Parameter | Description |
+| --- | --- |
+| `status` | Only refunds in this state: `pending`, `succeeded`, or `failed`. |
+| `limit`, `starting_after`, `ending_before` | [Pagination](/dev/developer-api/pagination). Results run oldest first. |
+
+The list includes refunds issued from the panel or by 2Pay staff, including
+partial ones, so it is the complete record of money returned on your orders.
+
+## Retrieve a refund
+
+```
+GET /v1/refunds/{id}
+```
+
+Returns the refund, or `404 resource_missing`.

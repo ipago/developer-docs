@@ -1,0 +1,83 @@
+---
+title: Disputes
+description: Read chargebacks on your orders, their deadlines, and the evidence submitted.
+---
+
+A **dispute** (chargeback) is opened when a buyer asks their bank to reverse a
+payment. The bank decides the outcome, based in part on the evidence submitted
+in your defence. Over the API disputes are **read-only**: you list them and watch
+their deadlines. You submit evidence in the panel, under **Inquiries**.
+
+Requires the `disputes:read` scope.
+
+## The dispute object
+
+```json
+{
+  "object": "dispute",
+  "id": "dp_01M5P3Q8R1S4T7V0W3X6Y9Z2A5",
+  "order": "ord_01M5MWDACTVABBZT3E8T2B6QA5",
+  "amount": 1189,
+  "currency": "eur",
+  "reason": "fraudulent",
+  "status": "open",
+  "evidence_due_by": "2026-11-08T23:59:59.000Z",
+  "evidence_submitted_at": "2026-10-30T14:02:11.000Z",
+  "evidence_text": "The rank was delivered to the player Notch on 23 October; server logs attached to the order.",
+  "evidence_submitted_by": "merchant",
+  "created": "2026-10-28T06:40:00.000Z",
+  "closed_at": null
+}
+```
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `id` | string | Dispute id (`dp_`). |
+| `order` | string | The disputed order. |
+| `amount`, `currency` | integer, string | The disputed amount in minor units, as reported by the payment provider. |
+| `reason` | string \| null | The reason the bank gave, as reported by the payment provider. |
+| `status` | string | `open`, `won`, or `lost`. |
+| `evidence_due_by` | string \| null | Deadline for submitting evidence. After it, the dispute is decided on what was sent. |
+| `evidence_submitted_at` | string \| null | When evidence was submitted, or `null` if none yet. |
+| `evidence_text` | string \| null | The defence exactly as it was sent to the payment provider. |
+| `evidence_submitted_by` | string \| null | Who submitted it: `merchant` (you, from the panel) or `admin` (2Pay staff). |
+| `created` | string | When the dispute was opened. |
+| `closed_at` | string \| null | When it was decided. |
+
+## Outcomes
+
+- **`open`**: the bank is reviewing it. Submit evidence before `evidence_due_by`.
+- **`won`**: resolved in your favour. The order stays `paid`.
+- **`lost`**: resolved against you. The order becomes `disputed` and the order's
+  net `total`, less anything already refunded, is taken back from your balance.
+
+2Pay emits `dispute.created`, `dispute.won`, and `dispute.lost`
+[events](/dev/developer-api/events) as a dispute moves through these states.
+
+## List disputes
+
+```
+GET /v1/disputes
+```
+
+| Parameter | Description |
+| --- | --- |
+| `status` | Only disputes in this state: `open`, `won`, or `lost`. |
+| `limit`, `starting_after`, `ending_before` | [Pagination](/dev/developer-api/pagination). Results run oldest first. |
+
+```bash
+curl "https://api.2pay.gg/v1/disputes?status=open" \
+  -H "Authorization: Bearer sk_live_..."
+```
+
+Running this on a schedule, and alerting on any open dispute whose
+`evidence_submitted_at` is still `null`, is a simple way to never miss a
+deadline.
+
+## Retrieve a dispute
+
+```
+GET /v1/disputes/{id}
+```
+
+Returns the dispute, or `404 resource_missing`.

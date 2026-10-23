@@ -1,0 +1,112 @@
+---
+title: Test mode
+description: Build and test against a sandbox copy of your store with test keys and test cards.
+---
+
+Every store has two modes, **test** and **live**. Test mode is a full sandbox:
+the same API, the same objects, the same events, but no real money moves. Build
+your integration against test mode first, then switch to a live key.
+
+## Test keys and live keys
+
+The mode comes from the key you call the API with:
+
+| Prefix | Mode |
+| --- | --- |
+| `sk_test_` | Test. Payments go through the test payment provider; nothing is charged. |
+| `sk_live_` | Live. Real payments, real refunds, real payouts. |
+
+Create test keys in the panel with the page switched to **Test** (see
+[Authentication](/dev/developer-api/authentication#creating-and-rotating-keys)).
+
+## Test data is separate
+
+Test mode and live mode never see each other's data. Products, categories,
+orders, deliveries, refunds, payouts, balances, events, webhook endpoints, and
+API keys all belong to one mode:
+
+- A test key only lists test products, and a `prod_` id from live mode returns
+  `404` to a test key (and the other way round).
+- Test-mode events are only delivered to webhook endpoints registered in test
+  mode.
+- The panel shows test data when you switch it to **Test**.
+
+You build the test catalog in the panel the same way as the live one, with the
+page switched to Test.
+
+## Paying with test cards
+
+Test checkouts use Stripe's test mode, so pay with Stripe's test card numbers:
+
+| Card number | Result |
+| --- | --- |
+| `4242 4242 4242 4242` | The payment succeeds. |
+| `4000 0000 0000 0002` | The payment is declined. |
+
+Use any future expiry date, any three-digit CVC, and any other values the form
+asks for. A successful test payment marks the order `paid`, creates its
+deliveries, and emits `order.paid` and `delivery.pending`, exactly as in live
+mode.
+
+### When test payments are not available
+
+If the 2Pay deployment you are calling has no test payment provider configured,
+test-mode payment calls fail rather than ever touching live credentials:
+
+```json
+{
+  "error": {
+    "type": "api_error",
+    "code": "test_payments_unconfigured",
+    "message": "Test-mode payments are not configured on this server. No real payment was attempted.",
+    "request_id": "req_..."
+  }
+}
+```
+
+The status is `503`. Nothing was charged. This applies to test checkouts and to
+refunds of test orders.
+
+## Going live: store approval
+
+A new store can use test mode straight away. Taking **live** payments needs the
+store to be approved by 2Pay first (submit it for review in the panel). Until
+then, a live checkout is refused:
+
+```json
+{
+  "error": {
+    "type": "permission_error",
+    "code": "store_not_live",
+    "message": "This store must be approved by 2pay before it can accept live payments.",
+    "request_id": "req_..."
+  }
+}
+```
+
+`POST /v1/checkouts` with an `sk_live_` key returns this `403` whenever the store
+is not live, including while it is suspended. Test keys are not affected.
+
+Payouts have their own requirements (a verified account, and a bank account for
+live payouts); see [Payouts](/dev/developer-api/payouts).
+
+## Placing a test order on your own storefront
+
+You can buy from your own [Webstore](/dev/webstores/overview) in test mode, even
+before the store is approved:
+
+1. In the panel, open **Webstore**. Your store needs a store URL (set in
+   **Store settings**) first.
+2. Click **Place a test order**. Only store owners and admins see it.
+3. Your storefront opens in a new tab in test mode. It shows your **test**
+   catalog and takes test cards.
+4. Add a product, check out, and pay with `4242 4242 4242 4242`.
+
+The test order then appears in the panel under Test, its deliveries are queued
+for your test-mode game servers, and test-mode webhooks fire.
+
+Behind the button, the panel mints a short-lived preview token for your store and
+opens your storefront with `?preview=<token>&mode=test`. The token is bound to
+that one store and expires after 60 minutes; click the button again for a fresh
+one. Without a valid token, `mode=test` is refused, so buyers can never reach
+your test catalog.

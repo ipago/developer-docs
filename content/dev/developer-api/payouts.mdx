@@ -1,0 +1,128 @@
+---
+title: Payouts
+description: Request a payout of your available balance and track it until it reaches your bank.
+---
+
+A **payout** moves money from your available [balance](/dev/developer-api/balance)
+to your bank account. You request it over the API (or in the panel); 2Pay staff
+then send the bank transfer and mark the payout paid.
+
+Requesting a payout requires `payouts:write`; reading requires `payouts:read`.
+
+## Before your first payout
+
+Two things must be in place, both set up in the panel:
+
+1. **A verified account.** Complete account verification (KYC). Until it is
+   approved, `POST /v1/payouts` returns `403 account_not_verified`. This check
+   applies to test keys too.
+2. **A bank account.** Add the account payouts should go to under **Balances →
+   Payout account**. Without it, a live payout returns
+   `400 payout_destination_missing`. Test-mode payouts move no real money and do
+   not need one.
+
+## Hold period
+
+Earnings are not withdrawable the moment a sale is paid. Each sale stays in your
+`pending` balance for the payout hold period (7 days by default), then moves to
+`available`. You can only pay out what is `available`; check it with
+[`GET /v1/balance`](/dev/developer-api/balance).
+
+## The payout object
+
+```json
+{
+  "object": "payout",
+  "id": "po_01M5NB7J2W4X6Z8A0C2E4G6J8K",
+  "amount": 20000,
+  "currency": "eur",
+  "status": "paid",
+  "destination": null,
+  "bank_account": {
+    "holder_name": "Blockworks Studio",
+    "iban": "DE•• •••• 3000",
+    "bic": "COBADEFFXXX"
+  },
+  "settlement_reference": "SEPA-2026-10-25-0042",
+  "failure_reason": null,
+  "created": "2026-10-24T10:00:00.000Z",
+  "paid_at": "2026-10-25T08:30:12.000Z"
+}
+```
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `id` | string | Payout id (`po_`). |
+| `amount`, `currency` | integer, string | How much is paid out, in minor units. |
+| `status` | string | `pending`, `paid`, or `failed`. |
+| `destination` | string \| null | The free-text `destination` you sent when creating it, if any. |
+| `bank_account` | object \| null | Where the money is going: `holder_name`, `iban` (masked to the country code and last four digits), and `bic` (may be `null`). It is copied from your payout account when the payout is created, so changing your bank details later never redirects a payout already requested. `null` when no bank account was set, which only test mode allows. |
+| `settlement_reference` | string \| null | The bank transfer reference, set when 2Pay marks the payout paid. Use it to match the payout against your bank statement. |
+| `failure_reason` | string \| null | Why the payout failed, when it did. |
+| `created` | string | When the payout was requested. |
+| `paid_at` | string \| null | When it was marked paid. |
+
+## Lifecycle
+
+- **`pending`**: requested. The amount has already left your available balance,
+  so it cannot be paid out twice. 2Pay emits `payout.created`.
+- **`paid`**: 2Pay staff sent the bank transfer and recorded its
+  `settlement_reference`. 2Pay emits `payout.paid`.
+- **`failed`**: the transfer did not go through. The amount returns to your
+  available balance and 2Pay emits `payout.failed`.
+
+See [Events](/dev/developer-api/events) for the event payloads.
+
+## Create a payout
+
+```
+POST /v1/payouts
+```
+
+| Parameter | Required | Description |
+| --- | --- | --- |
+| `amount` | yes | Positive integer in minor units. At most your available balance in that currency. |
+| `currency` | yes | Lowercase currency code, for example `"eur"`. |
+| `destination` | no | Free text kept on the payout for your own records. It does not choose where the money goes. |
+
+```bash
+curl https://api.2pay.gg/v1/payouts \
+  -H "Authorization: Bearer sk_live_..." \
+  -H "Content-Type: application/json" \
+  -H "Idempotency-Key: 0b9d6c3e-2f1a-4d8c-b7e6-9a5f4c3d2e1b" \
+  -d '{ "amount": 20000, "currency": "eur" }'
+```
+
+Returns `201` with the payout in `pending`. Always send an
+[Idempotency-Key](/dev/developer-api/idempotency): a retried request with the same
+key returns the same payout instead of requesting a second one.
+
+### Errors
+
+| Status | `code` | When |
+| --- | --- | --- |
+| `403` | `account_not_verified` | Your account has not passed verification yet. |
+| `400` | `payout_destination_missing` | Live mode, and no bank account is set in the panel. |
+| `400` | `insufficient_balance` | `amount` is more than your available balance in that currency. `param` is `amount`. |
+| `400` | `amount_too_small` | `amount` is below the minimum payout amount. |
+| `403` | `store_suspended` | The store is suspended. Payouts resume when the suspension is lifted. |
+| `409` | `idempotency_key_reuse` | The `Idempotency-Key` was already used for a different request. |
+
+## List payouts
+
+```
+GET /v1/payouts
+```
+
+| Parameter | Description |
+| --- | --- |
+| `status` | Only payouts in this state: `pending`, `paid`, or `failed`. |
+| `limit`, `starting_after`, `ending_before` | [Pagination](/dev/developer-api/pagination). Results run oldest first. |
+
+## Retrieve a payout
+
+```
+GET /v1/payouts/{id}
+```
+
+Returns the payout, or `404 resource_missing`.
