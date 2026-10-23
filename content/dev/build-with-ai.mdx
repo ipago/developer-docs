@@ -1,0 +1,82 @@
+---
+title: Build with AI
+description: Give Claude, Cursor, ChatGPT or Copilot the 2Pay docs and API spec, so your assistant writes integrations that match the real API.
+---
+
+AI coding assistants write better 2Pay code when they read the actual docs instead of guessing.
+Everything on this site is available in formats a model can read directly.
+
+## What we publish for AI
+
+| URL | What it is | Use it when |
+| --- | --- | --- |
+| [`/llms-full.txt`](https://docs.2pay.gg/llms-full.txt) | Every page of the documentation in one plain-text file. | You want the assistant to know the whole platform. This is the one to start with. |
+| [`/llms.txt`](https://docs.2pay.gg/llms.txt) | An index of every page with a one-line description. | The tool fetches pages on demand and only needs a map. |
+| `/md/<page path>` | The markdown of a single page, for example [`/md/dev/quick-start`](https://docs.2pay.gg/md/dev/quick-start). | You want to give one page as context. |
+| [`/openapi.json`](https://docs.2pay.gg/openapi.json) | The OpenAPI spec of the public API. | You want typed clients, or the assistant needs exact request and response shapes. |
+
+Every page also has **Copy for LLM**, **Open in Claude** and **Open in ChatGPT** buttons under
+its title. They copy the page, or open a chat that already has the page as context.
+
+## Set up your tool
+
+### Claude Code
+
+Add a line to your project's `CLAUDE.md`, so every session knows where the docs are:
+
+```md
+When working on the 2Pay integration, read https://docs.2pay.gg/llms-full.txt first.
+For exact request and response shapes, use https://docs.2pay.gg/openapi.json.
+```
+
+### Cursor
+
+Add `https://docs.2pay.gg/llms-full.txt` as a documentation source in Cursor's docs settings,
+then reference it with `@Docs` in a chat to bring it into context.
+
+### ChatGPT, Claude and other chats
+
+Paste `https://docs.2pay.gg/llms-full.txt` into the conversation and ask the model to read it
+before answering. For a question about one feature, use the **Open in** buttons on that page.
+
+### GitHub Copilot
+
+Copilot works best with files in your repository. Save `llms-full.txt` and `openapi.json` into
+your project (for example under `docs/2pay/`) and attach them in Copilot Chat when you ask about
+the integration.
+
+## Generate a typed client
+
+`openapi.json` works with any OpenAPI generator. For TypeScript:
+
+```bash
+npx openapi-typescript https://docs.2pay.gg/openapi.json -o src/2pay-api.d.ts
+```
+
+The spec is regenerated from the API's own route definitions on every release, so it does not
+drift from what the server accepts. See the [API reference](/dev/reference) for the same
+information as pages.
+
+## A starting prompt
+
+Copy this into your assistant to begin an integration:
+
+```text
+Read https://docs.2pay.gg/llms-full.txt. I am integrating 2Pay into my project.
+Use test mode only: my key starts with sk_test_. Send JSON bodies, use an
+Idempotency-Key on every POST that creates money movements, and verify webhook
+signatures as the "Verifying signatures" page describes. First, list the steps to
+create a product, start a checkout and handle the order.paid webhook, then write
+the code.
+```
+
+## Keep your keys out of the chat
+
+<Callout type="warn">
+  Never paste a live secret key (`sk_live_...`) into an AI tool. Use a
+  [test-mode](/dev/developer-api/test-mode) key while you build, and keep secrets in
+  environment variables that the assistant's code reads, not in the prompt.
+</Callout>
+
+Test-mode keys only touch test data and test payments, so a mistake made by an assistant
+cannot move real money.
