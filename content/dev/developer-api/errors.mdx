@@ -42,6 +42,9 @@ your code can branch on a stable machine-readable field rather than parsing pros
 | Status | `code` | Meaning |
 | --- | --- | --- |
 | `400` | `validation_error` | The body or query did not match the endpoint's schema (for example `limit=500`). `param` names the field when there is one. |
+| `400` | `invalid_json` | The body is not valid JSON. |
+| `415` | `unsupported_media_type` | The body was not sent as `application/json` (for example form encoding). |
+| `413` | `body_too_large` | The body is larger than the API accepts. |
 | `400` | `invalid_cursor` | Both `starting_after` and `ending_before` were sent, or a cursor was empty. |
 | `401` | `missing_api_key` / `invalid_api_key` | See [Authentication](/dev/developer-api/authentication#errors). |
 | `403` | `insufficient_scope` | The key lacks the scope this endpoint needs. |

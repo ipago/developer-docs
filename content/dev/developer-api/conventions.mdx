@@ -19,7 +19,7 @@ recognize** rather than failing on them.
 ## Requests
 
 - Send request bodies as **JSON** with `Content-Type: application/json`. Form
-  encoding (`application/x-www-form-urlencoded`) is not accepted.
+  encoding (`application/x-www-form-urlencoded`) is refused with `415 unsupported_media_type`.
 - Query parameters are plain strings, for example `?status=paid&limit=50`.
 - Authenticate with a bearer key on every request (see
   [Authentication](/dev/developer-api/authentication)).

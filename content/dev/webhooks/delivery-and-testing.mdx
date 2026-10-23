@@ -103,16 +103,18 @@ like any other event, with the normal retries:
   "id": "evt_01JBB4F5G6H7J8K9M0N1P2Q3R4",
   "type": "endpoint.test",
   "created": "2026-06-28T12:01:00.000Z",
-  "data": { "endpoint": "we_01JB7R0D4F7H2K5M8P1S4V7Y0B" }
+  "data": {
+    "endpoint": "we_01JB7R0D4F7H2K5M8P1S4V7Y0B",
+    "test": true,
+    "message": "This is a test event from 2Pay."
+  }
 }
 ```
 
-<Callout type="warn">
-  Unlike the panel button, this route does not address the endpoint in the
-  path directly. The event goes to every active endpoint of the store in that
-  mode whose subscription is `*`. An endpoint subscribed to a specific list of
-  types does not receive it, even when it is the one named in the URL. To test
-  such an endpoint, use the panel button. The id in the path must still exist,
+<Callout>
+  The event goes only to the endpoint named in the path, whatever event types it
+  subscribes to, the same as the panel button. It is queued and delivered by the
+  normal relay, with the usual retries. The id must exist in this store and mode,
   or the call returns `404`.
 </Callout>
 
