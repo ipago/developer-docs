@@ -3,23 +3,22 @@ title: Integrating
 description: Create a checkout server-side, then mount the payment form on your page.
 ---
 
-A working Checkout integration is two pieces: a backend call that creates a
-checkout and returns a client secret, and the browser library that mounts the
-payment form on your page.
+A Checkout integration is two pieces: a backend call that creates a checkout and
+returns a client secret, and the browser widget that mounts the payment form on
+your page.
 
 <Callout type="warn">
-  The library is not published to a registry or a CDN yet, so today you build it
-  from `packages/checkout` in the monorepo. The API below is what the code
-  actually does; the overlay API described in
-  [Configuration](/dev/checkout/configuration) and [Events](/dev/checkout/events)
-  is a planned design and is not built.
+  **Coming soon.** The widget, `@2pay/checkout`, is not published to npm and is
+  not on a CDN yet, so you cannot install or load it today. Step 1 works now;
+  step 2 documents the widget as it exists in the 2Pay codebase, so you can
+  prepare for it.
 </Callout>
 
 ## 1. Create a checkout (server side)
 
-When a buyer decides to pay, your **backend** creates a checkout that references
-the products they chose. This uses your [secret key](/dev/developer-api/authentication),
-so it must run on your server.
+When a buyer decides to pay, your **backend** creates a checkout for the
+products they chose. This uses your [secret key](/dev/developer-api/authentication)
+with the `checkouts:write` scope, so it must run on your server.
 
 ```bash
 curl https://api.2pay.gg/v1/checkouts \
@@ -31,48 +30,53 @@ curl https://api.2pay.gg/v1/checkouts \
     "customer_email": "player@example.com",
     "delivery_target": "Steve",
     "country": "PL",
-    "return_url": "https://example.com/thanks"
+    "return_url": "https://example.com/thanks?session_id={CHECKOUT_SESSION_ID}"
   }'
 ```
 
 | Field | Required | Description |
 | --- | --- | --- |
-| `items[].product` | yes | A `prod_` id from your catalog. |
-| `items[].quantity` | no | Defaults to `1`. |
+| `items[].product` | yes | A `prod_` id from your catalog. At least one item. |
+| `items[].quantity` | no | A positive integer. Defaults to `1`. |
 | `customer_email` | no | Pre-fills the buyer's email and receives the receipt. |
 | `delivery_target` | no | In-game username, for products that deliver to a player. |
 | `country` | no | ISO 3166-1 alpha-2 buyer country, used to compute VAT. Omit for non-taxable. |
-| `return_url` | no | Where to send the buyer after payment. |
+| `return_url` | no | Where the buyer is sent after paying. `{CHECKOUT_SESSION_ID}` is replaced with the payment session id. Defaults to 2Pay's hosted confirmation page. |
 
-Always send an `Idempotency-Key`. Retrying a checkout without one is how a single
-purchase becomes two charges.
+`POST /v1/checkouts` supports `Idempotency-Key`. Always send one: retrying a
+checkout without it is how a single purchase becomes two orders.
+
+A live key only works once the store is approved by 2Pay; before that the call
+returns `403 store_not_live`. Test keys work at any time.
 
 The response carries the `client_secret` your frontend needs:
 
 ```json
 {
   "object": "checkout",
-  "id": "chk_01HA0...",
+  "id": "ord_01HA0K7Q2M4X8Y3Z5B6C7D8E9F",
   "client_secret": "cs_test_..._secret_...",
   "status": "open",
   "total": { "amount": 1189, "currency": "eur" }
 }
 ```
 
-Return only the `client_secret` to the browser. It is scoped to this one payment
-and carries no account-level power.
+`id` is the id of the order this checkout created. `total` is what the buyer
+pays, VAT included. Return only the `client_secret` to the browser. It is scoped
+to this one payment and carries no account-level power.
 
 ## 2. Mount the form (client side)
 
-The library renders the fields you ask for, then swaps them for the payment
-element once the buyer submits.
+The widget renders the fields you ask for, calls your `createSession` callback
+with their values, and swaps the form for the payment provider's embedded
+checkout once your server returns a `client_secret`.
 
 ```js
-import { mount } from "@2pay/checkout";
+import { mount } from "@2pay/checkout"; // not on npm yet
 
 const handle = mount({
   element: "#checkout",
-  publishableKey: "pk_live_...",   // your payment provider's publishable key
+  publishableKey: "pk_live_...",
   fields: [
     { key: "username", label: "Minecraft username", type: "text", required: true },
     { key: "email", label: "Email", type: "email", required: true },
@@ -84,40 +88,40 @@ const handle = mount({
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ product: "prod_01H9Z4ABCDEF", ...values }),
     });
-    return res.json(); // { clientSecret }
+    const { client_secret } = await res.json();
+    return { clientSecret: client_secret };
   },
   onError: (err) => console.error(err),
 });
 
-// later, if you need to tear it down
+// later, to tear it down
 handle.unmount();
 ```
 
-The split matters: **the library never talks to the 2Pay API**. It knows only
-your `createSession` callback and a publishable key, so a secret key can never
-leak into a page.
+The package also builds a script-tag version that exposes the same function as
+`TwoPayCheckout.mount`. Neither form is hosted yet.
 
-| Option | Required | Description |
-| --- | --- | --- |
-| `element` | yes | A CSS selector or an `HTMLElement` to render into. |
-| `publishableKey` | yes | The payment provider's publishable key. Safe in the browser. |
-| `fields` | yes | The inputs to collect before payment. `text`, `email`, `number` or `select`. |
-| `createSession` | yes | Called with the collected values; must return `{ clientSecret }`. |
-| `onError` | no | Called when session creation or payment mounting fails. |
+The `publishableKey` is the payment provider's public key for 2Pay's account. It
+is safe in the browser, but there is no way to look it up through the API today;
+2Pay will provide it when the widget is released.
+
+Every option is listed in [Configuration](/dev/checkout/configuration). What the
+widget reports back is in [Events](/dev/checkout/events).
 
 ## Confirm the sale server-side
 
 <Callout type="warn">
   Never grant the purchase based on the browser. Fulfil from the
   [`order.paid` webhook](/dev/webhooks/events), which is signed, retried, and
-  impossible to spoof from a client. Verify it with
-  `constructWebhookEvent` from `@2pay/sdk`.
+  impossible to spoof from a client. Check its signature as described in
+  [Verifying signatures](/dev/webhooks/verifying-signatures).
 </Callout>
 
 ## Testing
 
 Create the checkout with a [test key](/dev/developer-api/authentication)
-(`sk_test_...`) and the form runs in sandbox mode. Use these test cards:
+(`sk_test_...`) and it runs against test payment credentials, so no real money
+moves. Use these test cards:
 
 | Card number | Result |
 | --- | --- |
@@ -126,5 +130,5 @@ Create the checkout with a [test key](/dev/developer-api/authentication)
 | `4000 0000 0000 9995` | Insufficient funds. |
 
 Any future expiry date and any CVC work in test mode. Test-mode checkouts emit
-real `order.paid` events to your [test-mode webhook endpoints](/dev/webhooks/endpoints#test-mode-vs-live-mode),
+`order.paid` events to your [test-mode webhook endpoints](/dev/webhooks/endpoints#test-mode-vs-live-mode),
 so you can exercise the full loop without moving money.

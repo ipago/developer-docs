@@ -1,68 +1,51 @@
 ---
 title: Events
-description: React to the checkout opening, closing, and payment outcomes in the browser.
+description: The callbacks the checkout widget calls, and how you learn that a payment completed.
 ---
 
-<Callout type="warn">Preview: the overlay library described here (`Checkout.init`, `Checkout.launch`, `Checkout.on`, themes and colours) is a planned design and is **not built yet**. What ships today is a mountable payment form, documented in [Integrating](/dev/checkout/integrating).</Callout>
-
-The Checkout library emits browser events through `Checkout.on(name, callback)`.
-Use them to drive your **UI**: show a spinner, redirect after success, re-enable a
-button if the buyer closes the overlay. They are *not* a fulfillment signal.
-
-```js
-Checkout.on("open", () => console.log("checkout opened"));
-Checkout.on("close", () => console.log("checkout closed"));
-Checkout.on("payment:complete", (e) => console.log("paid", e));
-Checkout.on("payment:error", (e) => console.error("failed", e));
-```
-
-Register listeners **before** calling `launch()`.
-
-## Events
-
-| Event | Fires when | Typical use |
-| --- | --- | --- |
-| `open` | The overlay has opened. | Disable the buy button, show that checkout is active. |
-| `close` | The buyer closed the overlay (paid or not). | Re-enable the buy button, clean up UI. |
-| `payment:complete` | A payment succeeded in the overlay. | Show a success state or redirect to a thank-you page. |
-| `payment:error` | A payment attempt failed. | Show an inline error; let the buyer retry. |
-
-## The golden rule
-
 <Callout type="warn">
-  Never grant a purchase from `payment:complete`. The browser is untrusted: a tab
-  can close before the event fires, a network can drop, and a determined user can
-  call your code directly. Use these events only to update what the buyer sees.
+  **Coming soon.** `@2pay/checkout` is not published to npm or a CDN yet. This
+  page describes the widget as it exists today.
 </Callout>
 
-Fulfillment must be driven by the [`order.paid` webhook](/dev/webhooks/events),
-which is signed, retried, and server-to-server. The correct division of labor:
+The widget has no event emitter and no `on(...)` API. It reports back through
+the callbacks you pass to `mount`:
+
+| Callback | When it is called |
+| --- | --- |
+| `createSession(values)` | The buyer submitted the form and every required field is filled. |
+| `onError(error)` | `createSession` threw or returned no `clientSecret`, or the payment form failed to load. |
+| `onComplete(result)` | Never, in the current version. It is part of the options type so the contract stays stable, but nothing calls it yet. |
+
+```js
+mount({
+  element: "#checkout",
+  publishableKey,
+  fields,
+  createSession,
+  onError: (err) => showToast(`Checkout failed: ${err.message}`),
+});
+```
+
+## How a payment completes
+
+When the buyer pays, the embedded checkout redirects them to the `return_url`
+your server set on [`POST /v1/checkouts`](/dev/checkout/integrating#1-create-a-checkout-server-side)
+(or to 2Pay's hosted confirmation page if you set none). Put
+`{CHECKOUT_SESSION_ID}` in the URL if your return page needs the session id.
+
+Your return page is for showing the buyer a thank-you message. It is not proof of
+payment: a buyer can open that URL without paying.
+
+## Fulfil from webhooks
+
+<Callout type="warn">
+  Never grant a purchase from the browser. Fulfilment must be driven by the
+  [`order.paid` webhook](/dev/webhooks/events), which is signed, retried, and
+  server-to-server.
+</Callout>
 
 | Concern | Source of truth |
 | --- | --- |
-| Updating the buyer's UI | Browser events (this page). |
+| Updating the buyer's UI | The widget callbacks and your return page. |
 | Granting items, ranks, keys, roles | The `order.paid` webhook and the [Deliveries API](/dev/developer-api/deliveries). |
-
-## A complete handler
-
-```js
-Checkout.on("open", () => setBuying(true));
-
-Checkout.on("close", () => setBuying(false));
-
-Checkout.on("payment:complete", () => {
-  // UI only. The webhook will actually fulfill the order.
-  showToast("Payment received, your purchase is on its way!");
-  window.location.href = "/thanks";
-});
-
-Checkout.on("payment:error", (e) => {
-  showToast(`Payment failed: ${e?.message ?? "please try again"}`);
-});
-
-Checkout.init({ ident, closeOnComplete: true });
-Checkout.launch();
-```
-
-For the matching backend flow, see
-[Integrating](/dev/checkout/integrating#confirm-the-sale-server-side).

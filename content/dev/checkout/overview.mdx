@@ -1,75 +1,75 @@
 ---
 title: Overview
-description: Embed the 2Pay checkout directly in your own site or app, no redirect.
+description: Take a 2Pay payment on your own site with a server-created checkout and an embeddable payment form.
 ---
 
-<Callout type="warn">Preview: the drop-in overlay described on this page (a script tag, an `ident`, `launch()`) is the planned shape. What ships today is a mountable payment form you embed yourself, and it is what [Integrating](/dev/checkout/integrating) documents.</Callout>
+<Callout type="warn">
+  **Coming soon.** The 2Pay checkout widget (`@2pay/checkout`) is not published to
+  npm and is not served from a CDN yet, so you cannot load it on your own site
+  today. These pages describe what the package does in its current form so you
+  can plan an integration. The server side, `POST /v1/checkouts`, is available
+  now.
+</Callout>
 
-**Checkout** lets you drop the 2Pay payment experience straight into your own
-website or app. The buyer pays in an overlay on your page instead of being sent
-off to a separate domain, which keeps your branding intact and lifts conversion.
-It is 2Pay's drop-in checkout library: you load a small script, hand it a checkout
-identifier, and it renders the whole payment flow.
-
-Under the hood, 2Pay still acts as [Merchant of Record](/dev/index): the library
-collects payment, and 2Pay settles it, handles tax, and screens fraud. You write
-no payment code and never touch card data.
+**Checkout** lets the purchase happen on your own website, launcher, or app
+while 2Pay stays the [Merchant of Record](/dev): 2Pay collects the payment,
+handles tax, and settles with you. You never touch card data.
 
 ## Products come first
 
-Checkout sells the products you have **already defined in the panel at
-[app.2pay.gg](https://app.2pay.gg)**. It references those products by id; it does
-**not** create products on the fly. This is the key difference from an "ad-hoc
-product" checkout API: your catalog stays the single source of truth.
+A checkout sells products you have **already defined in the panel at
+[app.2pay.gg](https://app.2pay.gg)**, referenced by their `prod_` id. It does not
+create products on the fly, so your catalog stays the single source of truth.
 
 ## The shape of an integration
 
-A Checkout integration has two halves, and the split matters for security:
+An integration has two halves, and the split matters for security:
 
 1. **Server side.** Your backend calls the
-   [Developer API](/dev/developer-api/overview) to create a *checkout* for the
-   products the buyer chose. This returns a short-lived `client_secret`. This step
-   uses your secret key, so it must happen on your server, never in the browser.
-2. **Client side.** Your frontend loads the 2Pay browser library, passes it the
-   `ident`, and launches the overlay. No secret key is exposed; the `ident` is a
-   one-time handle to a checkout your server already authorized.
+   [Developer API](/dev/developer-api/overview) `POST /v1/checkouts` with your
+   secret key. 2Pay creates an order (`ord_` id) and returns a `client_secret`
+   for the payment session.
+2. **Client side.** The widget renders a short form you define (for example a
+   username and an email), passes the values to a callback you write, and that
+   callback asks your server for the `client_secret`. The widget then mounts the
+   payment provider's embedded checkout on your page with it.
 
 ```
-Browser                         Your server                 2Pay
-  │  "buy VIP Rank"  ─────────────▶ │                          │
-  │                                 │ POST /v1/checkouts ─────▶ │
-  │                                 │ ◀───── { ident } ─────────│
-  │  ◀──────── ident ───────────────│                          │
-  │  Tebex-style: launch(ident) ──────────────────────────────▶│  (overlay)
-  │                              buyer pays in overlay          │
-  │  ◀───── payment:complete event ────────────────────────────│
-                                  (confirm via webhook, server side)
+Browser (widget)                 Your server                     2Pay
+  │ buyer fills your form          │                               │
+  │ createSession(values) ───────▶ │                               │
+  │                                │ POST /v1/checkouts ─────────▶ │
+  │                                │ ◀─ { id: ord_..., client_secret }
+  │ ◀──────── { clientSecret } ─── │                               │
+  │ embedded payment form mounts, buyer pays                       │
+  │ buyer is redirected to your return_url                         │
+  │                                │ ◀──────── order.paid webhook ─│
 ```
 
-## When to use Checkout
-
-Reach for Checkout when you already have your own website, game launcher, or app
-and want the purchase to complete **there**, while still letting 2Pay own
-payments and compliance. If you would rather not build a frontend at all, use a
-hosted [Webstore](/dev/webstores/overview) instead.
+The widget never calls the 2Pay API and never sees a secret key.
 
 ## Confirm payments server-side, always
 
-The client-side [`payment:complete`](/dev/checkout/events) event is for updating
-your UI, not for granting entitlements. A closed tab or a spoofed call could lie.
-Treat the [`order.paid` webhook](/dev/webhooks/events) as the only source of
-truth for fulfillment.
+The browser is untrusted. Grant items, ranks or keys only from the
+[`order.paid` webhook](/dev/webhooks/events), never from the buyer landing on
+your return page.
+
+## When to use Checkout
+
+Use it when you already have your own site, launcher, or app and want the
+purchase to complete there. If you would rather not build a frontend at all,
+use the hosted [Webstore](/dev/webstores/overview), which is available today.
 
 ## Where to go next
 
 <Cards>
   <Card title="Integrating" href="/dev/checkout/integrating">
-    Install the library, create a checkout ident, and launch the overlay.
+    Create a checkout on your server and mount the form.
   </Card>
   <Card title="Configuration" href="/dev/checkout/configuration">
-    Every init option: theme, colors, locale, and behavior.
+    Every option `mount` accepts, and the HTML it renders.
   </Card>
   <Card title="Events" href="/dev/checkout/events">
-    React to open, close, and payment events in the browser.
+    The callbacks the widget calls, and how a payment completes.
   </Card>
 </Cards>
