@@ -1,0 +1,90 @@
+---
+title: API changelog
+description: Developer-visible changes to the 2Pay API, newest first.
+---
+
+Changes to the 2Pay API that affect integrations: new endpoints, new fields, new events and
+changes in behaviour. Internal and dashboard-only changes are left out. The
+[API reference](/dev/reference) always reflects the current API.
+
+## October 2026
+
+### Two-factor sign-in and recovery codes
+
+- Merchants can turn on two-factor sign-in (TOTP) for their dashboard account, change their
+  name and change their password.
+- Two-factor sign-in now comes with one-time recovery codes. They are shown once when they are
+  generated, and each code can be used once at sign-in in place of an authenticator code.
+
+### RCON delivery for game servers
+
+- Game commands can now be **pushed** to a game server over RCON, as an alternative to a plugin
+  polling the [Game API](/dev/reference/game-api). Merchants add the server's RCON host, port and
+  password in the dashboard and can test the connection before saving it.
+- Connections to merchant RCON hosts only go to public addresses: private and internal network
+  addresses are refused.
+
+### Test mode uses separate payment credentials
+
+- Test-mode payments (a `sk_test_...` key, or a test order placed from the storefront) now run on
+  the platform's separate test payment credentials. A test order can never reach live payment
+  processing, and live orders are unaffected.
+
+### Payouts, refunds and disputes
+
+- Payouts now carry the bank account they are paid to and, once 2Pay has paid them, a
+  `settlement_reference` that matches the bank transfer. See
+  [Retrieve a payout](/dev/reference/balance-and-payouts#retrieve-a-payout).
+- Merchants keep a payout destination (a bank account) on file for their account in the
+  dashboard. Payouts are paid to it.
+- Partial refunds can be issued by 2Pay staff. `POST /v1/refunds` with an API key still refunds the
+  whole order.
+- When a dispute is lost on an order that was already partly refunded, only the part that was not
+  refunded is clawed back.
+- Disputes now keep the evidence submitted for them: `evidence_text`, `evidence_submitted_at` and
+  `evidence_submitted_by` on the [dispute object](/dev/reference/disputes).
+
+### Store review
+
+- A merchant must confirm their email address before their store can be submitted for review.
+- Submitting a store for review now also requires a completed identity verification (KYC), a web
+  address and at least one live product.
+
+## September 2026
+
+- Storefronts can be shown in a light or dark theme. The storefront object exposes `theme` and
+  `appearance`. See [Retrieve a storefront](/dev/reference/storefront#retrieve-a-storefront).
+- Refunds and dispute evidence are sent to the payment provider that took the original payment.
+
+## August 2026
+
+### Game API
+
+- New: the [Game API](/dev/reference/game-api) for game server plugins, served on
+  `https://game.2pay.gg`. A plugin authenticates with a per-server token in the
+  `X-2Pay-Server-Token` header, polls `GET /v1/queue`, fetches online and offline commands, and
+  confirms what it ran with `DELETE /v1/queue`. Server tokens can be rolled from the dashboard.
+- When an order is paid, the product's game commands are queued for the store's servers. A
+  delivery completes when its last queued command is confirmed.
+
+### Rate limits
+
+- Every API-key endpoint is now rate limited by default, per API key: 300 requests a minute for
+  reads and 60 a minute for writes. Exceeding the limit returns `429`.
+
+### Money and tax
+
+- Every order records the buyer's country and the VAT rate applied, and buyers receive a
+  transaction confirmation with the VAT breakdown.
+- The payment gateway fee is charged on what the buyer paid, not on the net amount.
+- Partial refunds made at the payment provider are now booked to the ledger instead of being
+  dropped. Refunded and lost sales release their VAT liability.
+- Coupon and gift card reservations are released when a checkout expires without being paid.
+
+### Reliability
+
+- Delivery webhooks are retried on failure instead of failing on the first error.
+- Webhook deliveries are claimed atomically, so an event is never delivered twice by two relays
+  at once.
+- A suspended store is read-only: write requests are rejected while the suspension lasts.
+- The OpenAPI document is published at `https://api.2pay.gg/openapi.json`, on the real API host.
