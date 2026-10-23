@@ -1,0 +1,167 @@
+---
+title: MCP server
+description: Connect Claude, Cursor or VS Code to 2Pay over MCP, so your assistant can search the docs and work with your test-mode store.
+---
+
+{/* Client config verified against official docs on 2026-10-23: Claude Code (code.claude.com/docs/en/mcp), Cursor (cursor.com/docs/context/mcp), VS Code (code.visualstudio.com/docs/agents/reference/mcp-configuration), Claude custom connectors (support.claude.com, "Request headers" section). Re-check if a client changes its config format. */}
+
+The 2Pay MCP server lets an AI assistant read the 2Pay documentation and call the
+[Developer API](/dev/developer-api) against your **test-mode** store, from inside the tools
+you already use.
+
+| | |
+| --- | --- |
+| Server URL | `https://mcp.2pay.gg/mcp` |
+| Transport | Streamable HTTP, stateless. Requests are `POST` only. |
+| Authentication | `Authorization: Bearer sk_test_...` header |
+
+Without a key the server still works, but only the two documentation tools are available.
+With a test key you also get the API tools below.
+
+## Test keys only
+
+<Callout type="warn">
+  The hosted server refuses live keys (`sk_live_...` and `rk_live_...`). A request with a live
+  key gets a JSON-RPC error and no tools. Use a `sk_test_` key from the panel with the page
+  switched to **Test**.
+</Callout>
+
+An assistant can call tools on its own, and a misread instruction should never move real money.
+A test key only touches [test-mode](/dev/developer-api/test-mode) data, so the worst case is a
+test order you can ignore. For the same reason, `create_refund` is never offered for a live key.
+
+## Tools
+
+The documentation tools work with or without a key.
+
+| Tool | What it does |
+| --- | --- |
+| `search_docs` | Searches the 2Pay documentation and returns matching pages with url, title and excerpt. |
+| `get_doc_page` | Returns the full markdown of one documentation page, given a slug such as `dev/checkout`. Only `dev/...` and `creators/...` slugs are accepted. |
+
+The API tools need a `sk_test_` key.
+
+| Tool | What it does |
+| --- | --- |
+| `list_products` | Returns a page of the store's products with prices. Filters: `active`, `category`. |
+| `get_product` | Returns one product by id. |
+| `create_checkout` | Creates a checkout session for the given products and returns it, including the hosted payment URL. |
+| `list_orders` | Returns a page of orders. Filter: `status`. |
+| `get_order` | Returns one order by id. |
+| `get_balance` | Returns the current account balance. |
+| `list_deliveries` | Returns a page of fulfilment deliveries. Filter: `status`. |
+| `list_events` | Returns a page of API events. |
+| `get_event` | Returns one API event by id. |
+| `list_webhook_endpoints` | Returns a page of webhook endpoints. |
+| `create_webhook_endpoint` | Creates a webhook endpoint and returns it including its signing secret, which is shown once and cannot be retrieved later. |
+| `send_test_event` | Sends a test event to a webhook endpoint and returns the delivery result. |
+| `list_refunds` | Returns a page of refunds. Filter: `status`. |
+| `list_disputes` | Returns a page of disputes. Filter: `status`. |
+| `list_payouts` | Returns a page of payouts. Filter: `status`. |
+| `create_refund` | Refunds an order and returns the refund. Test mode only. |
+
+List tools take `limit` (1 to 100) and `starting_after` (the id of the last object of the
+previous page) for pagination. The documentation tools read the same content as
+[`llms-full.txt`](https://docs.2pay.gg/llms-full.txt) and `/md/<slug>` pages described in
+[Build with AI](/dev/build-with-ai).
+
+`create_webhook_endpoint` returns the signing secret once. Ask your assistant to store it in
+your environment configuration straight away rather than repeating it in the chat.
+
+## Set up your client
+
+Replace `sk_test_...` with your test key in each example.
+
+### Claude Code
+
+```bash
+claude mcp add --transport http 2pay https://mcp.2pay.gg/mcp \
+  --header "Authorization: Bearer sk_test_..."
+```
+
+Add `--scope project` to share the server with your team through `.mcp.json`. If you do, keep
+the key out of the file: reference an environment variable instead, as
+`"Authorization": "Bearer ${TWOPAY_TEST_KEY}"` in the `headers` object.
+
+### Cursor
+
+Create `.cursor/mcp.json` in your project, or `~/.cursor/mcp.json` for all projects:
+
+```json
+{
+  "mcpServers": {
+    "2pay": {
+      "url": "https://mcp.2pay.gg/mcp",
+      "headers": {
+        "Authorization": "Bearer ${env:TWOPAY_TEST_KEY}"
+      }
+    }
+  }
+}
+```
+
+Cursor reads `TWOPAY_TEST_KEY` from your environment, so the key never lands in a file you
+might commit.
+
+### VS Code
+
+Create `.vscode/mcp.json`. VS Code asks for the key the first time the server starts and
+stores it securely:
+
+```json
+{
+  "inputs": [
+    {
+      "type": "promptString",
+      "id": "twopay-test-key",
+      "description": "2Pay test key (sk_test_...)",
+      "password": true
+    }
+  ],
+  "servers": {
+    "2pay": {
+      "type": "http",
+      "url": "https://mcp.2pay.gg/mcp",
+      "headers": {
+        "Authorization": "Bearer ${input:twopay-test-key}"
+      }
+    }
+  }
+}
+```
+
+### Claude Desktop and claude.ai
+
+Open **Customize**, then **Connectors**, choose **Add custom connector**, and enter:
+
+- Name: `2Pay`
+- URL: `https://mcp.2pay.gg/mcp`
+
+2Pay does not offer OAuth sign-in yet, so choose no sign-in. In the **Request headers**
+section add the header `Authorization` with the value `Bearer sk_test_...`. Claude sends it on
+every request and stores it encrypted. Custom connectors are available on Pro, Max, Team and
+Enterprise plans. On Team and Enterprise, everyone who uses the connector shares the same
+credential, so use a test key.
+
+If you leave the header out, the connector connects but only the two documentation tools are
+available.
+
+## Keep your keys safe
+
+<Callout type="warn">
+  Store the test key in the client's config, a secret prompt or an environment variable. Never
+  paste it into a chat message or commit it to a repository. A key typed into a chat becomes part
+  of the conversation history.
+</Callout>
+
+If a key leaks, revoke it in the panel and create a new one. See
+[Authentication](/dev/developer-api/authentication#creating-and-rotating-keys).
+
+## Try it
+
+Once connected, ask your assistant:
+
+```text
+Use the 2Pay tools. List my test products, create a checkout for the first one, and show me
+the payment URL. Then send a test event to my webhook endpoint.
+```
