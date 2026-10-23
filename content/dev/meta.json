@@ -10,6 +10,10 @@
     "developer-api",
     "game-api",
     "webhooks",
+    "---Reference---",
+    "reference",
+    "changelog",
+    "---Planned---",
     "affiliate-api"
   ]
 }
