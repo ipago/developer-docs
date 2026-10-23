@@ -1,8 +1,6 @@
 {
   "title": "Affiliate API",
   "pages": [
-    "overview",
-    "affiliates",
-    "referrals-and-commissions"
+    "overview"
   ]
 }
