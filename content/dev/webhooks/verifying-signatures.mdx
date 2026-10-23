@@ -8,111 +8,206 @@ to trick you into granting items for free. The signature is what stops that:
 every genuine request carries an HMAC computed with your endpoint's secret, which
 only you and 2Pay know. **Verify it before you trust a single byte of the body.**
 
+## Delivery headers
+
+Every store webhook request is a `POST` with these headers:
+
+| Header | Value |
+| --- | --- |
+| `Content-Type` | `application/json` |
+| `2Pay-Signature` | `t=<unix seconds>,v1=<hex>`, with a second `v1=<hex>` during a [secret rotation](/dev/webhooks/endpoints#rotating-the-signing-secret). |
+| `2Pay-Event-Type` | The event `type`, for example `order.paid`. |
+| `2Pay-Event-Id` | The event `id` (`evt_`). The same on every retry. |
+| `2Pay-Delivery-Id` | The id (`wd_`) of this endpoint's delivery of the event. The same on every retry of it. |
+
+Header names are case-insensitive in HTTP, and most frameworks hand them to you
+lower-cased (`2pay-signature`). The three metadata headers are convenient for
+routing and deduplication, but they are not covered by the signature: once the
+signature checks out, take the type and id from the body.
+
 ## The signature header
 
-Each request includes a `2Pay-Signature` header:
-
 ```
-2Pay-Signature: t=1751110929,v1=4f8e2a...c91
+2Pay-Signature: t=1751110929,v1=bd743717fc2838ee61da44afc05dd821b4af54c5fed306298cb7df9ccfd5aea7
 ```
 
 | Part | Meaning |
 | --- | --- |
-| `t` | Unix timestamp (seconds) when the request was signed. |
-| `v1` | Hex HMAC-SHA256 of the signed payload, using your endpoint secret as the key. |
+| `t` | Unix timestamp (seconds) when this attempt was signed. Each retry is signed afresh, so `t` changes between attempts. |
+| `v1` | Hex HMAC-SHA256 of the signed payload, keyed with your endpoint secret. |
 
 The **signed payload** is the timestamp, a dot, and the **raw request body**:
 
 ```
 signed_payload = "{t}." + raw_body
-expected_v1    = HMAC_SHA256(secret, signed_payload)   // hex
+expected_v1    = hex(HMAC_SHA256(key = secret, message = signed_payload))
 ```
+
+The key is the whole secret string exactly as you received it, `whsec_` prefix
+included, as UTF-8 bytes. Do not strip the prefix or base64-decode it.
+
+### More than one `v1`
+
+While a [secret rotation](/dev/webhooks/endpoints#rotating-the-signing-secret)
+is in its 24-hour grace window, the header carries one `v1` per live secret,
+newest first:
+
+```
+2Pay-Signature: t=1751110929,v1=<signed with new secret>,v1=<signed with old secret>
+```
+
+Accept the request if **any** `v1` matches the signature you compute. A parser
+that keeps only one `v1` (for example by building a key/value map, where the
+second `v1` overwrites the first) will reject valid deliveries during every
+rotation.
 
 <Callout type="warn">
   Compute the HMAC over the **exact raw bytes** of the body, before any JSON
-  parsing or reserialization. Frameworks that auto-parse JSON will change
-  whitespace and key order, which breaks the signature. Capture the raw body
-  first.
+  parsing or reserialization. Frameworks that auto-parse JSON change whitespace
+  and key order, which breaks the signature. Capture the raw body first.
 </Callout>
 
 ## Verifying, step by step
 
-1. Read the raw request body as a string or buffer.
-2. Parse `t` and `v1` out of the `2Pay-Signature` header.
-3. Recompute `HMAC_SHA256(secret, "{t}." + raw_body)`.
-4. Compare your value to `v1` in **constant time**.
-5. Reject if `t` is too old (say, more than 5 minutes) to blunt replay attacks.
+1. Read the raw request body as bytes or a string.
+2. Split the `2Pay-Signature` header on `,`. Take `t`, and collect **every**
+   `v1` value into a list.
+3. Reject if `t` is too far from your clock (5 minutes is a sensible
+   tolerance). The timestamp is inside the signed payload, so an attacker
+   cannot replay an old body with a fresh `t`.
+4. Compute `HMAC_SHA256(secret, "{t}." + raw_body)` as hex.
+5. Compare it with each `v1` in **constant time**. Accept if one matches.
 
 ## Node.js
+
+Uses only `node:crypto`, no SDK required.
 
 ```ts
 import { createHmac, timingSafeEqual } from "node:crypto";
 
 const TOLERANCE_SECONDS = 300;
 
-export function verifyWebhook(rawBody: string, header: string, secret: string) {
-  const parts = Object.fromEntries(
-    header.split(",").map((kv) => kv.split("=") as [string, string]),
+export function verifyWebhook(rawBody: string, header: string, secret: string): boolean {
+  let timestamp: string | undefined;
+  const signatures: string[] = [];
+  for (const part of header.split(",")) {
+    const i = part.indexOf("=");
+    if (i === -1) continue;
+    const key = part.slice(0, i).trim();
+    const value = part.slice(i + 1).trim();
+    if (key === "t") timestamp = value;
+    else if (key === "v1") signatures.push(value); // keep EVERY v1
+  }
+  if (!timestamp || !/^\d+$/.test(timestamp) || signatures.length === 0) return false;
+
+  // Replay protection: refuse anything signed too long ago (or in the future).
+  const age = Math.floor(Date.now() / 1000) - Number(timestamp);
+  if (Math.abs(age) > TOLERANCE_SECONDS) return false;
+
+  const expected = Buffer.from(
+    createHmac("sha256", secret).update(`${timestamp}.${rawBody}`).digest("hex"),
   );
-  const timestamp = Number(parts.t);
-  const signature = parts.v1;
-  if (!timestamp || !signature) return false;
-
-  // Reject stale requests (replay protection).
-  const ageSeconds = Math.floor(Date.now() / 1000) - timestamp;
-  if (Math.abs(ageSeconds) > TOLERANCE_SECONDS) return false;
-
-  const expected = createHmac("sha256", secret)
-    .update(`${timestamp}.${rawBody}`)
-    .digest("hex");
-
-  const a = Buffer.from(signature);
-  const b = Buffer.from(expected);
-  return a.length === b.length && timingSafeEqual(a, b);
+  return signatures.some((sig) => {
+    const given = Buffer.from(sig);
+    return given.length === expected.length && timingSafeEqual(given, expected);
+  });
 }
 ```
 
 Wire it in with the **raw** body, then parse only after it passes:
 
 ```ts
-app.post("/hooks/2pay", express.raw({ type: "*/*" }), (req, res) => {
+import express from "express";
+
+const SECRET = process.env.TWOPAY_WEBHOOK_SECRET!; // whsec_...
+
+app.post("/hooks/2pay", express.raw({ type: "application/json" }), (req, res) => {
   const raw = req.body.toString("utf8");
-  const ok = verifyWebhook(raw, req.header("2Pay-Signature") ?? "", SECRET);
-  if (!ok) return res.sendStatus(400);
+  if (!verifyWebhook(raw, req.get("2Pay-Signature") ?? "", SECRET)) {
+    return res.sendStatus(400);
+  }
 
   const event = JSON.parse(raw);
-  // ...handle event
-  res.sendStatus(200);
+  res.sendStatus(200); // ack first
+  queue.push(event);   // then do the work elsewhere
 });
 ```
 
-## PHP
+## Python
 
-```php
-function verify_webhook(string $rawBody, string $header, string $secret): bool {
-    $parts = [];
-    foreach (explode(',', $header) as $kv) {
-        [$k, $v] = explode('=', $kv, 2);
-        $parts[$k] = $v;
-    }
-    if (empty($parts['t']) || empty($parts['v1'])) return false;
-    if (abs(time() - (int) $parts['t']) > 300) return false;
+Uses only the standard library.
 
-    $expected = hash_hmac('sha256', $parts['t'] . '.' . $rawBody, $secret);
-    return hash_equals($expected, $parts['v1']);
-}
+```python
+import hashlib
+import hmac
+import time
+
+TOLERANCE_SECONDS = 300
+
+
+def verify_webhook(raw_body: bytes, header: str, secret: str) -> bool:
+    timestamp = None
+    signatures = []
+    for part in header.split(","):
+        key, sep, value = part.strip().partition("=")
+        if not sep:
+            continue
+        if key == "t":
+            timestamp = value
+        elif key == "v1":
+            signatures.append(value)  # keep EVERY v1
+
+    if not timestamp or not timestamp.isdigit() or not signatures:
+        return False
+    if abs(time.time() - int(timestamp)) > TOLERANCE_SECONDS:
+        return False
+
+    signed = timestamp.encode() + b"." + raw_body
+    expected = hmac.new(secret.encode(), signed, hashlib.sha256).hexdigest()
+    return any(hmac.compare_digest(expected, sig) for sig in signatures)
 ```
+
+With Flask, read the body with `request.get_data()` before touching
+`request.json`:
+
+```python
+from flask import Flask, request
+
+app = Flask(__name__)
+
+@app.post("/hooks/2pay")
+def hook():
+    raw = request.get_data()  # bytes, exactly as sent
+    if not verify_webhook(raw, request.headers.get("2Pay-Signature", ""), SECRET):
+        return "", 400
+    event = request.get_json()
+    enqueue(event)
+    return "", 200
+```
+
+## Check your implementation
+
+Feed your function this fixed input with the timestamp tolerance switched off
+(the timestamp is in the past). It must return true:
+
+```
+secret  = whsec_test_secret
+body    = {"object":"event","id":"evt_1","type":"endpoint.test","created":"2025-06-28T11:42:09.000Z","data":{}}
+header  = t=1751110929,v1=0000000000000000000000000000000000000000000000000000000000000000,v1=bd743717fc2838ee61da44afc05dd821b4af54c5fed306298cb7df9ccfd5aea7
+```
+
+The body is the exact bytes shown, with no trailing newline. The first `v1` is
+deliberately wrong, as it would be for a receiver still holding the old secret
+during a rotation: a verifier that only looks at one `v1` fails this test.
 
 ## Why constant-time comparison matters
 
 A naive `==` returns as soon as two bytes differ, and that timing difference can,
 in principle, leak the correct signature one byte at a time. Always use a
-constant-time comparator: `timingSafeEqual` in Node, `hash_equals` in PHP,
-`hmac.compare_digest` in Python.
+constant-time comparator: `timingSafeEqual` in Node, `hmac.compare_digest` in
+Python, `hash_equals` in PHP.
 
-## Defense in depth
+## Source addresses
 
-Signature verification is the primary control. You can layer the
-[IP allowlist](/dev/webhooks/delivery-and-testing#ip-allowlist) on top, but never
-rely on the allowlist alone, signatures are what actually authenticate the
-payload.
+2Pay does not publish a fixed list of source IP addresses for webhooks, so do
+not build an IP allowlist. The signature is what authenticates a request.

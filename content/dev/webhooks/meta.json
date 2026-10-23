@@ -5,6 +5,7 @@
     "endpoints",
     "verifying-signatures",
     "events",
-    "delivery-and-testing"
+    "delivery-and-testing",
+    "delivery-webhook"
   ]
 }

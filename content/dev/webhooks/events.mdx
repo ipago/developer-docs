@@ -3,126 +3,311 @@ title: Events
 description: Every webhook event type and the payload it carries.
 ---
 
-This is the catalog of events 2Pay can push to your
+This is the catalog of events 2Pay pushes to your
 [endpoints](/dev/webhooks/endpoints). Every payload is a standard
-[event object](/dev/developer-api/events): a `type`, a `created` timestamp, and a
-`data.object` holding the resource the event is about.
+[event object](/dev/developer-api/events):
+
+```json
+{
+  "object": "event",
+  "id": "evt_...",
+  "type": "order.paid",
+  "created": "2026-06-28T11:42:11.512Z",
+  "data": { "object": "order", "...": "..." }
+}
+```
+
+`data` is the resource the event is about, in exactly the shape the API returns
+for it. Its `object` field tells you which resource you are holding.
 
 Subscribe an endpoint to the specific types it needs, or to `*` to receive all
 current and future types.
+
+## All event types
+
+| Type | `data.object` | Fires when |
+| --- | --- | --- |
+| `order.paid` | `order` | A customer completed checkout and the payment cleared. |
+| `order.refunded` | `order` | An order was refunded in full. |
+| `delivery.pending` | `delivery` | A paid item is waiting to be granted. |
+| `delivery.completed` | `delivery` | The item reached the player and the delivery is closed. |
+| `delivery.failed` | `delivery` | A delivery failed and needs a retry or a refund. |
+| `subscription.created` | `subscription` | A customer started a recurring plan. |
+| `subscription.renewed` | `subscription` | A recurring plan billed for another period. |
+| `subscription.canceled` | `subscription` | A recurring plan ended and will not bill again. |
+| `payout.created` | `payout` | A payout of your available balance was requested. |
+| `payout.paid` | `payout` | A payout landed in your bank account. |
+| `payout.failed` | `payout` | A payout was returned and the amount went back to your balance. |
+| `dispute.created` | `dispute` | A customer's bank charged back an order. |
+| `dispute.won` | `dispute` | A chargeback was resolved in your favour. |
+| `dispute.lost` | `dispute` | A chargeback was resolved against you. |
+| `endpoint.test` | none | Sent only when you ask for a test. See [below](#endpointtest). |
+
+The same list is served to the panel, and the panel only lets you subscribe to
+these types.
+
+<Callout type="info">
+  New types are added over time. Always ignore an unrecognized `type` instead of
+  erroring, so future events never break your handler. Likewise, ignore fields
+  you do not know: fields are added to payloads without notice.
+</Callout>
+
+Amounts are integers in the currency's minor unit (cents for EUR), and
+currency codes are lowercase ISO 4217, as everywhere in the
+[API](/dev/developer-api/conventions#money).
 
 ## Order events
 
 ### `order.paid`
 
-Fires when a buyer completes payment. This is the trigger for fulfillment.
+Fires once, when the payment for an order clears. This is the trigger for
+fulfillment. A subscription renewal does not emit `order.paid`; it emits
+[`subscription.renewed`](#subscription-events).
 
 ```json
 {
   "object": "event",
-  "id": "evt_01HA0ABC",
+  "id": "evt_01JB7Q2ZB1C4D7E0F3G6H9J2K5",
   "type": "order.paid",
-  "created": "2026-06-28T11:42:11Z",
+  "created": "2026-06-28T11:40:02.101Z",
   "data": {
     "object": "order",
-    "id": "ord_01HA0XYZ",
+    "id": "ord_01JB7Q2X9N4B7C2E5F8H1J3K6L",
     "status": "paid",
-    "customer": { "email": "player@example.com", "country": "DE" },
+    "customer": { "email": "player@example.com", "name": null },
     "items": [
-      { "id": "oi_01HA0...", "product": "prod_01H9Z4ABCDEF", "quantity": 1, "delivery": "dlv_01HA0..." }
+      {
+        "object": "order_item",
+        "id": "oi_01JB7Q2X9P6Q1R4S7T0U3V6W9X",
+        "product": "prod_01JA2B3C4D5E6F7G8H9J0K1M2N",
+        "name": "VIP rank",
+        "quantity": 1,
+        "unit_price": { "amount": 1000, "currency": "eur" }
+      }
     ],
-    "totals": { "total": { "amount": 1189, "currency": "eur" } },
-    "delivery_status": "pending"
+    "subtotal": { "amount": 1000, "currency": "eur" },
+    "discount": { "amount": 0, "currency": "eur" },
+    "tax_amount": { "amount": 190, "currency": "eur" },
+    "gift_card": null,
+    "total": { "amount": 1190, "currency": "eur" },
+    "coupon_code": null,
+    "delivery_target": "Steve",
+    "payment_method": "card",
+    "card_last4": "4242",
+    "decline_reason": null,
+    "created": "2026-06-28T11:39:31.870Z",
+    "paid_at": "2026-06-28T11:40:01.954Z"
   }
 }
 ```
+
+| Field | Notes |
+| --- | --- |
+| `customer` | `email` and `name` as captured at checkout; either can be `null`. |
+| `items[].product` | The product id. `name` and `unit_price` are frozen at purchase time. |
+| `subtotal`, `discount`, `tax_amount`, `total` | Money objects. `tax_amount` is the VAT 2Pay collected as merchant of record. |
+| `gift_card` | `{ "amount": { ... } }` when a gift card paid part of the order, otherwise `null`. |
+| `delivery_target` | The in-game username the buyer entered, or `null` when the store does not ask for one. |
+| `payment_method`, `card_last4` | How the buyer paid. `card_last4` is `null` for non-card methods. |
 
 ### `order.refunded`
 
-Fires on a full or partial refund. Inspect `status` (`refunded` vs
-`partially_refunded`) and the `totals` to see how much came back. Reverse any
-entitlement you granted if your policy requires it.
-
-### `order.disputed`
-
-Fires when a chargeback or payment dispute opens against an order
-(`status: "disputed"`). Most disputes are handled for you under the Seller
-Protection Program; use this event to flag the account or pause further perks
-while it resolves.
+Fires when an order is refunded **in full**. `data` is the order with
+`status: "refunded"`. A partial refund leaves the order `paid` and does not
+emit this event; see partial refunds through the
+[Orders API](/dev/developer-api/orders). Reverse any entitlement you granted if
+your policy requires it.
 
 ## Delivery events
 
-These drive the fulfillment loop. The `data.object` is a
-[delivery](/dev/developer-api/deliveries).
+These drive the fulfillment loop. `data` is a
+[delivery](/dev/developer-api/deliveries): one per order item.
 
 ### `delivery.pending`
 
-A paid line item is waiting to be granted. For game products, your
-[Game API](/dev/game-api/overview) queue will surface the same work; for
-backend-fulfilled products, this is your cue to grant and then confirm.
+Emitted for every item of a paid order (and of each paid subscription renewal)
+as soon as the delivery is created. For game products your
+[Game API](/dev/game-api/overview) queue surfaces the same work; for
+backend-fulfilled products, this is your cue to grant and then
+[confirm](/dev/developer-api/deliveries#confirm-a-delivery).
 
 ```json
 {
   "object": "event",
-  "id": "evt_01HA0DEF",
+  "id": "evt_01JB7Q2ZB3M6N9P2Q5R8S1T4U7",
   "type": "delivery.pending",
-  "created": "2026-06-28T11:42:12Z",
+  "created": "2026-06-28T11:40:02.118Z",
   "data": {
     "object": "delivery",
-    "id": "dlv_01HA0...",
-    "order": "ord_01HA0XYZ",
-    "product": "prod_01H9Z4ABCDEF",
+    "id": "del_01JB7Q2Y5H3F8D1S6A9G4K7M2P",
+    "order": "ord_01JB7Q2X9N4B7C2E5F8H1J3K6L",
+    "order_item": "oi_01JB7Q2X9P6Q1R4S7T0U3V6W9X",
+    "product": "prod_01JA2B3C4D5E6F7G8H9J0K1M2N",
+    "recipient": "Steve",
+    "quantity": 1,
+    "config": {
+      "commands": [
+        { "kind": "offline", "command": "lp user {username} parent add vip", "delay": 0, "slots": 0, "servers": [] }
+      ]
+    },
     "status": "pending",
-    "target": "manual"
+    "note": null,
+    "created": "2026-06-28T11:40:02.118Z",
+    "completed_at": null
   }
 }
 ```
 
+| Field | Notes |
+| --- | --- |
+| `recipient` | The username the buyer entered at checkout, or `null`. |
+| `config` | The product's `delivery_config`, frozen at purchase time, so editing the product later does not change what this buyer is owed. A webhook `secret` in it is never included. |
+| `status` | `pending`, `completed` or `failed`. |
+| `note` | Free text recorded when the delivery was completed or failed, for example `"Confirmed by game server."`. |
+
 ### `delivery.completed`
 
-Fires when a delivery is confirmed, whether by your backend, by the Game API, or
-by 2Pay for directly-delivered goods. Useful for updating your own records or
-notifying the buyer.
+Fires when a delivery is confirmed: by your backend through the Deliveries API,
+by your game server confirming the last of the delivery's
+[queue commands](/dev/game-api/delivery-queue#4-confirm-execution), or by a
+successful [per-product delivery webhook](/dev/webhooks/delivery-webhook).
+`status` is `completed` and `completed_at` is set. It fires exactly once per
+delivery.
 
 ### `delivery.failed`
 
-Fires when a delivery attempt fails. `data.object.last_error` carries the reason.
-The delivery stays eligible for retry.
+Fires when a delivery is marked failed: by your backend, when an
+[RCON](/dev/game-api/plugins#rcon) command gives up, or when a per-product
+delivery webhook exhausts its retries. `status` is `failed` and `note` carries
+the reason. A failed delivery is final; decide whether to grant by hand or
+refund.
 
-## Product events
+## Subscription events
 
-The `data.object` is a [product](/dev/developer-api/products). Use these to keep a
-mirrored catalog in sync without polling.
+`data` is a subscription:
 
-| Type | Fires when |
+```json
+{
+  "object": "event",
+  "id": "evt_01JB8A1B2C3D4E5F6G7H8J9K0M",
+  "type": "subscription.created",
+  "created": "2026-06-28T12:05:00.412Z",
+  "data": {
+    "object": "subscription",
+    "id": "sub_01JB8A1A9Z8Y7X6W5V4T3S2R1Q",
+    "product": "prod_01JA2B3C4D5E6F7G8H9J0K1M3P",
+    "product_name": "Monthly VIP",
+    "quantity": 1,
+    "unit_amount": 499,
+    "currency": "eur",
+    "billing_interval": "month",
+    "customer_email": "player@example.com",
+    "delivery_target": "Steve",
+    "status": "active",
+    "current_period_end": "2026-07-28T12:04:58.000Z",
+    "created": "2026-06-28T12:05:00.401Z",
+    "canceled_at": null
+  }
+}
+```
+
+| Type | Notes |
 | --- | --- |
-| `product.created` | A new product is published in the panel. |
-| `product.updated` | A product's name, price, availability, or other details change. |
+| `subscription.created` | The first payment of a recurring plan went through. |
+| `subscription.renewed` | A renewal invoice was paid. A new order and its deliveries are created for the period, so `delivery.pending` follows. |
+| `subscription.canceled` | The plan ended. `status` is `canceled` and `canceled_at` is set. |
 
-## Affiliate events
+`billing_interval` is `month` or `year`; `status` is `active`, `past_due` or
+`canceled`.
 
-### `referral.created`
+## Payout events
 
-Fires when a sale is attributed to an [affiliate](/dev/affiliate-api/overview).
-The `data.object` is a referral, including which affiliate and order it links and
-the commission earned.
+`data` is a payout:
 
-## Full reference table
+```json
+{
+  "object": "event",
+  "id": "evt_01JB9C2D3E4F5G6H7J8K9M0N1P",
+  "type": "payout.paid",
+  "created": "2026-07-02T09:15:00.003Z",
+  "data": {
+    "object": "payout",
+    "id": "po_01JB8Z7Y6X5W4V3T2S1R0Q9P8N",
+    "amount": 25000,
+    "currency": "eur",
+    "status": "paid",
+    "destination": "pdst_01JA9B8C7D6E5F4G3H2J1K0M9N",
+    "bank_account": { "holder_name": "Example Games GmbH", "iban": "DE•• •••• 3000", "bic": "COBADEFFXXX" },
+    "settlement_reference": "SEPA-2026-07-02-0042",
+    "failure_reason": null,
+    "created": "2026-06-30T14:00:00.000Z",
+    "paid_at": "2026-07-02T09:15:00.000Z"
+  }
+}
+```
 
-| Type | `data.object` | Fires when |
-| --- | --- | --- |
-| `order.paid` | `order` | Payment completes. |
-| `order.refunded` | `order` | Full or partial refund. |
-| `order.disputed` | `order` | A dispute or chargeback opens. |
-| `delivery.pending` | `delivery` | A paid item awaits fulfillment. |
-| `delivery.completed` | `delivery` | A delivery is confirmed. |
-| `delivery.failed` | `delivery` | A delivery attempt fails. |
-| `product.created` | `product` | A product is published. |
-| `product.updated` | `product` | A product changes. |
-| `referral.created` | `referral` | A referred sale is attributed. |
-| `endpoint.validation` | `{ challenge }` | A new endpoint is being validated. See [Endpoints](/dev/webhooks/endpoints#validation). |
+| Type | Notes |
+| --- | --- |
+| `payout.created` | A payout was requested. `status` is `pending`. |
+| `payout.paid` | The money was sent. `paid_at` and, when known, `settlement_reference` are set. |
+| `payout.failed` | The payout was returned. `failure_reason` says why, and the amount is back in your available balance. |
 
-<Callout type="info">
-  New types are added over time. Always ignore an unrecognized `type` instead of
-  erroring, so future events never break your handler.
-</Callout>
+`bank_account` shows the destination with the IBAN masked to its last four
+digits, or `null` when the payout has no saved destination.
+
+## Dispute events
+
+`data` is a dispute:
+
+```json
+{
+  "object": "event",
+  "id": "evt_01JBA3E4F5G6H7J8K9M0N1P2Q3",
+  "type": "dispute.created",
+  "created": "2026-07-10T08:00:00.210Z",
+  "data": {
+    "object": "dispute",
+    "id": "dp_01JBA3E4D3C2B1A0Z9Y8X7W6V5",
+    "order": "ord_01JB7Q2X9N4B7C2E5F8H1J3K6L",
+    "amount": 1190,
+    "currency": "eur",
+    "reason": "fraudulent",
+    "status": "open",
+    "evidence_due_by": "2026-07-24T23:59:59.000Z",
+    "evidence_submitted_at": null,
+    "evidence_text": null,
+    "evidence_submitted_by": null,
+    "created": "2026-07-10T08:00:00.198Z",
+    "closed_at": null
+  }
+}
+```
+
+| Type | Notes |
+| --- | --- |
+| `dispute.created` | A chargeback opened. `status` is `open` and the order's status becomes `disputed`. Use this to flag the account or pause perks while it resolves. |
+| `dispute.won` | Resolved in your favour. `status` is `won`, `closed_at` is set. |
+| `dispute.lost` | Resolved against you. `status` is `lost`, `closed_at` is set. |
+
+## `endpoint.test`
+
+Sent only when you ask for a test, from the panel's **Send test event** button
+or the [test route](/dev/webhooks/delivery-and-testing#sending-a-test-event).
+You cannot subscribe to it. It carries no resource, just a marker:
+
+```json
+{
+  "object": "event",
+  "id": "evt_01JBB4F5G6H7J8K9M0N1P2Q3R4",
+  "type": "endpoint.test",
+  "created": "2026-06-28T12:01:00.000Z",
+  "data": {
+    "endpoint": "we_01JB7R0D4F7H2K5M8P1S4V7Y0B",
+    "test": true,
+    "message": "This is a test event from 2Pay."
+  }
+}
+```
+
+A test sent through the Developer API carries only `{ "endpoint": "we_..." }`
+in `data`. Answer it with a `2xx` like any other event.

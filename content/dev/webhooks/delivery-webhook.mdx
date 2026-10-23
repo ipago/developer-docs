@@ -1,0 +1,151 @@
+---
+title: Per-product delivery webhook
+description: The Webhook delivery method on a product, and the legacy direct POST configured with a URL on the product itself.
+---
+
+Most stores fulfil through a [game server](/dev/game-api/overview) or through
+[store webhooks](/dev/webhooks/overview). For products that your own backend
+fulfils, a product can use the **Webhook** delivery method. This page covers
+what that method sends today, and the older per-product direct `POST` that
+products configured before the store-level webhooks existed still use.
+
+## The Webhook delivery method
+
+In the panel, edit the product and choose **Webhook** as its delivery method
+(`delivery_target: "webhook"`). You can attach extra key/value data, for
+example `rank: vip`, which is stored as `delivery_config.metadata`.
+
+The URL and signing secret are **not** set on the product. They belong to the
+store: add an endpoint under **Integration → Webhooks** and subscribe it to
+`delivery.pending`. When the product is bought, that endpoint receives a normal
+signed [`delivery.pending`](/dev/webhooks/events#deliverypending) event, and the
+product's data travels in `data.config.metadata`:
+
+```json
+{
+  "object": "event",
+  "type": "delivery.pending",
+  "data": {
+    "object": "delivery",
+    "id": "del_01JB7Q2Y5H3F8D1S6A9G4K7M2P",
+    "order": "ord_01JB7Q2X9N4B7C2E5F8H1J3K6L",
+    "product": "prod_01JA2B3C4D5E6F7G8H9J0K1M2N",
+    "recipient": "Steve",
+    "quantity": 1,
+    "config": { "metadata": { "rank": "vip" } },
+    "status": "pending",
+    "...": "..."
+  }
+}
+```
+
+Signing, retries and testing are exactly those of any store webhook. Grant the
+item, then [confirm the delivery](/dev/developer-api/deliveries#confirm-a-delivery)
+so it completes and `delivery.completed` fires. If you never confirm it, it
+stays `pending`.
+
+## The legacy direct POST
+
+A product whose `delivery_config` contains a `url` gets its own direct `POST`
+for every paid item, independent of the store's endpoints. This is how the
+Webhook method worked before the URL moved to the store, and it is kept so those
+products keep delivering. The panel keeps such settings untouched and offers to
+remove them once a store endpoint is set up.
+
+The direct POST is triggered by the `url` alone: it is sent for any product
+whose delivery config has one, whatever its delivery method.
+
+| `delivery_config` key | Meaning |
+| --- | --- |
+| `url` | Where to `POST`. Must be `https`. |
+| `secret` | Optional. When set, each request is signed. It is write-only: it is never returned when you read the product or a delivery. |
+| `fields` | Optional list of extra fields to include, from the table below. Omitted or empty means `recipient`, `product_name` and `quantity`. Unknown names are ignored. |
+| `metadata` | Optional. Copied into the payload unchanged. |
+
+### When it is sent
+
+The first attempt goes out right after the payment is recorded, once per paid
+order item, and also for each paid
+[subscription renewal](/dev/webhooks/events#subscription-events). The
+store-level `delivery.pending` event is emitted as usual alongside it.
+
+### Payload
+
+```json
+{
+  "type": "delivery.webhook",
+  "timestamp": "2026-06-28T11:40:01.954Z",
+  "delivery_id": "del_01JB7Q2Y5H3F8D1S6A9G4K7M2P",
+  "order_id": "ord_01JB7Q2X9N4B7C2E5F8H1J3K6L",
+  "store_id": "str_01J9X8W7V6T5S4R3Q2P1N0M9K8",
+  "mode": "live",
+  "metadata": { "rank": "vip" },
+  "recipient": "Steve",
+  "product_name": "VIP rank",
+  "quantity": 1
+}
+```
+
+`type`, `timestamp` (when the order was paid), `delivery_id`, `order_id`,
+`store_id` and `mode` are always present. `metadata` appears when the product
+has some. The rest depends on `fields`:
+
+| Field | Value |
+| --- | --- |
+| `recipient` | The username the buyer entered, or `null`. |
+| `quantity` | Units of this item. |
+| `product_id` | The product id. |
+| `product_name` | The product name at purchase time. |
+| `unit_amount` | Price per unit, in minor units. |
+| `currency` | Order currency, lowercase. |
+| `order_total` | Order total, in minor units. |
+| `customer_email` | Buyer email, or `null`. |
+| `customer_name` | Buyer name, or `null`. |
+| `payment_method` | How the buyer paid, or `null`. |
+| `order_paid_at` | ISO timestamp, or `null`. |
+| `order_item_id` | The order item id (`oi_`). |
+
+This is not an event object, and it carries none of the `2Pay-Event-*` or
+`2Pay-Delivery-Id` headers. Deduplicate on `delivery_id`.
+
+### Signing
+
+With a `secret`, the request carries a `2Pay-Signature` header in the same
+format as store webhooks, always with a single `v1`:
+
+```
+2Pay-Signature: t=1751110929,v1=<hex HMAC-SHA256 of "{t}." + raw_body>
+```
+
+The HMAC key is the `secret` string exactly as you stored it. The
+[verification code](/dev/webhooks/verifying-signatures) for store webhooks works
+unchanged. Without a `secret` the request is not signed, and you cannot tell it
+apart from a forged one; set a secret.
+
+### Success, retries and failure
+
+- A `2xx` answer within **15 seconds** completes the delivery (its note reads
+  `webhook <status>`), which emits `delivery.completed`.
+- Anything else schedules a retry on the same
+  [schedule as store webhooks](/dev/webhooks/delivery-and-testing#retries):
+  15 attempts over about 38.5 hours, starting one minute after the first. The
+  delivery stays `pending` meanwhile.
+- If the delivery was completed some other way in the meantime, for example
+  through the Deliveries API, retries stop.
+- After the 15th failure the delivery is marked `failed`, with the last error in
+  its note, and `delivery.failed` is emitted.
+
+### Which URLs are refused
+
+The URL is checked before **every** attempt, not only once. A request is never
+sent when the URL:
+
+- is not `https`,
+- is `localhost` or a `*.localhost` name,
+- is a literal IP in a loopback, private (`10/8`, `172.16/12`, `192.168/16`),
+  link-local (including `169.254.169.254`), CGNAT (`100.64/10`) or `0/8` range,
+  or the IPv6 equivalents (loopback, unique-local, link-local, IPv4-mapped).
+
+A refused URL counts as a failed attempt, so it is retried and ends `failed`
+like any unreachable receiver. Nothing checks the URL when you save the product,
+so test a new URL before relying on it.

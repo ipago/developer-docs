@@ -4,9 +4,9 @@ description: Signed, retried event callbacks that push store changes to your bac
 ---
 
 **Webhooks** are how 2Pay tells your systems that something happened, the moment
-it happens: a payment cleared, an item is ready to deliver, an order was
-refunded. Instead of polling our API on a loop, you register a URL once and 2Pay
-sends a signed `POST` to it for each event you care about.
+it happens: a payment cleared, an item is ready to deliver, a payout landed.
+Instead of polling our API on a loop, you register a URL once and 2Pay sends a
+signed `POST` to it for each event you care about.
 
 Webhooks are the real-time backbone of both the
 [Developer API](/dev/developer-api/overview) and the
@@ -15,38 +15,54 @@ Webhooks are the real-time backbone of both the
 ## How it works, end to end
 
 1. You [register an endpoint](/dev/webhooks/endpoints) (a public HTTPS URL) and
-   subscribe it to one or more event types.
-2. 2Pay sends a one-time **validation request** to confirm you own the URL. Your
-   endpoint must echo it back. See [Endpoints](/dev/webhooks/endpoints#validation).
-3. From then on, whenever a subscribed event occurs, 2Pay `POST`s the
-   [event object](/dev/developer-api/events) to your URL, signed with a secret.
-4. Your server [verifies the signature](/dev/webhooks/verifying-signatures),
+   subscribe it to one or more [event types](/dev/webhooks/events), or to `*`
+   for everything. It is `active` straight away; there is no handshake to
+   complete.
+2. Whenever a subscribed event occurs, 2Pay `POST`s the
+   [event object](/dev/developer-api/events) to your URL as JSON, signed with
+   the endpoint's secret.
+3. Your server [verifies the signature](/dev/webhooks/verifying-signatures),
    acks fast with a `2xx`, and processes the event asynchronously.
-5. If your endpoint is down or returns a non-`2xx`, 2Pay
-   [retries with backoff](/dev/webhooks/delivery-and-testing#retries).
+4. If your endpoint is down or returns a non-`2xx`, 2Pay
+   [retries with backoff](/dev/webhooks/delivery-and-testing#retries) for about
+   a day and a half.
 
 ## The payload
 
 Every webhook body is a standard event object, identical to what
-[`GET /events`](/dev/developer-api/events) returns:
+[`GET /v1/events`](/dev/developer-api/events) returns. `data` is the resource
+the event is about, serialized exactly as the API returns it:
 
 ```json
 {
   "object": "event",
-  "id": "evt_01HA0ABC",
-  "type": "order.paid",
-  "created": "2026-06-28T11:42:11Z",
+  "id": "evt_01JB7Q3M8T2K6V9X4C1N5R0WZD",
+  "type": "delivery.completed",
+  "created": "2026-06-28T11:42:11.512Z",
   "data": {
-    "object": "order",
-    "id": "ord_01HA0XYZ",
-    "status": "paid",
-    "delivery_status": "pending"
+    "object": "delivery",
+    "id": "del_01JB7Q2Y5H3F8D1S6A9G4K7M2P",
+    "order": "ord_01JB7Q2X9N4B7C2E5F8H1J3K6L",
+    "order_item": "oi_01JB7Q2X9P6Q1R4S7T0U3V6W9X",
+    "product": "prod_01JA2B3C4D5E6F7G8H9J0K1M2N",
+    "recipient": "Steve",
+    "quantity": 1,
+    "config": { "commands": [{ "kind": "offline", "command": "lp user {username} parent add vip", "delay": 0, "slots": 0, "servers": [] }] },
+    "status": "completed",
+    "note": "Confirmed by game server.",
+    "created": "2026-06-28T11:40:02.118Z",
+    "completed_at": "2026-06-28T11:42:11.498Z"
   }
 }
 ```
 
-Dispatch on `type`, then act on `data.object`. The full catalog of types and
-their payloads is in [Events](/dev/webhooks/events).
+Dispatch on `type`, then read `data` (its `data.object` field names the
+resource kind). The full catalog of types and their payloads is in
+[Events](/dev/webhooks/events).
+
+Each request also carries `2Pay-Event-Type`, `2Pay-Event-Id` and
+`2Pay-Delivery-Id` headers, so you can route or deduplicate before parsing the
+body. See [Delivery headers](/dev/webhooks/verifying-signatures#delivery-headers).
 
 ## The four rules that keep webhooks reliable
 
@@ -58,20 +74,30 @@ their payloads is in [Events](/dev/webhooks/events).
 1. **Verify every signature** before trusting a body. Anyone can `POST` to a
    public URL; the signature is what proves it was us. See
    [Verifying signatures](/dev/webhooks/verifying-signatures).
-2. **Respond `2xx` quickly** (within a few seconds) and do the real work after.
-   Slow handlers get treated as failures and retried.
+2. **Respond `2xx` quickly** and do the real work after. 2Pay waits at most 30
+   seconds for an answer; a slower handler counts as a failure and is retried.
 3. **Be idempotent.** The same event can arrive more than once (retries,
-   network hiccups). Deduplicate on `event.id`.
+   network hiccups). Deduplicate on the event `id`, which is the same on every
+   retry.
 4. **Reconcile.** Webhooks are best-effort delivery of a perfect log. Periodically
-   sweep the [Orders](/dev/developer-api/orders#reconciliation-pattern) or
+   sweep the [Orders](/dev/developer-api/orders) or
    [Events](/dev/developer-api/events#catching-up-after-downtime) API to catch
-   anything you missed.
+   anything you missed. Events are not guaranteed to arrive in order either:
+   a retried event can land after a newer one.
+
+## Two kinds of webhook
+
+Everything above describes **store webhooks**: endpoints you register once for
+the whole store, receiving the events in the catalog. There is also an older,
+narrower mechanism, the
+[per-product delivery webhook](/dev/webhooks/delivery-webhook), which posts one
+small payload per paid item to a URL set on the product itself.
 
 ## Where to go next
 
 <Cards>
   <Card title="Endpoints" href="/dev/webhooks/endpoints">
-    Register a URL, the validation handshake, and managing subscriptions.
+    Register a URL, choose events, rotate the secret.
   </Card>
   <Card title="Verifying signatures" href="/dev/webhooks/verifying-signatures">
     Prove a request really came from 2Pay.
@@ -80,6 +106,9 @@ their payloads is in [Events](/dev/webhooks/events).
     Every event type and the shape of its payload.
   </Card>
   <Card title="Delivery & testing" href="/dev/webhooks/delivery-and-testing">
-    Retries, the IP allowlist, and how to test locally.
+    Timeouts, the exact retry schedule, and sending test events.
+  </Card>
+  <Card title="Per-product delivery webhook" href="/dev/webhooks/delivery-webhook">
+    The legacy direct POST configured on a product.
   </Card>
 </Cards>

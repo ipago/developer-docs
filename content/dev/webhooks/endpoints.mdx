@@ -1,6 +1,6 @@
 ---
 title: Endpoints
-description: Register a webhook URL, complete the validation handshake, and manage subscriptions.
+description: Register a webhook URL, choose its events, and manage its signing secret.
 ---
 
 A **webhook endpoint** is a public HTTPS URL you own, plus the list of event
@@ -10,102 +10,127 @@ to a different set of events.
 
 ## Registering an endpoint
 
-In the panel, open **Developers → Webhooks → Add endpoint**, paste your URL,
-tick the [event types](/dev/webhooks/events) you want, and save. You can also
-create endpoints over the API:
+In the panel, open **Integration → Webhooks**, choose **Add endpoint**, paste
+your URL, pick the [event types](/dev/webhooks/events) you want (or all of
+them), and save.
+
+You can also create endpoints over the Developer API with a key that has the
+`webhooks:write` scope. The body is JSON:
 
 ```bash
 curl https://api.2pay.gg/v1/webhook_endpoints \
   -H "Authorization: Bearer sk_live_..." \
+  -H "Content-Type: application/json" \
   -H "Idempotency-Key: $(uuidgen)" \
-  -d "url=https://example.com/hooks/2pay" \
-  -d "events[]=order.paid" \
-  -d "events[]=delivery.pending"
+  -d '{
+    "url": "https://example.com/hooks/2pay",
+    "events": ["order.paid", "delivery.pending"]
+  }'
 ```
 
-The endpoint object returned includes its **signing secret**, shown once:
+The response (`201 Created`) includes the endpoint's **signing secret**. It is
+returned this once and never again:
 
 ```json
 {
   "object": "webhook_endpoint",
-  "id": "we_01HA0...",
+  "id": "we_01JB7R0D4F7H2K5M8P1S4V7Y0B",
   "url": "https://example.com/hooks/2pay",
   "events": ["order.paid", "delivery.pending"],
-  "secret": "whsec_3f9a...",
-  "status": "pending_validation",
-  "created": "2026-06-28T12:00:00Z"
+  "status": "active",
+  "created": "2026-06-28T12:00:00.000Z",
+  "secret": "whsec_example"
 }
 ```
 
 | Field | Description |
 | --- | --- |
 | `id` | Endpoint id (`we_`). |
-| `url` | Where events are delivered. Must be HTTPS. |
-| `events` | The subscribed event types. Use `["*"]` to receive all current and future types. |
-| `secret` | The key used to [sign](/dev/webhooks/verifying-signatures) each request. Store it now; it is not retrievable later. |
-| `status` | `pending_validation`, `active`, or `disabled`. |
+| `url` | Where events are delivered. Must be `https`, and must not point at `localhost`, a private, loopback, link-local or CGNAT address, or the cloud metadata address. Anything else is refused with `400 invalid_url`. |
+| `events` | The subscribed event types. Omit the field, or send `["*"]`, to receive every current and future type. An empty array is refused with `400 invalid_events`. |
+| `status` | `active` or `disabled`. A new endpoint is `active` immediately and starts receiving events. |
+| `secret` | The key used to [sign](/dev/webhooks/verifying-signatures) each request, prefixed `whsec_`. Store it now; it is not retrievable later. |
 
 <Callout type="warn">
   Store the `secret` immediately and treat it like a password. It is how you
-  prove a delivery is genuinely from 2Pay. If it leaks, roll it (create a new
-  endpoint or rotate the secret in the panel) and update your handler.
+  prove a delivery is genuinely from 2Pay. If it leaks,
+  [rotate it](#rotating-the-signing-secret) and update your handler.
 </Callout>
 
-## Validation
-
-A newly created endpoint starts `pending_validation`. Before sending real
-events, 2Pay sends a one-time **validation request** to confirm the URL is yours
-and live:
-
-```json
-{
-  "object": "event",
-  "id": "evt_validation_01HA0...",
-  "type": "endpoint.validation",
-  "created": "2026-06-28T12:00:02Z",
-  "data": { "challenge": "evt_validation_01HA0..." }
-}
-```
-
-Your endpoint must respond `200 OK` with the **challenge value** in the body
-(the validation event's id). Until it does, the endpoint stays
-`pending_validation` and receives no other events.
-
-```ts
-// Express handler
-app.post("/hooks/2pay", express.raw({ type: "*/*" }), (req, res) => {
-  const event = JSON.parse(req.body.toString());
-
-  if (event.type === "endpoint.validation") {
-    return res.status(200).send(event.data.challenge);
-  }
-
-  // ...verify signature and handle real events
-  res.sendStatus(200);
-});
-```
-
-Once validated, `status` flips to `active`.
+<Callout type="info">
+  The panel only lets you pick types from the catalog. The Developer API route
+  does not check the names you send, so a typo such as `order.payed` is saved
+  and simply never matches anything. Copy type names from
+  [Events](/dev/webhooks/events).
+</Callout>
 
 ## Managing endpoints
 
-```
-GET    /v1/webhook_endpoints           # list
-GET    /v1/webhook_endpoints/{id}      # retrieve
-DELETE /v1/webhook_endpoints/{id}      # remove
-```
+The Developer API covers create, read and delete:
 
-To change which events an endpoint receives, update it in the panel or recreate
-it. Deleting an endpoint stops all delivery to that URL immediately.
+```
+POST   /v1/webhook_endpoints             # create          (webhooks:write)
+GET    /v1/webhook_endpoints             # list            (webhooks:read)
+GET    /v1/webhook_endpoints/{id}        # retrieve        (webhooks:read)
+DELETE /v1/webhook_endpoints/{id}        # remove          (webhooks:write)
+POST   /v1/webhook_endpoints/{id}/test   # send a test     (webhooks:write)
+```
 
 ```bash
 curl https://api.2pay.gg/v1/webhook_endpoints \
   -H "Authorization: Bearer sk_live_..."
 ```
 
+The list is [paginated](/dev/developer-api/pagination) like every other list.
+Retrieving or listing never returns the secret.
+
+Deleting returns `{ "object": "webhook_endpoint", "id": "we_...", "deleted": true }`.
+It stops delivery to that URL immediately and removes the endpoint's delivery
+history with it.
+
+To change an endpoint's URL or events, or to switch it off
+without deleting it, edit it in the panel under **Integration → Webhooks**.
+Narrowing the events also applies to deliveries already queued: an event the
+endpoint no longer subscribes to is dropped instead of sent.
+
+The test route is covered in
+[Delivery & testing](/dev/webhooks/delivery-and-testing#from-the-developer-api).
+
+## Disabled endpoints
+
+An endpoint is `disabled` either because you switched it off in the panel or
+because 2Pay gave up on it: when one delivery fails all 15
+[attempts](/dev/webhooks/delivery-and-testing#retries), the endpoint is
+disabled so a dead URL does not pile up a queue. Its remaining queued deliveries
+are marked failed, and no new events are queued for it.
+
+Re-enable it in the panel once your receiver is fixed, then backfill the gap
+from the [Events API](/dev/developer-api/events#catching-up-after-downtime).
+
+## Rotating the signing secret
+
+In the panel, open the endpoint and choose **Rotate secret**. You get a new
+`whsec_` secret, shown once.
+
+Rotation does not cut the old secret off straight away. For the next **24
+hours** every delivery is signed with **both** secrets, so the
+`2Pay-Signature` header carries two `v1=` values:
+
+```
+2Pay-Signature: t=1751110929,v1=<signature with new secret>,v1=<signature with old secret>
+```
+
+That window lets you deploy the new secret to your receiver after rotating,
+not in lockstep with it. It only works if your verification accepts a request
+when **any** `v1` matches, which is what the samples in
+[Verifying signatures](/dev/webhooks/verifying-signatures) do. After 24 hours
+only the new secret signs. Rotating again during an open window replaces it, so
+at most two secrets are ever live.
+
 ## Test mode vs live mode
 
-Endpoints created with a [test key](/dev/developer-api/authentication) receive
-only test-mode events; endpoints created with a live key receive only live
-events. Keep separate endpoints (and ideally separate handler deployments) for
-the two so a sandbox sale never hits production fulfillment.
+Endpoints belong to one mode. An endpoint created with a
+[test key](/dev/developer-api/authentication), or in the panel's test mode,
+receives only test-mode events; a live endpoint receives only live events. Keep
+separate endpoints (and ideally separate handler deployments) for the two so a
+sandbox sale never hits production fulfillment.
