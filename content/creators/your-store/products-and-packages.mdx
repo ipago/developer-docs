@@ -5,23 +5,38 @@ description: Create the things you sell and describe how they are delivered.
 
 A **product** (also called a package) is one thing a buyer can purchase: a rank, a
 currency bundle, a cosmetic, a key, or a subscription. You create products in the
-panel under **Stock**.
+panel under **Product Catalog**, then **Products**.
 
 ## The essentials
 
 - **Name and description**: what the buyer is getting.
 - **Price**: in your store's currency. Tax is handled for you as Merchant of
-  Record, so you set the price you want to earn from.
+  Record; whether the price you enter includes VAT depends on your
+  [tax display](/creators/your-store/store-settings#tax-display) setting.
 - **Category**: where it appears in your store (see [Categories](/creators/your-store/categories)).
+- **Type**: a one-time purchase, or a recurring
+  [subscription](/creators/your-store/subscriptions) billed monthly or yearly.
+- **Image** and **active**: an inactive product is hidden from your storefront.
 
 ## Delivery
 
-Each product describes **how it is delivered** after payment. Depending on your
-setup that can be a message with instructions, a code or key, or an automated
-delivery to your game or server. You configure delivery per product so that the
-moment a payment is confirmed, the buyer gets exactly what they bought.
+Each product says **how it is delivered** after payment:
+
+- **Game server**: run commands on your game server when the order is paid,
+  through the 2Pay plugin or RCON. See the [Game API](/dev/game-api/overview).
+- **Webhook**: your own system receives the order through a
+  [webhook](/dev/webhooks/overview) and delivers it.
+- **Manual**: you fulfil the order yourself.
+- **No delivery**: an informational package.
 
 <Callout type="info">
   Prices inherit your store's currency, so you never set currency per product. To
   sell in another currency, create another store in that currency.
 </Callout>
+
+## Test-mode products
+
+Products live in either **live** or **test** mode, switched at the top of the
+panel. Test-mode products are what you buy when you
+[place a test order](/creators/your-store/going-live#try-a-test-order). Buyers
+only ever see live-mode products.
