@@ -1,60 +1,62 @@
 ---
 title: Overview
-description: Build and fully customize your store with templates, themes, and assets.
+description: The hosted 2Pay storefront every store gets, and what it does for buyers.
 ---
 
-The **Webstore Builder** lets you fully customize the look of your store with
-templates and themes, so customers move seamlessly from your existing website
-into a purchase.
+Every 2Pay store gets a **hosted webstore**: a ready-made storefront at
+`{slug}.2pay.gg` that lists your products, runs the basket, and takes payment.
+There is nothing to deploy and no code to write. You shape it from the panel at
+[app.2pay.gg](https://app.2pay.gg), under **Webstore** and **Store settings**.
 
 New to 2Pay? It's worth reading [Getting Started](/creators/getting-started)
 first.
 
-## What you can do
+## What buyers get
 
-With the Webstore Builder you can:
+- **Your catalog**, grouped by your categories, with sale prices shown when a
+  sale is running.
+- **A basket** with coupon and gift-card codes.
+- **A player identifier prompt** when your store requires one, labelled the way
+  you choose (for example "Minecraft username").
+- **Checkout** on the store's own page, offering the payment methods you enabled,
+  with VAT shown for the buyer's country.
+- **A confirmation page** showing the order after payment.
 
-- **Use templates** to control the HTML structure of each page, with conditional
-  logic powered by 2Pay's templating engine.
-- **Upload assets**, your own CSS, JavaScript, and images, to style and extend
-  your store.
-- **Ship configurable templates.** If you design templates for others, you can let
-  your customers tweak them through a config schema, and unlock perks through our
-  developer program.
+The webstore runs on the public [Storefront API](/dev/storefront/overview), the
+same routes documented there.
 
-## Themes
+## What you can configure
 
-Start fast with a ready-made theme, then make it your own: colors, layout, and
-content. Every store is served on its 2Pay subdomain, and on Creator Plus you can
-point it at your own custom domain.
+You choose a layout theme, light or dark appearance, accent colour, logo, display
+name, description, store URL, and whether buyers must enter a player identifier.
+See [Customization](/dev/webstores/customization) for every setting and its
+limits.
 
-## For template designers
+You cannot upload your own templates, CSS, or JavaScript. Custom templates are
+[planned](/dev/webstores/templates), not available.
 
-Do you build templates for other creators, whether free or paid?
-[Get in touch](mailto:support@2pay.gg) and we'll bring you into our designer
-program, with insider guides, a private community of designers, feedback sessions
-with our product team, and early access to features before they're public.
+## Before and after going live
 
-## Feedback
+Until 2Pay approves your store, its URL shows nothing to the public. Owners and
+admins can still look at it:
 
-Need a tag, filter, or variable in your template that isn't available or
-documented yet? [Let us know](mailto:support@2pay.gg), it directly shapes what we
-build next.
+- **Preview storefront** opens the store as buyers will see it, through a
+  short-lived preview link.
+- **Place a test order** opens it in test mode, with your test-mode products and
+  test payments, so you can run a purchase end to end without real money. See
+  [Test mode](/dev/storefront/baskets#test-mode).
 
-## Getting started
-
-To create your first template, open the **Appearance** section in your
-[panel](https://app.2pay.gg).
+Once the store is approved it is live at `{slug}.2pay.gg` and takes real
+payments. Submitting for review is covered in
+[Going live](/creators/your-store/going-live).
 
 ## Where to go next
 
 <Cards>
-  <Card title="Templates" href="/dev/webstores/templates">
-    The templating engine: pages, variables, tags, filters, and conditional
-    logic.
+  <Card title="Customization" href="/dev/webstores/customization">
+    Themes, colours, logo, store URL, and the other settings.
   </Card>
-  <Card title="Assets & config" href="/dev/webstores/assets-and-config">
-    Upload CSS, JavaScript, and images, and make templates configurable for
-    others.
+  <Card title="Custom templates (planned)" href="/dev/webstores/templates">
+    What is not available yet.
   </Card>
 </Cards>
