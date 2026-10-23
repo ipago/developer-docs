@@ -4,20 +4,49 @@ description: Start a recurring subscription for a buyer from the storefront.
 ---
 
 For recurring products (memberships, monthly perks), start a subscription rather
-than a one-off basket:
+than a basket. Subscription products cannot be added to a basket.
 
 ```bash
 curl -X POST https://api.2pay.gg/v1/storefront/myshop/subscribe \
-  -H "Idempotency-Key: <uuid>" \
   -H "Content-Type: application/json" \
-  -d '{ "product": "prod_sub_123", "quantity": 1, "game_username": "Steve",
-        "return_url": "https://yourgame.example/thanks" }'
+  -d '{ "product": "prod_01M5MWGB718BWKF7MDP3BX63TY", "game_username": "Steve",
+        "customer_email": "player@example.com", "country": "PL" }'
 ```
 
-Like checkout, this returns a `client_secret` for the embedded flow. Once the
-first invoice is paid you receive a `subscription.created` event, and each renewal
-emits `subscription.renewed`. Resolve the subscription after return with
-`GET /v1/storefront/{slug}/subscriptions/by-session/{sessionId}`.
+| Field | Required | Description |
+| --- | --- | --- |
+| `product` | yes | The `prod_` id of a subscription product. |
+| `game_username` | when the store requires it | The player identifier, 1 to 64 characters. Missing on a store that requires it: `400 username_required`. |
+| `customer_email` | no | A valid email; pre-fills the buyer's email. |
+| `country` | no | ISO 3166-1 alpha-2 buyer country. The VAT rate is baked into the recurring price at signup. |
+
+A subscription is always for one unit; there is no `quantity`. There is no
+`return_url` either: after payment the buyer lands on 2Pay's hosted confirmation
+page. The route does not support `Idempotency-Key`, and it shares the 20 requests
+per minute limit of basket writes. It honours [test mode](/dev/storefront/baskets#test-mode)
+the same way baskets do.
+
+The response is `201`:
+
+```json
+{
+  "object": "checkout",
+  "id": "cs_test_...",
+  "client_secret": "cs_test_..._secret_...",
+  "status": "open"
+}
+```
+
+Here `id` is the payment session id, not an order id. As with basket checkout,
+the `client_secret` opens the payment provider's embedded checkout, which today
+only the hosted storefront mounts.
+
+Once the first payment succeeds you receive a `subscription.created` event, each
+renewal emits `subscription.renewed`, and an ended plan emits
+`subscription.canceled`. The confirmation page resolves the subscription with
+`GET /v1/storefront/{slug}/subscriptions/by-session/{sessionId}`, which returns a
+display-safe `storefront_subscription` (status, product name, price, interval,
+delivery target, `current_period_end`).
 
 <Callout type="info">
   Renewals are billed automatically by 2Pay. React to `subscription.renewed` to

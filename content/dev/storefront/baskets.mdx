@@ -1,11 +1,21 @@
 ---
 title: Baskets & checkout
-description: Build a basket, apply discounts, and turn it into a hosted checkout session.
+description: Build a basket, apply discounts, and turn it into a checkout session.
 ---
 
 A **basket** collects what a buyer wants before they pay. You create one, add
-items, optionally apply a coupon or gift card, and then check out to get a hosted
+items, optionally apply a coupon or gift card, and then check out to get a
 payment session.
+
+All routes below take the store's slug. Purchases in live mode need a **live**
+store, one approved by 2Pay; for any other store every basket route returns
+`404 resource_missing`. To try purchases before approval, use
+[test mode](#test-mode).
+
+Basket routes do not support the `Idempotency-Key` header, so a retried
+`POST .../baskets` creates a new basket. Writes (create, items, coupon, gift card,
+checkout) are limited to 20 requests per minute, and `GET` of a basket to 120 per
+minute.
 
 ## 1. Create a basket
 
@@ -15,50 +25,162 @@ curl -X POST https://api.2pay.gg/v1/storefront/myshop/baskets \
   -d '{ "game_username": "Steve" }'
 ```
 
-If the store requires a player identifier, collect it now (the label is set in the
-store's settings). The response returns a basket id.
+| Field | Required | Description |
+| --- | --- | --- |
+| `game_username` | when the store requires it | The player identifier, 1 to 64 characters. Required when the store's `requires_username` is `true` (otherwise `400 username_required`). The label buyers see is the store's `username_label`. |
+| `items` | no | Initial items: `[{ "product": "prod_...", "quantity": 1 }]`. `quantity` is 1 to 99 and defaults to 1. |
 
-## 2. Add items
+The response is `201` with the basket and, **only this once**, its `token`:
 
-```bash
-curl -X POST https://api.2pay.gg/v1/storefront/myshop/baskets/bsk_123/items \
-  -H "Content-Type: application/json" \
-  -d '{ "product": "prod_123", "quantity": 1 }'
+```json
+{
+  "object": "basket",
+  "id": "bskt_01M5MWGBZQ5H7PDK7ZNQ91AC15",
+  "game_username": "Steve",
+  "currency": "eur",
+  "items": [],
+  "subtotal": { "amount": 0, "currency": "eur" },
+  "discount": { "amount": 0, "currency": "eur" },
+  "total": { "amount": 0, "currency": "eur" },
+  "coupon": null,
+  "gift_card": null,
+  "expires_at": "2026-10-24T17:21:29.591Z",
+  "token": "bskt_example"
+}
 ```
 
-Remove an item with `DELETE .../items/{itemId}`.
+Store both the `id` and the `token`. The token is the basket's secret: 2Pay keeps
+only a hash of it and never returns it again. A basket expires 24 hours after it
+is created (`expires_at`).
+
+## The basket token
+
+Every call on an existing basket must send the token in the `X-Basket-Token`
+header. Without it you get `401 basket_token_required`; with a wrong token, or a
+basket from another store, you get `404 resource_missing`.
+
+```bash
+curl https://api.2pay.gg/v1/storefront/myshop/baskets/bskt_01M5MWGBZQ5H7PDK7ZNQ91AC15 \
+  -H "X-Basket-Token: bskt_example"
+```
+
+`GET /v1/storefront/{slug}/baskets/{basketId}` returns the current basket
+(without the token) and is never cached.
+
+## 2. Add and remove items
+
+```bash
+curl -X POST https://api.2pay.gg/v1/storefront/myshop/baskets/bskt_01M5MWGBZQ5H7PDK7ZNQ91AC15/items \
+  -H "X-Basket-Token: bskt_example" \
+  -H "Content-Type: application/json" \
+  -d '{ "product": "prod_01M5MWGB718BWKF7MDP3BX63TY", "quantity": 2 }'
+```
+
+Each item carries `unit_amount` (the price after any active sale) and
+`line_total`. Subscription products cannot go in a basket
+(`400 subscription_not_basketable`); use [subscribe](/dev/storefront/subscriptions)
+instead.
+
+Remove an item with `DELETE .../baskets/{basketId}/items/{itemId}`, where
+`itemId` is the item's `bski_` id. Removing an item that is not there returns the
+basket unchanged.
 
 ## 3. Apply a coupon or gift card (optional)
 
 ```bash
-curl -X POST https://api.2pay.gg/v1/storefront/myshop/baskets/bsk_123/coupon \
+curl -X POST https://api.2pay.gg/v1/storefront/myshop/baskets/bskt_01M5MWGBZQ5H7PDK7ZNQ91AC15/coupon \
+  -H "X-Basket-Token: bskt_example" \
   -H "Content-Type: application/json" \
   -d '{ "code": "LAUNCH10" }'
 ```
 
-There are matching gift-card endpoints, and `DELETE` variants to remove either.
+`POST .../gift-card` with `{ "code": "..." }` applies a gift card. `DELETE .../coupon`
+and `DELETE .../gift-card` remove them. A basket holds a coupon **or** a gift
+card, not both, and neither can be applied to a basket that contains a gift card
+product. Invalid codes return `400` with a code such as `coupon_expired`,
+`coupon_min_subtotal` or `gift_card_empty`, or `404 coupon_not_found` /
+`gift_card_not_found`.
 
 ## 4. Check out
 
 ```bash
-curl -X POST https://api.2pay.gg/v1/storefront/myshop/baskets/bsk_123/checkout \
-  -H "Idempotency-Key: <uuid>" \
+curl -X POST https://api.2pay.gg/v1/storefront/myshop/baskets/bskt_01M5MWGBZQ5H7PDK7ZNQ91AC15/checkout \
+  -H "X-Basket-Token: bskt_example" \
   -H "Content-Type: application/json" \
-  -d '{ "return_url": "https://yourgame.example/thanks" }'
+  -d '{ "customer_email": "player@example.com", "method": "card", "country": "PL" }'
 ```
 
-The response contains a `client_secret` for the embedded checkout. Mount it with
-the checkout component (see [Checkout](/dev/checkout/overview)). Always send an
-[Idempotency-Key](/dev/developer-api/idempotency) so a retry never double-charges.
+| Field | Required | Description |
+| --- | --- | --- |
+| `customer_email` | no | Pre-fills the buyer's email for the receipt. |
+| `method` | no | A payment method key from the store's `payment_methods` (for example `card`, `blik`, `paypal`). The checkout opens on that method. A key the store does not offer returns `400 invalid_payment_method`. |
+| `country` | no | ISO 3166-1 alpha-2 buyer country, used to compute VAT. |
+
+There is no `return_url`: after payment the buyer is sent to 2Pay's hosted
+confirmation page. If you need your own return page, create the checkout from
+your server with the Developer API [`POST /v1/checkouts`](/dev/checkout/integrating),
+which accepts `return_url`.
+
+The response is `201`:
+
+```json
+{
+  "object": "checkout",
+  "id": "ord_01M5MWHX3K2M4Q8D5V7B9N1C2E",
+  "client_secret": "cs_test_..._secret_...",
+  "status": "open",
+  "total": { "amount": 2458, "currency": "eur" }
+}
+```
+
+`id` is the order id. `total` is what the buyer pays, VAT included. The
+`client_secret` opens the payment provider's embedded checkout. Today the hosted
+storefront is the only front end that mounts it: the publishable key needed to
+mount it on your own page is not exposed by the API, and the
+[2Pay checkout widget](/dev/checkout/overview) is not released yet.
+
+Other errors: `400 basket_empty`, `403 customer_blocked` when the merchant has
+blocked this player, and `503 test_payments_unconfigured` in test mode when no
+test payment credentials are set up.
 
 ## 5. Resolve the order
 
-After the buyer pays and returns to your `return_url`, look the order up by its
-checkout session:
+The confirmation page resolves the order from the payment session id it receives
+on return:
 
 ```bash
 curl https://api.2pay.gg/v1/storefront/myshop/orders/by-session/cs_test_123
 ```
 
-For fulfillment, prefer the `order.paid` [webhook](/dev/webhooks/overview) over
-polling, so delivery is driven by the confirmed event.
+It returns a display-safe `storefront_order` (status, totals, items, delivery
+target), never the buyer's email or payment ids.
+
+For fulfillment, use the `order.paid` [webhook](/dev/webhooks/overview) rather
+than polling, so delivery is driven by the confirmed event.
+
+## Test mode
+
+A merchant can place test orders on their own storefront before (or after) the
+store goes live. Add `mode=test` and a preview token to the query string of any
+storefront or basket route:
+
+```bash
+curl -X POST "https://api.2pay.gg/v1/storefront/myshop/baskets?mode=test&preview=<token>" \
+  -H "Content-Type: application/json" \
+  -d '{ "game_username": "Steve" }'
+```
+
+- **It needs a valid preview token for this store.** The token is signed, bound
+  to one store, and expires after 60 minutes. Store owners and admins get one from
+  the panel: **Webstore**, then **Place a test order**, which opens the storefront
+  with `?mode=test&preview=<token>`. Without a valid token, `mode=test` returns
+  `404`; it never falls back to the live store.
+- **It uses test data.** Test mode reads the store's test-mode products, sales,
+  coupons and gift cards, and pays with test payment credentials. No real money
+  moves, and orders are recorded as test orders.
+- **It is for the merchant's own testing.** Do not hand preview tokens to buyers.
+  A preview token alone never unlocks a live purchase: without `mode=test`, a
+  store that is not live still returns `404`.
+
+Send the same `mode=test&preview=<token>` on every call for that basket,
+including checkout and the order lookup.

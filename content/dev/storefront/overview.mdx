@@ -3,24 +3,55 @@ title: Storefront API overview
 description: The public, slug-scoped API that powers a store's buyer-facing pages, baskets, and checkout.
 ---
 
-The **Storefront API** is the public surface a buyer-facing store uses. Every
-route is scoped to a store by its slug, `/v1/storefront/{slug}/...`, and serves
-the data and actions a shopper needs: browse the catalog, build a basket, and
-check out.
+The **Storefront API** is the public surface behind a store's buyer-facing pages.
+Every route is scoped to a store by its slug, `/v1/storefront/{slug}/...`, and
+serves what a shopper needs: browse the catalog, build a basket, and check out.
+It needs no API key.
 
-Use it to build a custom storefront in front of 2Pay, or to embed buying into your
-own site or game. Product and price definitions still live in the panel; the
-Storefront API reads them and turns a basket into a paid order.
+It is the API the hosted 2Pay storefront (`{slug}.2pay.gg`) runs on. Product and
+price definitions live in the panel; the Storefront API reads them and turns a
+basket into a paid order.
 
 ## What it exposes
 
-- **Store & catalog:** `GET /v1/storefront/{slug}`, `GET /v1/storefront/{slug}/products`,
-  `GET /v1/storefront/{slug}/categories`, and a single product by id.
-- **Baskets:** create a basket, add and remove items, apply a coupon or gift card,
-  then check out. See [Baskets & checkout](/dev/storefront/baskets).
-- **Order lookup:** `GET /v1/storefront/{slug}/orders/by-session/{sessionId}` to
-  resolve the order after a buyer returns from checkout.
-- **Subscriptions:** `POST /v1/storefront/{slug}/subscribe` for recurring products.
+- **Store & catalog:** `GET /v1/storefront/{slug}`, `GET /v1/storefront/{slug}/categories`,
+  `GET /v1/storefront/{slug}/products` (filter with `?category=`), and
+  `GET /v1/storefront/{slug}/products/{productId}`.
+- **Baskets:** create a basket, read it, add and remove items, apply a coupon or
+  gift card, then check out. See [Baskets & checkout](/dev/storefront/baskets).
+- **Order lookup:** `GET /v1/storefront/{slug}/orders/by-session/{sessionId}`
+  resolves the order on the confirmation page after payment.
+- **Subscriptions:** `POST /v1/storefront/{slug}/subscribe` for recurring
+  products. See [Subscriptions](/dev/storefront/subscriptions).
+
+The store object (`GET /v1/storefront/{slug}`) carries what a page needs to
+render: `display_name`, `description`, `logo_url`, `accent_color`, `theme`,
+`appearance`, `currency`, `requires_username` and `username_label`,
+`tax_behavior`, and the `payment_methods` the store offers. Pass
+`?country=PL` (ISO 3166-1 alpha-2) to get the matching `vat_rate_bps` for gross
+price display.
+
+## Which stores answer
+
+Only a **live** store (approved by 2Pay) is visible. A draft, pending or rejected
+store returns the same `404 resource_missing` as a slug that does not exist, so
+the API never reveals which stores exist.
+
+The one exception is the owner's preview and test mode, described in
+[Test mode](/dev/storefront/baskets#test-mode).
+
+## Calling it
+
+- **No Idempotency-Key.** Storefront and basket routes do not support the
+  `Idempotency-Key` header; it is ignored. A repeated `POST .../baskets` creates
+  a second basket.
+- **Rate limits.** Reads (store, catalog, basket and order lookups) allow 120
+  requests per minute; basket writes, checkout and subscribe allow 20 per minute.
+  Over the limit you get `429`.
+- **Caching.** Store and catalog responses send `Cache-Control: public, max-age=60`,
+  so changes in the panel can take up to a minute to show.
+- **CORS.** Browsers may call the API only from 2Pay storefront origins
+  (`2pay.gg` and its subdomains). From your own domain, call it from your server.
 
 <Callout type="info">
   The Storefront API is read-and-buy only. It never creates products or changes
