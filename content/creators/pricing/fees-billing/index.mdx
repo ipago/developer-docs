@@ -3,53 +3,50 @@ title: Fee & Billing Overview
 description: How fees and billing work on 2Pay.
 ---
 
-A clear breakdown of what 2Pay charges, and when.
+A clear breakdown of what 2Pay charges, and when. Every fee is taken from the
+sale before it reaches your balance; there is nothing to pay separately.
 
 ## Platform fee
 
-As your platform, 2Pay charges a flat **platform fee of 5%** of the transaction
-value. It's the same across every game and product, with no setup costs and no
-hidden surprises.
+2Pay charges a **platform fee of 5%** of the sale, excluding VAT. It is taken on
+what you earn, not on the tax the buyer paid. The rate is stored per store, so a
+different rate can be agreed.
 
-## Gateway fees
+## Payment processing (gateway) fees
 
-Separate from our platform fee, payment providers (gateways) such as **PayPal**,
-**Klarna**, and others charge their own processing fees. These vary by provider
-and follow each provider's own pricing.
+The payment provider's processing fee is passed through at cost. For cards it is
+**2.9% + €0.30**, computed on the amount actually charged, VAT included, because
+that is what the provider charges on. Other methods have their own rates. See
+[Gateway fees](/creators/pricing/fees-billing/gateway-fees).
 
-See the full breakdown on the [Gateway fees](/creators/pricing/fees-billing/gateway-fees)
-page.
+## A worked example
+
+A €10.00 sale to a buyer whose VAT rate is 23%:
+
+| | Amount |
+| --- | --- |
+| Sale, excluding VAT | €10.00 |
+| VAT (remitted by 2Pay) | €2.30 |
+| Charged to the buyer | €12.30 |
+| Platform fee (5% of €10.00) | -€0.50 |
+| Card processing (2.9% of €12.30 + €0.30) | -€0.66 |
+| **Credited to your balance** | **€8.84** |
+
+## Refunds
+
+When you refund a sale, the buyer gets back everything they paid, and your
+balance is reduced by the sale amount excluding VAT. The platform fee and the
+processing fee on the original sale are not returned. No extra fee is charged for
+the refund itself. See [Refunds & disputes](/creators/getting-paid/refunds-and-disputes).
 
 ## Chargebacks & payment disputes
 
-Most transactions are covered by our **Seller Protection Program**. When a
-transaction is covered:
-
-- You don't pay a chargeback fee.
-- You keep your revenue, even if the dispute is lost.
-- 2Pay manages the dispute on your behalf.
-
-If a transaction **isn't** covered by the program, it's flagged as such, and:
-
-- A **$20 chargeback fee** applies when the chargeback is handled.
-- If the dispute is lost, the amount is deducted from your account.
-
-### Refunds
-
-When you refund a sale, the full original transaction amount is returned to the
-buyer, and the gateway fee applies again on the refund. Gateway fees already paid
-are not recovered.
-
-For example, on a **$10** sale with a **$0.20** gateway fee: refunding it returns
-the full $10 to the buyer, the original $0.20 gateway fee isn't returned, and a
-further $0.20 gateway fee applies to the refund itself.
+2Pay handles disputes as the Merchant of Record. Each dispute carries a
+**€15.00** fee from the card networks, win or lose. If the dispute is lost, the
+sale is reversed from your balance the same way a full refund is.
 
 ## Payouts
 
-Payout fees depend on your chosen **payout method**, **currency**, and the
-**destination country**.
-
-- A **2% exchange fee** applies when you withdraw in a currency different from your
-  wallet's currency.
-- Rejected or returned payouts still incur this fee. If incorrect details cause a
-  payout to bounce, the fee is not refunded.
+Payouts to your bank account are free. Payouts are normally made in EUR; any
+currency conversion or intermediary fees are set by the receiving bank, not by
+2Pay.
