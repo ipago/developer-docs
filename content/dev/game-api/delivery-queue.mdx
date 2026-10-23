@@ -78,7 +78,7 @@ curl https://game.2pay.gg/v1/queue \
 | `meta.execute_offline_commands` | If `true`, fetch and run [offline commands](#3-run-offline-commands) this cycle. |
 | `meta.next_check` | Seconds to wait before polling again. Respect this instead of hammering the endpoint. |
 | `meta.more` | `true` if there are more due players than returned in this page; poll again to drain. |
-| `players` | Players who have online commands waiting. Each has a queue id and the name captured at checkout. `uuid` is reserved and is `null` for now, so match players by name. |
+| `players` | Players who have online commands waiting, up to 100 per poll. Each has a queue id and the name captured at checkout. `uuid` is reserved and is `null` for now, so match players by name. |
 
 ### 2. Run online commands per player
 
@@ -96,7 +96,7 @@ curl https://game.2pay.gg/v1/queue/online-commands/qp_01HA0... \
 ```json
 {
   "object": "command_list",
-  "player": { "id": "qp_01HA0...", "name": "Steve", "uuid": "069a79f4-..." },
+  "player": { "id": "qp_01HA0...", "name": "Steve", "uuid": null },
   "commands": [
     {
       "id": "cmd_01HA0AAA",
@@ -110,9 +110,14 @@ curl https://game.2pay.gg/v1/queue/online-commands/qp_01HA0... \
 ```
 
 Run each `command`, substituting placeholders (such as `{username}` and
-`{uuid}`) with the player's values. `conditions.slots` tells you how much free
-inventory space the player needs before an item command should run; `delay` is an
-optional wait in seconds.
+`{uuid}`) with the player's values. The queue returns commands exactly as you
+wrote them on the package, placeholders included; filling them in is your job.
+Since `uuid` is `null`, resolve it on your side if a command uses `{uuid}` (the
+Minecraft plugin asks the game server). `conditions.slots` tells you how much
+free inventory space the player needs before an item command should run.
+
+A player id that does not belong to your store returns `404`. At most 100
+commands come back per call; anything beyond that appears on the next poll.
 
 ### 3. Run offline commands
 
@@ -132,15 +137,17 @@ GET /v1/queue/offline-commands
       "command": "eco give {username} 5000",
       "delivery": "del_01HA0...",
       "product": "prod_01H9Z4CURR",
-      "player": { "name": "Steve", "uuid": "069a79f4-..." },
-      "conditions": { "delay": 0 }
+      "conditions": { "delay": 0, "slots": 0 },
+      "player": { "id": "qp_01HA0...", "name": "Steve", "uuid": null }
     }
-  ]
+  ],
+  "more": false
 }
 ```
 
 Each offline command carries its own `player` block, since there is no
-per-player fetch step.
+per-player fetch step. Up to 100 commands come back per call; `more: true`
+means there are more due, so fetch again after confirming this batch.
 
 ### 4. Confirm execution
 
@@ -164,9 +171,10 @@ The response tells you how many of the ids actually moved:
 { "object": "queue_confirmation", "confirmed": 2 }
 ```
 
-Batch the ids of everything you ran this cycle into one call. Ids that are unknown,
-already confirmed, or queued for a different server are ignored, which is what makes
-retrying a `DELETE` safe.
+Batch the ids of everything you ran this cycle into one call: between 1 and 500
+ids per request (an empty list is refused with `400`). Ids that are unknown,
+already confirmed, or queued for a different server are ignored, which is what
+makes retrying a `DELETE` safe.
 
 A package can queue several commands, and they can be spread across several servers.
 The [delivery](/dev/developer-api/deliveries) is completed, and `delivery.completed`
@@ -185,21 +193,24 @@ what they bought.
 | Field | Description |
 | --- | --- |
 | `id` | Command id (`cmd_`). Pass this to `DELETE /queue` to confirm. |
-| `command` | The string to execute, with `{username}` / `{uuid}` placeholders. |
+| `command` | The string to execute, as written on the package, with any `{username}` / `{uuid}` placeholders left for you to fill in. |
 | `delivery` | The `del_` id this command fulfills. |
 | `product` | The product that generated it. |
 | `player` | Player identity (present on offline commands; fetched separately for online). |
 | `conditions.delay` | Seconds still to wait. Always `0` today: the queue withholds a delayed command until it is due, so there is nothing left to wait for. |
-| `conditions.slots` | Free inventory slots required (online item commands). |
+| `conditions.slots` | Free inventory slots required, `0` when the command needs none. Meaningful for online commands. |
 
 ## Polling cadence and retries
 
-- Respect `meta.next_check`; it adapts to how busy your queue is.
+- Respect `meta.next_check`: it is `15` seconds while work is waiting and `60`
+  when the queue is idle.
 - If you cannot run a command this cycle (player has no inventory space, server is
   restarting), **do not delete it**. It stays queued and reappears next poll.
-- Network failure on `DELETE`? Retry with the same
-  [idempotency key](/dev/developer-api/conventions#idempotency); re-confirming an
-  already-confirmed command is harmless.
+- Network failure on `DELETE`? Just send the same `DELETE` again. Confirming is
+  idempotent by itself: ids that are already confirmed are ignored, so a repeat
+  never double-completes a delivery. The Game API does not use the
+  `Idempotency-Key` header, on `DELETE` or anywhere else; there is no stored
+  response to replay.
 
 ## Server information
 
@@ -217,3 +228,13 @@ which account it is connected to:
   "store": { "id": "str_01H9Z...", "name": "My Store", "currency": "eur" }
 }
 ```
+
+## Rate limits
+
+Every Game API endpoint allows **120 requests per minute**. The limit is
+counted per endpoint and per source IP address, so several servers polling from
+one machine share it. Polling at `meta.next_check` stays far below it.
+
+Over the limit you get `429` with `code: "rate_limit_exceeded"` and a
+`Retry-After` header in seconds. Every response carries `X-RateLimit-Limit`,
+`X-RateLimit-Remaining` and `X-RateLimit-Reset`.

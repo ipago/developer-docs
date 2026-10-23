@@ -53,7 +53,7 @@ about sales.
 3. Your server [polls the queue](/dev/game-api/delivery-queue), gets the list of
    players with work waiting, and fetches their commands.
 4. Your plugin runs each command (online or offline as appropriate).
-5. Your server [deletes the executed commands](/dev/game-api/delivery-queue#confirming-execution),
+5. Your server [deletes the executed commands](/dev/game-api/delivery-queue#4-confirm-execution),
    confirming delivery.
 
 ## Authentication in one line
@@ -63,12 +63,25 @@ sent in the `X-2Pay-Server-Token` header. It can read and confirm that server's
 queue and nothing else, which is what makes it safe to keep in a config on your
 game host. Details in [Authentication](/dev/game-api/authentication).
 
-## Use a plugin if one exists
+## Use a plugin, or RCON, before writing your own
 
-For popular games you should not write this loop yourself, our ready-made
-plugins already implement polling, execution, retries, and confirmation. See
-[Plugins](/dev/game-api/plugins). Build directly against the API only for games we
-do not yet support, or for a custom integration.
+You rarely need to write this loop yourself:
+
+- **Minecraft**: the official [plugin](/dev/game-api/plugins#minecraft)
+  implements polling, execution, and confirmation.
+- **Any server with RCON** (Rust, ARK, Source games, Minecraft without a
+  plugin): add it in the panel with the [RCON](/dev/game-api/plugins#rcon)
+  connection and 2Pay pushes the commands to it. Nothing to install, no token,
+  and no Game API calls from your side.
+
+Build directly against the API only for a custom integration.
+
+## Rate limits
+
+Each Game API endpoint allows 120 requests per minute per source IP address.
+Polling at the pace the queue asks for (`meta.next_check`, 15 to 60 seconds)
+stays well inside it. Details in
+[Delivery queue](/dev/game-api/delivery-queue#rate-limits).
 
 ## Where to go next
 
@@ -79,7 +92,7 @@ do not yet support, or for a custom integration.
   <Card title="Delivery queue" href="/dev/game-api/delivery-queue">
     The full queue endpoints and the poll-run-confirm loop.
   </Card>
-  <Card title="Plugins" href="/dev/game-api/plugins">
-    Official plugins and the RCON adapter for unsupported games.
+  <Card title="Plugins & RCON" href="/dev/game-api/plugins">
+    The Minecraft plugin, and RCON delivery for everything else.
   </Card>
 </Cards>

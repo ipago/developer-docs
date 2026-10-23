@@ -1,12 +1,12 @@
 ---
 title: Authentication
-description: The per-store server token, the base URL, and how to keep it scoped.
+description: The per-server token, the base URL, and how to keep it scoped.
 ---
 
-The Game API authenticates with a **server token**: a secret bound to a single
-store (and, where you run more than one game server, to a single server
-configuration). Unlike a Developer API key, it is designed to live on the game
-host, so it grants only the narrow set of queue operations and nothing else.
+The Game API authenticates with a **server token**: a secret bound to one game
+server of one store, in one mode. Unlike a Developer API key, it is designed to
+live on the game host, so it grants only the narrow set of queue operations and
+nothing else.
 
 ## Base URL
 
@@ -14,16 +14,17 @@ host, so it grants only the narrow set of queue operations and nothing else.
 https://game.2pay.gg/v1
 ```
 
-The Game API has its own host, separate from `api.2pay.gg`, precisely because the
+The Game API has its own host, separate from `api.2pay.gg`, because the
 credential and the traffic pattern (frequent polling from game servers) are
 different from the backend Developer API.
 
 ## The server token
 
-Generate a token in the panel under **Integration → Game servers**, add a server,
-and copy its token. It is shown once, at that moment, and stored only as a hash
-afterwards; if you lose it, roll the token and paste the new one. Send it on every request in the
-`X-2Pay-Server-Token` header:
+In the panel, open **Integration → Game servers**, add a server with the
+**Plugin** connection, and copy its token. It is shown once, at that moment,
+and stored only as a hash afterwards; if you lose it, choose **Roll token** and
+paste the new one. Send it on every request in the `X-2Pay-Server-Token`
+header:
 
 ```bash
 curl https://game.2pay.gg/v1/queue \
@@ -32,25 +33,30 @@ curl https://game.2pay.gg/v1/queue \
 
 | Token prefix | Mode |
 | --- | --- |
-| `srv_test_` | Sandbox; pairs with test-mode orders. |
-| `srv_live_` | Live store. |
+| `srv_test_` | Sandbox; sees only test-mode purchases. |
+| `srv_live_` | Live store; sees only live purchases. |
 
-A missing or wrong token returns `401`; a valid token used against a store it does
-not belong to returns `403`.
+The mode is fixed when you add the server: a server added while the panel is in
+test mode gets a `srv_test_` token.
+
+<Callout type="info">
+  Servers with the **RCON** connection have no token. 2Pay connects to them and
+  pushes the commands itself, so they never call the Game API. See
+  [RCON](/dev/game-api/plugins#rcon).
+</Callout>
 
 ## What the token can and cannot do
 
 A server token is intentionally limited. It can:
 
-- Read the command queue for its store/server.
-- Fetch online and offline commands.
-- Delete (confirm) executed commands.
+- Poll the command queue of its own server.
+- Fetch that server's online and offline commands.
+- Delete (confirm) commands it executed.
 - Read its own server information.
 
-It **cannot** read orders or customers in full, list your catalog's private
-fields, manage webhooks, or do anything the [Developer API](/dev/developer-api/overview)
-does. If a leaked token is the worst case, the blast radius is limited to the
-delivery queue of one store.
+It **cannot** read orders or customers, list your catalog, manage webhooks, or
+do anything the [Developer API](/dev/developer-api/overview) does. If a leaked
+token is the worst case, the blast radius is the delivery queue of one server.
 
 <Callout type="warn">
   Even so, treat the token as a secret. Put it in your server config or a secrets
@@ -60,12 +66,33 @@ delivery queue of one store.
 
 ## One token per server
 
-If you run multiple game servers (for example a Survival and a Creative server)
-that should deliver different products or be tracked separately, create a
-**separate server entry and token for each**. Commands are scoped per server, so
-each host only ever pulls what is meant for it.
+If you run multiple game servers (for example a Survival and a Creative server),
+add a **separate server entry for each** and give each host its own token.
+Commands are queued per server, so each host only ever pulls what is meant for
+it. A command on a package can name the servers it runs on; naming none sends
+it to every server of the store.
 
 ## Errors
 
-The Game API uses the same [error shape and status codes](/dev/developer-api/conventions#errors)
+The Game API uses the same [error shape](/dev/developer-api/conventions#errors)
 as the rest of the platform, so you can reuse one error handler across both APIs.
+
+| Status | `code` | When |
+| --- | --- | --- |
+| `401` | `missing_server_token` | The `X-2Pay-Server-Token` header is absent or empty. |
+| `401` | `invalid_server_token` | The token is unknown, was rolled, or its server was removed. |
+| `429` | `rate_limit_exceeded` | Too many requests. See [Rate limits](/dev/game-api/delivery-queue#rate-limits). |
+
+```json
+{
+  "error": {
+    "type": "authentication_error",
+    "code": "invalid_server_token",
+    "message": "The provided server token is invalid or revoked.",
+    "request_id": "req_941543f8-278f-4593-bdc8-abc3d673c34c"
+  }
+}
+```
+
+A `401` will not fix itself by retrying. Stop polling at speed, log it, and
+check the token.
