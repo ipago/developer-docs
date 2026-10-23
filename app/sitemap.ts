@@ -1,7 +1,7 @@
 import type { MetadataRoute } from "next";
 import { creatorsSource, devSource } from "@/lib/source";
 
-const DOCS_URL = "https://docs.2pay.gg";
+import { DOCS_URL } from "@/lib/site";
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const pages = [...creatorsSource.getPages(), ...devSource.getPages()];

@@ -5,13 +5,22 @@ import { useState } from "react";
 // Stripe-style page actions shown under the title: copy the page's markdown for pasting into an
 // LLM, or open the raw markdown. The markdown is passed in from the statically-rendered server
 // page (no runtime fetch needed to copy).
+/** Builds the prompt an AI chat opens with: read this page, then help with 2Pay. */
+export function aiPrompt(absoluteMdUrl: string): string {
+  return `Read ${absoluteMdUrl} so you can answer questions about it and help me integrate 2Pay. The full 2Pay docs are at https://docs.2pay.gg/llms-full.txt.`;
+}
+
 export default function PageActions({
   markdown,
   mdHref,
+  origin = "https://docs.2pay.gg",
 }: {
   markdown: string;
   mdHref: string;
+  /** Absolute origin, so the AI chat gets a URL it can fetch. */
+  origin?: string;
 }) {
+  const prompt = encodeURIComponent(aiPrompt(`${origin}${mdHref}`));
   const [copied, setCopied] = useState(false);
 
   async function copy() {
@@ -64,6 +73,12 @@ export default function PageActions({
           />
         </svg>
         View as markdown
+      </a>
+      <a href={`https://claude.ai/new?q=${prompt}`} className={base} target="_blank" rel="noopener noreferrer">
+        Open in Claude
+      </a>
+      <a href={`https://chatgpt.com/?q=${prompt}`} className={base} target="_blank" rel="noopener noreferrer">
+        Open in ChatGPT
       </a>
     </div>
   );

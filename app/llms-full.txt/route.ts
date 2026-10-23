@@ -1,0 +1,38 @@
+import { creatorsSource, devSource } from "@/lib/source";
+import { readRawMarkdown, type DocModule } from "@/lib/raw";
+import { mdxToLlmMarkdown } from "@/lib/llm-text";
+import { DOCS_URL } from "@/lib/site";
+
+// The whole documentation in one plain-text file, so a developer can hand one URL to Claude,
+// Cursor or ChatGPT and the model has every page. The developer docs come first because that is
+// what an AI coding assistant is usually asked about. Statically generated at build time.
+export const dynamic = "force-static";
+
+export function GET() {
+  const parts: string[] = [
+    "# 2Pay Documentation (full text)",
+    "",
+    "> 2Pay is a Merchant of Record for game monetization: hosted webstores, an embedded checkout, a developer API, a Game API for game servers, and payouts. This file contains every documentation page except the generated API reference; for exact request and response shapes, read the OpenAPI spec at https://docs.2pay.gg/openapi.json.",
+    "",
+  ];
+
+  const modules: { module: DocModule; title: string; source: typeof devSource }[] = [
+    { module: "dev", title: "Developers", source: devSource },
+    { module: "creators", title: "Creators", source: creatorsSource },
+  ];
+
+  for (const { module, title, source } of modules) {
+    parts.push(`# Part: ${title}`, "");
+    for (const page of source.getPages()) {
+      // The API reference is generated from openapi.json and would double the file; the spec
+      // itself is linked at the top, and is the better source for exact shapes anyway.
+      if (module === "dev" && page.slugs[0] === "reference") continue;
+      const raw = readRawMarkdown(module, page.file.path);
+      parts.push("---", "", `Source: ${DOCS_URL}${page.url}`, "", mdxToLlmMarkdown(raw, page.data.title), "");
+    }
+  }
+
+  return new Response(parts.join("\n"), {
+    headers: { "content-type": "text/plain; charset=utf-8" },
+  });
+}
