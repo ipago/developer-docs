@@ -3,25 +3,44 @@ title: Rate limits
 description: How 2Pay rate-limits the API and how to back off cleanly.
 ---
 
-The API is rate-limited per API key, so one integration's traffic never eats
-another's budget. Limits are a backstop against runaway loops, not a quota you
-are expected to plan around: normal integrations never reach them.
+The Developer API is rate-limited per API key, so one integration's traffic never
+eats another's budget. Limits are a backstop against runaway loops, not a quota
+you are expected to plan around: normal integrations never reach them.
 
 ## The limits
 
+Every endpoint you call with an API key uses one of two budgets, counted per key
+over a one-minute window:
+
 | Requests | Limit |
 | --- | --- |
-| Reads (`GET`) | 300 per minute |
-| Writes (`POST`, `PATCH`, `DELETE`) | 60 per minute |
+| Reads (`GET`) | 300 per minute, per key and endpoint |
+| Writes (`POST`, `DELETE`) | 60 per minute, per key and endpoint |
 
-Some endpoints are tighter than the defaults above, because the operation itself
-is sensitive or expensive: payouts, refunds, API key management, store
-onboarding and identity-document uploads. Treat the numbers above as the ceiling,
-not a guarantee, and always read the response headers rather than assuming.
+Each endpoint keeps its own counter, so a burst of `GET /v1/orders` does not use
+up your budget for `GET /v1/products`.
 
-Each key gets its own budget. Rotating a key resets it.
+Other surfaces are limited separately and by client IP address rather than by
+key:
+
+| Surface | Limit |
+| --- | --- |
+| [Game API](/dev/game-api/overview) queue endpoints | 120 per minute |
+| Public storefront reads | 120 per minute |
+| Storefront basket reads | 120 per minute |
+| Storefront basket changes and checkout | 20 per minute |
 
 ## What you get back
+
+Every rate-limited response carries your current budget, so you never have to
+guess:
+
+| Header | Meaning |
+| --- | --- |
+| `x-ratelimit-limit` | Requests allowed in the current window. |
+| `x-ratelimit-remaining` | Requests left in it. |
+| `x-ratelimit-reset` | Seconds until the window resets. |
+| `retry-after` | On a `429`, seconds to wait before retrying. |
 
 When you exceed a limit the API responds with `429` and a `rate_limit_error`:
 
@@ -36,19 +55,10 @@ When you exceed a limit the API responds with `429` and a `rate_limit_error`:
 }
 ```
 
-Every response carries your current budget, so you never have to guess:
-
-| Header | Meaning |
-| --- | --- |
-| `RateLimit-Limit` | Requests allowed in the current window. |
-| `RateLimit-Remaining` | Requests left in it. |
-| `RateLimit-Reset` | Seconds until the window resets. |
-| `Retry-After` | On a `429`, seconds to wait before retrying. |
-
 ## Backing off
 
 - Retry `429` responses with **exponential backoff and jitter**, not a tight loop.
-  Honour `Retry-After` when it is present.
+  Honour `retry-after` when it is present.
 - Cache catalog reads (products, categories) rather than fetching them per page
   view. The catalog changes rarely, so a short local cache removes most traffic.
 - Prefer [webhooks](/dev/webhooks/overview) over polling for order and delivery

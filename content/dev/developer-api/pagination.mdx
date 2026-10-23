@@ -1,6 +1,6 @@
 ---
 title: Pagination
-description: Cursor pagination for list endpoints with limit, starting_after, and has_more.
+description: Cursor pagination for list endpoints with limit, starting_after, ending_before, and has_more.
 ---
 
 List endpoints return a consistent envelope and paginate with cursors.
@@ -10,26 +10,42 @@ List endpoints return a consistent envelope and paginate with cursors.
 ```json
 {
   "object": "list",
-  "data": [ { "object": "product", "id": "prod_123" } ],
+  "data": [ { "object": "order", "id": "ord_01M5MWDACTVABBZT3E8T2B6QA5" } ],
   "has_more": true
 }
 ```
 
-- `data` holds the page of objects, newest first.
-- `has_more` tells you whether another page exists.
+- `data` holds the page of objects, **oldest first** (ordered by id, and ids
+  increase over time).
+- `has_more` tells you whether another page exists in the direction you are
+  paging.
 
-## Paging with cursors
+## Parameters
 
-Use `limit` to size the page and `starting_after` (an object id) to fetch the
-next one:
+| Parameter | Description |
+| --- | --- |
+| `limit` | Page size, `1` to `100`. Defaults to `20`. A value outside that range is a `400 validation_error`. |
+| `starting_after` | An object id. Returns the objects that come **after** it, that is, newer ones. |
+| `ending_before` | An object id. Returns the objects that come **before** it, that is, older ones. |
+
+Send at most one cursor per request; sending both returns `400 invalid_cursor`.
+
+## Paging through everything
+
+Start without a cursor, then pass the id of the **last** item you received as
+`starting_after`:
 
 ```bash
 curl "https://api.2pay.gg/v1/orders?limit=50" \
   -H "Authorization: Bearer sk_live_..."
 
-# next page: pass the id of the last item you received
-curl "https://api.2pay.gg/v1/orders?limit=50&starting_after=ord_last" \
+# next page: the id of the last item in the previous page
+curl "https://api.2pay.gg/v1/orders?limit=50&starting_after=ord_01M5MWDACTVABBZT3E8T2B6QA5" \
   -H "Authorization: Bearer sk_live_..."
 ```
 
-Keep requesting while `has_more` is `true`. Use `ending_before` to page backwards.
+Keep requesting while `has_more` is `true`. Because pages run oldest to newest,
+remembering the last id you processed also gives you a cheap way to pick up only
+new objects next time: start from that id with `starting_after`.
+
+Endpoint filters such as `status` combine with the cursors.

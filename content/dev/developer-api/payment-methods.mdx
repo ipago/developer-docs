@@ -1,27 +1,40 @@
 ---
 title: Payment methods
-description: How 2Pay offers 100+ payment methods and how a store controls which ones appear.
+description: Which payment methods 2Pay offers and how a store controls which ones appear.
 ---
 
-2Pay presents buyers the payment methods most likely to convert for their country
-and currency, drawn from cards and wallets (Visa, Mastercard, Apple Pay, Google
-Pay), local rails (BLIK, iDEAL, Przelewy24, Bancontact, SEPA), buy-now-pay-later
-(Klarna), PayPal, and more. You never touch card data: the hosted checkout
-collects and tokenizes it.
+2Pay presents buyers the payment methods that are enabled for your store and
+eligible for their currency and country. You never touch card data: the hosted
+payment form collects and tokenizes it.
+
+## Supported methods
+
+| Key | Method |
+| --- | --- |
+| `card` | Card |
+| `blik` | BLIK |
+| `p24` | Przelewy24 |
+| `klarna` | Klarna |
+| `paypal` | PayPal |
+| `ideal` | iDEAL |
+| `bancontact` | Bancontact |
+| `link` | Link |
+
+The method a buyer used shows up as `payment_method` on the
+[order](/dev/developer-api/orders).
 
 ## One integration, many methods
 
-Because 2Pay is the Merchant of Record, adding a method is an account-level
-setting, not code. Your [checkout](/dev/checkout/overview) automatically offers the
-eligible methods for each buyer, so a new market is a configuration change rather
-than an integration.
+Because 2Pay is the Merchant of Record, enabling a method is a store setting, not
+code. Your [checkout](/dev/checkout/overview) automatically offers the eligible
+methods for each buyer, so a new market is a configuration change rather than an
+integration.
 
 ## Per-store selection
 
-A store can narrow the offered set from its settings (for example, cards and BLIK
-only). This is materialized per store on the payment provider and applied at
-checkout. A store that has not customized the list uses the account default
-(dynamic methods chosen per buyer).
+A store can narrow the offered set in the panel (for example, cards and BLIK
+only). A store that has not customized the list lets 2Pay choose the methods per
+buyer. Payment methods are not configurable over the Developer API.
 
 <Callout type="info">
   A method only appears if it is both enabled for the store and eligible for the

@@ -1,6 +1,6 @@
 ---
 title: Developers
-description: Integrate 2Pay into your site, app, or game with the Developer API, Game API, webhooks, and affiliates.
+description: Integrate 2Pay into your site, app, or game with the Developer API, Game API, and webhooks.
 ---
 
 The **2Pay Developer docs** are the technical reference for wiring 2Pay into
@@ -18,27 +18,28 @@ tax in dozens of jurisdictions.
 
 Because of that, the developer surface is split cleanly in two:
 
-- **The admin panel at [app.2pay.gg](https://app.2pay.gg)** is where products,
-  prices, categories, themes, payout details, and program settings are
-  **created and configured**. This is the source of truth.
+- **The panel at [app.2pay.gg](https://app.2pay.gg)** is where products,
+  prices, categories, themes, and payout details are **created and
+  configured**. This is the source of truth.
 - **The APIs documented here** let your own systems **read** that catalog,
-  **watch** what sells, **confirm** delivery, and **react** to events in real
-  time. They are a synchronization and runtime layer, not a place to define new
-  products on the fly.
+  **take payments** against it, **watch** what sells, **confirm** delivery,
+  **move money** (refunds and payouts), and **react** to events. They are a
+  synchronization and runtime layer, not a place to define new products on the
+  fly.
 
 <Callout type="info">
   If your mental model comes from Tebex: we cover the same ground (a hosted
   store, an embeddable checkout, webhooks, and a game-server delivery API), but
-  we deliberately keep product creation inside the panel rather than exposing an
-  ad-hoc "build a product in the request" API. See
-  [What we intentionally leave out](/dev/developer-api/overview#scope) for the
-  full list.
+  we keep product creation inside the panel rather than exposing an ad-hoc
+  "build a product in the request" API. See
+  [Scope](/dev/developer-api/overview#scope) for what the API covers.
 </Callout>
 
 ## Pick your starting point
 
 New here? Start with the [Quick start](/dev/quick-start), it walks the whole
-path from creating a key to confirming your first delivery in about ten minutes.
+path from creating a key to confirming your first delivery. To try everything
+without moving real money, read [Test mode](/dev/developer-api/test-mode).
 
 ## Products
 
@@ -46,12 +47,12 @@ These are the two ways a buyer can actually reach a checkout.
 
 <Cards>
   <Card title="Webstores" href="/dev/webstores/overview">
-    A hosted storefront on your own 2Pay subdomain (or custom domain), styled
-    with templates, themes, and assets. No frontend code required.
+    A hosted storefront on your own 2Pay subdomain, styled with themes. No
+    frontend code required.
   </Card>
   <Card title="Checkout" href="/dev/checkout/overview">
-    Drop the 2Pay checkout straight into your existing site or app with our
-    browser library, so buyers pay without ever leaving your page.
+    Drop the 2Pay checkout straight into your existing site or app, so buyers
+    pay without ever leaving your page.
   </Card>
 </Cards>
 
@@ -61,26 +62,22 @@ These are the programmatic interfaces your servers talk to.
 
 <Cards>
   <Card title="Developer API" href="/dev/developer-api/overview">
-    The headless HTTP API: read products and orders, track and confirm
-    delivery, and manage your webhook endpoints.
+    The headless HTTP API: read products and orders, create checkouts, confirm
+    delivery, issue refunds and payouts, and read disputes and events.
   </Card>
   <Card title="Game API" href="/dev/game-api/overview">
     The runtime endpoint a game server or plugin polls to fetch and execute
     in-game deliveries, then report them complete.
   </Card>
   <Card title="Webhooks" href="/dev/webhooks/overview">
-    Signed, retried event callbacks that push order and delivery changes to
-    your backend the moment they happen.
-  </Card>
-  <Card title="Affiliate API" href="/dev/affiliate-api/overview">
-    Run a referral program: manage affiliates, attribute referred sales, and
-    read the commissions each partner has earned.
+    Signed, retried event callbacks that push order, delivery, payout, and
+    dispute changes to your backend the moment they happen.
   </Card>
 </Cards>
 
 ## Conventions used across these docs
 
-Every HTTP API in this section shares the same base URL, authentication scheme,
+Every Developer API endpoint shares the same base URL, authentication scheme,
 error format, pagination, and idempotency rules. Rather than repeat them on each
 page, they live in one place:
 [Developer API → Conventions](/dev/developer-api/conventions).

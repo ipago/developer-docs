@@ -4,71 +4,90 @@ description: Track per-item fulfillment state and confirm a delivery once grante
 ---
 
 A **delivery** is the fulfillment record for a single order line item. It answers
-one question: has the buyer actually received this thing yet? Every line item on
-a paid order has exactly one delivery, identified by a `dlv_` id.
+one question: has the buyer actually received this thing yet? When an order is
+paid, every line item gets exactly one delivery, identified by a `del_` id.
 
 Deliveries are where your integration does its real work. 2Pay handles the money;
 **you** grant the rank, send the key, or run the command, then tell 2Pay it is
 done.
+
+Reading requires `deliveries:read`; completing or failing requires
+`deliveries:write`.
 
 ## The delivery object
 
 ```json
 {
   "object": "delivery",
-  "id": "dlv_01HA0...",
-  "order": "ord_01HA0XYZ",
-  "order_item": "oi_01HA0...",
-  "product": "prod_01H9Z4ABCDEF",
+  "id": "del_01M5MWF2T4C0J8B7K2Q9X1VZ3P",
+  "order": "ord_01M5MWDACTVABBZT3E8T2B6QA5",
+  "order_item": "oi_01M5MWDACTVABBZT3E8T2B6QA4",
+  "product": "prod_01M5MWCZPX3X7V41C1J6Y83TGW",
+  "recipient": "Notch",
+  "quantity": 1,
+  "config": null,
   "status": "pending",
-  "target": "game_server",
-  "attempts": 0,
-  "last_error": null,
-  "completed_at": null,
-  "created": "2026-06-28T11:42:11Z"
+  "note": null,
+  "created": "2026-10-23T17:21:05.104Z",
+  "completed_at": null
 }
 ```
 
 | Field | Type | Description |
 | --- | --- | --- |
-| `id` | string | Delivery id (`dlv_`). |
+| `id` | string | Delivery id (`del_`). |
 | `order` | string | The owning order. |
-| `order_item` | string | The specific line item being fulfilled. |
+| `order_item` | string | The line item being fulfilled. |
 | `product` | string | The product purchased. |
+| `recipient` | string \| null | Who receives it: the order's `delivery_target`, typically the buyer's in-game name. |
+| `quantity` | integer | How many units of the line item this covers. |
+| `config` | object \| null | The product's delivery configuration as set in the panel, copied at payment time so later product edits do not change it. |
 | `status` | string | `pending`, `completed`, or `failed`. |
-| `target` | string | How it is fulfilled: `game_server`, `manual`, or `none`. |
-| `attempts` | integer | How many times fulfillment has been attempted. |
-| `last_error` | string \| null | Reason of the most recent failure, if any. |
-| `completed_at` | string \| null | When it was confirmed complete. |
+| `note` | string \| null | Free text recorded when the delivery was completed or failed. |
 | `created` | string | When the delivery was created (at payment). |
+| `completed_at` | string \| null | When it was marked completed. |
+
+`config` is `null` for a product with no delivery configuration. Its shape
+otherwise depends on how the product is delivered (game-server products carry
+their `commands` here), so read only the keys you set up yourself.
 
 ## Status lifecycle
 
 ```
 pending ──▶ completed
    │
-   └──────▶ failed ──▶ (retry) ──▶ pending
+   └──────▶ failed
 ```
 
 - **`pending`**: payment succeeded; the item is owed but not yet granted.
-- **`completed`**: you confirmed the buyer received it. Terminal for a healthy
-  order.
-- **`failed`**: fulfillment was attempted and could not finish (player never
-  joined, command errored, key pool empty). A failed delivery can be retried.
+- **`completed`**: the buyer received it.
+- **`failed`**: fulfillment could not finish (player never joined, command
+  errored, key pool empty). Use `note` to record why, then sort it out with the
+  buyer, for example with a [refund](/dev/developer-api/refunds).
 
-## List deliveries for an order
+Both `completed` and `failed` are final: a delivery only ever leaves `pending`
+once.
+
+## List deliveries
 
 ```
-GET /v1/orders/{id}/deliveries
+GET /v1/deliveries
 ```
+
+**Query parameters**
+
+| Parameter | Description |
+| --- | --- |
+| `status` | Only deliveries in this state, for example `pending`. |
+| `limit`, `starting_after`, `ending_before` | [Pagination](/dev/developer-api/pagination). Results run oldest first. |
 
 ```bash
-curl https://api.2pay.gg/v1/orders/ord_01HA0XYZ/deliveries \
+curl "https://api.2pay.gg/v1/deliveries?status=pending" \
   -H "Authorization: Bearer sk_live_..."
 ```
 
-Returns every delivery on that order, so you can see, line by line, what is done
-and what is outstanding.
+This is the queue your backend works through: everything paid for and not yet
+granted.
 
 ## Retrieve a delivery
 
@@ -78,25 +97,26 @@ GET /v1/deliveries/{id}
 
 ## Confirm a delivery
 
-Once your system has granted the item, mark the delivery complete:
+Once your system has granted the item, mark the delivery complete. The body is
+optional; `note` is stored on the delivery.
 
 ```
 POST /v1/deliveries/{id}/complete
 ```
 
 ```bash
-curl -X POST https://api.2pay.gg/v1/deliveries/dlv_01HA0.../complete \
+curl -X POST https://api.2pay.gg/v1/deliveries/del_01M5MWF2T4C0J8B7K2Q9X1VZ3P/complete \
   -H "Authorization: Bearer sk_live_..." \
-  -H "Idempotency-Key: $(uuidgen)"
+  -H "Content-Type: application/json" \
+  -d '{ "note": "Granted VIP to Notch" }'
 ```
 
-Returns the updated delivery with `status: "completed"`. This call is **idempotent
-by id**: confirming an already-completed delivery returns the same result rather
-than erroring, and sending the same [idempotency key](/dev/developer-api/conventions#idempotency)
-on a retry is always safe.
+Returns `200` with the updated delivery (`status: "completed"`) and emits a
+[`delivery.completed`](/dev/developer-api/events) event.
 
-Completing a delivery emits a [`delivery.completed`](/dev/developer-api/events)
-event.
+The call is safe to repeat: on a delivery that is no longer `pending` it changes
+nothing and returns the delivery as it is, without a new event. Check `status`
+in the response to see whether your call or an earlier one closed it.
 
 <Callout type="warn">
   Confirm a delivery **only after** the item is actually granted, not before. If
@@ -106,32 +126,29 @@ event.
 
 ## Report a failure
 
-If you cannot fulfill (and want it recorded rather than silently retried), mark
-it failed with a reason:
+If you cannot fulfill, mark it failed with a note explaining why:
 
 ```
 POST /v1/deliveries/{id}/fail
 ```
 
 ```bash
-curl -X POST https://api.2pay.gg/v1/deliveries/dlv_01HA0.../fail \
+curl -X POST https://api.2pay.gg/v1/deliveries/del_01M5MWF2T4C0J8B7K2Q9X1VZ3P/fail \
   -H "Authorization: Bearer sk_live_..." \
-  -H "Idempotency-Key: $(uuidgen)" \
-  -d "reason=key_pool_empty"
+  -H "Content-Type: application/json" \
+  -d '{ "note": "Key pool empty" }'
 ```
 
-This sets `status: "failed"`, stores `reason` in `last_error`, and emits
-[`delivery.failed`](/dev/developer-api/events). The delivery remains eligible for
-a later retry.
+This sets `status: "failed"`, stores `note`, and emits
+[`delivery.failed`](/dev/developer-api/events). Like completing, it only acts on a
+`pending` delivery.
 
 ## Who confirms what
 
-| Fulfillment type | Who confirms |
+| Fulfillment | Who confirms |
 | --- | --- |
-| In-game items, ranks, commands | Your game server, via the [Game API](/dev/game-api/overview) (which confirms deliveries for you). |
-| License keys, roles, account flags handled by your backend | Your backend, via `POST /deliveries/{id}/complete`. |
-| Digital goods 2Pay delivers directly | 2Pay; no action needed. |
+| In-game items, ranks, commands | Your game server, via the [Game API](/dev/game-api/overview). When the plugin reports the queued commands as done, 2Pay completes the delivery for you. |
+| License keys, roles, account flags handled by your backend | Your backend, via `POST /v1/deliveries/{id}/complete`. |
 
-For the game-server path you generally never call these endpoints by hand, the
-Game API queue handles confirmation. Use them directly when **your own backend**
-owns fulfillment.
+For the game-server path you generally never call these endpoints by hand. Use
+them directly when **your own backend** owns fulfillment.

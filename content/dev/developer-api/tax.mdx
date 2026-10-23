@@ -1,30 +1,37 @@
 ---
 title: Tax & VAT
-description: How 2Pay handles sales tax and VAT as Merchant of Record, and inclusive vs exclusive pricing.
+description: How 2Pay handles VAT as Merchant of Record, and inclusive vs exclusive pricing.
 ---
 
 As Merchant of Record, 2Pay is the legal seller, so **we calculate, collect, and
-remit sales tax and VAT**. You never register for tax in the jurisdictions your
-buyers are in, and tax is never part of your balance or payout.
+remit VAT**. You never register for tax in the countries your buyers are in, and
+tax is never part of your balance or payout.
 
 ## Where tax shows up
 
-Tax is computed at checkout based on the buyer's location and added to the order.
-On a paid order you can see the tax that was collected, clearly separated from
-your revenue. In the ledger it is booked to a dedicated `tax_payable` liability
-account that 2Pay settles with the tax authorities.
+VAT is computed when the checkout is created, from the buyer's country:
+
+- On a [Webstore](/dev/webstores/overview), 2Pay determines the country itself.
+- On `POST /v1/checkouts`, you pass it as `country`, an ISO 3166-1 alpha-2 code
+  such as `"DE"`. If you omit it, the order is treated as non-taxable and no VAT
+  is charged, so send it whenever you know where the buyer is.
+
+On the [order](/dev/developer-api/orders), VAT is reported separately as
+`tax_amount`, apart from your revenue. In the ledger it is booked to a dedicated
+`tax_payable` liability account that 2Pay settles with the tax authorities.
 
 ## Inclusive vs exclusive
 
 A store chooses, in its settings, how prices are shown:
 
-- **Exclusive** (default): the listed price is pre-tax, and tax is added on top at
+- **Exclusive** (default): the listed price is pre-tax, and VAT is added on top at
   checkout.
-- **Inclusive**: the listed price already contains tax, and the tax portion is
-  broken out of the total.
+- **Inclusive**: the listed price already contains VAT, and the VAT portion is
+  broken out of it.
 
-Either way, your taxable base (the amount fees are computed on) and your payout
-exclude the tax. The only difference is what the buyer sees as the sticker price.
+Either way, the order's `total` (the base your fees and earnings are computed on)
+and your payout exclude VAT. The only difference is what the buyer sees as the
+sticker price.
 
 <Callout type="info">
   The platform fee is always computed on the pre-tax base, never on the tax.

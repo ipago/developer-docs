@@ -1,12 +1,27 @@
 ---
 title: Idempotency
-description: Safely retry write requests without creating duplicates using the Idempotency-Key header.
+description: Safely retry money-moving requests without creating duplicates using the Idempotency-Key header.
 ---
 
-Any request that changes state can be retried safely by sending an
-`Idempotency-Key` header. If a request with the same key has already succeeded,
-2Pay replays the original response instead of performing the action again. This
-protects you against network timeouts, dropped connections, and double-clicks.
+The `POST` endpoints that create something accept an `Idempotency-Key` header. If
+a request with the same key already succeeded, 2Pay replays the stored response
+instead of performing the action again. This protects you against network
+timeouts and dropped connections, where you cannot tell whether the first
+attempt went through.
+
+## Which endpoints use it
+
+| Endpoint | What a replay protects against |
+| --- | --- |
+| `POST /v1/checkouts` | Opening two orders for one purchase. |
+| `POST /v1/refunds` | Refunding the same order twice. |
+| `POST /v1/payouts` | Paying out the same balance twice. |
+| `POST /v1/webhook_endpoints` | Registering the same endpoint twice. |
+
+Other endpoints ignore the header. `GET` requests are already safe to repeat, and
+the delivery actions (`POST /v1/deliveries/{id}/complete` and `/fail`) are safe to
+repeat by design: calling them on a delivery that is no longer `pending` returns
+its current state and changes nothing.
 
 ## How it works
 
@@ -14,25 +29,44 @@ Generate a unique key per logical operation (a UUID is a good choice) and send i
 on the request:
 
 ```bash
-curl https://api.2pay.gg/v1/storefront/myshop/baskets/bsk_123/checkout \
+curl https://api.2pay.gg/v1/refunds \
   -H "Authorization: Bearer sk_live_..." \
   -H "Idempotency-Key: 5f0c2b1a-9d3e-4a7c-8f2b-1c9e2d3f4a5b" \
   -H "Content-Type: application/json" \
-  -d '{}'
+  -d '{ "order": "ord_01M5MWDACTVABBZT3E8T2B6QA5" }'
 ```
 
-- The **first** call performs the operation and stores the result under the key.
-- Any **later** call with the same key returns that stored result, byte for byte,
-  even if the original is still in flight.
+- The **first** successful call performs the operation and stores its status
+  code and body under the key.
+- A **later** call with the same key, method, path, and body returns that stored
+  response without doing anything.
+- Only successful (`2xx`) responses are stored. If the first attempt failed, for
+  example with a `400`, nothing is stored and a retry with the same key runs the
+  request again.
+- Keys are scoped to your store and the key's mode, so a test key and a live key
+  never share idempotency keys.
 
-<Callout type="warn">
-  Reuse a key only for a retry of the exact same operation. Sending a different
-  body with a key that was already used returns the original response, not a new
-  action.
+## Reusing a key for a different request
+
+A key belongs to exactly one request. Sending the same key with a different body
+or path is rejected:
+
+```json
+{
+  "error": {
+    "type": "invalid_request_error",
+    "code": "idempotency_key_reuse",
+    "message": "This Idempotency-Key was used for a different request.",
+    "request_id": "req_24a89acd-f783-4ee5-9549-4150b11b26ca"
+  }
+}
+```
+
+The status is `409`. Generate a new key for each new operation, and reuse one
+only when you are retrying the exact same request.
+
+<Callout type="info">
+  Send an idempotency key on every checkout, refund, and payout. Network timeouts
+  are the normal case, not the exception, and retrying safely is the whole
+  point.
 </Callout>
-
-## When to use it
-
-Send an `Idempotency-Key` on every non-idempotent write: creating baskets,
-checking out, and any mutation you might retry. Read requests (`GET`) are already
-idempotent and do not need the header.

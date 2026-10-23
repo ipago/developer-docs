@@ -12,25 +12,25 @@ curl https://api.2pay.gg/v1/orders \
   -H "Authorization: Bearer sk_live_..."
 ```
 
-A request without a valid key fails with `401 Unauthorized`; a request whose key
-lacks the required scope fails with `403 Forbidden`.
+A request without a valid key fails with `401`; a request whose key lacks the
+required scope fails with `403`.
 
-## Key types
+## Key modes
 
 | Prefix | Mode | Use it for |
 | --- | --- | --- |
-| `sk_test_` | Test / sandbox | Building and automated tests. No real money moves. |
+| `sk_test_` | Test | Building and automated tests. No real money moves. |
 | `sk_live_` | Live | Your real store and real payouts. |
 
 Test and live keys address two completely separate datasets. A `prod_...` id
-created in live mode does not exist in test mode, and vice versa. This lets you
-develop against a realistic copy of your store without touching production.
+created in live mode does not exist in test mode, and vice versa. See
+[Test mode](/dev/developer-api/test-mode) for what the sandbox covers.
 
 <Callout type="warn">
-  Secret keys can read your sales and act on your store. Treat them like
-  passwords: keep them server-side, store them in a secrets manager or
-  environment variable, never commit them, and never ship them in a browser
-  bundle, mobile app, or anything a customer can open.
+  Secret keys can read your sales and move money. Treat them like passwords: keep
+  them server-side, store them in a secrets manager or environment variable,
+  never commit them, and never ship them in a browser bundle, mobile app, or
+  anything a customer can open.
 </Callout>
 
 ## Scopes
@@ -41,21 +41,34 @@ key needs:
 | Scope | Grants |
 | --- | --- |
 | `products:read` | List and fetch products and categories. |
-| `orders:read` | List and fetch orders and their line items. |
-| `deliveries:read` | Read delivery state. |
-| `deliveries:write` | Confirm or fail a delivery. |
-| `checkouts:write` | Create checkouts that reference existing products. |
-| `events:read` | Read the event log. |
-| `webhooks:write` | Create and delete webhook endpoints. |
+| `orders:read` | List and fetch orders. |
+| `checkouts:write` | Create checkouts for existing products. |
+| `deliveries:read` | List and fetch deliveries. |
+| `deliveries:write` | Mark a delivery completed or failed. |
+| `refunds:read` | List and fetch refunds. |
+| `refunds:write` | Refund an order. |
+| `payouts:read` | List and fetch payouts. |
+| `payouts:write` | Request a payout. |
+| `ledger:read` | Read the balance and ledger entries. |
+| `disputes:read` | List and fetch disputes. |
+| `events:read` | List and fetch events. |
+| `webhooks:read` | List and fetch webhook endpoints. |
+| `webhooks:write` | Create and delete webhook endpoints, and send a test event. |
 
 A read-only reporting job, for example, should hold only `orders:read` and
-`products:read`, even a leaked copy could then do no harm beyond reading.
+`products:read`, so even a leaked copy could do no harm beyond reading. Be
+especially careful with `refunds:write` and `payouts:write`, which move money.
 
 ## Creating and rotating keys
 
-Create keys in the panel under **Developers → API keys**. The full secret is
-shown **once, at creation**; store it immediately, because it cannot be
-retrieved again afterward (you would create a new one instead).
+Create keys in the panel under **Integration → Webhooks and Custom API**, in the
+**Developer API** section. Only store owners and admins can create and revoke
+keys. Switch the page to Test or Live first: a key belongs to the mode it was
+created in.
+
+The full secret is shown **once, at creation**. Store it immediately; afterwards
+the panel only shows a masked form such as `sk_live_...a1b2`, and you would
+create a new key instead.
 
 To rotate a key without downtime:
 
@@ -64,20 +77,21 @@ To rotate a key without downtime:
 3. Confirm traffic is flowing on the new key.
 4. Revoke the old key.
 
-Revoking is instant: the next request using a revoked key gets `401`.
+Revoking is immediate: the next request using a revoked key gets `401`.
 
-## The authenticated account
+## The authenticated store
 
-A key acts on the **store it was created for**. You do not pass an account
+A key acts on the **store and mode it was created for**. You do not pass a store
 identifier in the URL; the key resolves to its store. If you operate more than
 one store, use a separate key per store.
 
 ## Errors
 
-| Status | Meaning | Likely cause |
+| Status | `code` | Likely cause |
 | --- | --- | --- |
-| `401 Unauthorized` | No key, or an invalid/revoked key. | Missing header, typo, or rotated-out key. |
-| `403 Forbidden` | Valid key, missing scope. | The key lacks the scope the endpoint needs. |
+| `401` | `missing_api_key` | No `Authorization: Bearer ...` header. |
+| `401` | `invalid_api_key` | Typo, wrong key, or a revoked key. |
+| `403` | `insufficient_scope` | The key lacks the scope the endpoint needs. |
 
-Both follow the standard [error shape](/dev/developer-api/conventions#errors),
-so you can branch on `error.code` programmatically.
+All follow the standard [error shape](/dev/developer-api/errors), so you can
+branch on `error.code` programmatically.

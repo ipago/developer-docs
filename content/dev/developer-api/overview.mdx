@@ -1,11 +1,12 @@
 ---
 title: Overview
-description: The headless HTTP API for reading your catalog, tracking orders, and confirming delivery.
+description: The headless HTTP API for your catalog, checkouts, orders, deliveries, and money movement.
 ---
 
 The **Developer API** is the headless, server-to-server HTTP interface for your
-store. It is how your own backend reads what you sell, watches what gets bought,
-confirms that buyers received what they paid for, and stays in sync with 2Pay.
+store. It is how your own backend reads what you sell, takes payments, watches
+what gets bought, confirms that buyers received what they paid for, and moves
+money out through refunds and payouts.
 
 It is built to be predictable: resource-oriented URLs, JSON request and response
 bodies, standard HTTP verbs and status codes, bearer-token auth, and the same
@@ -13,45 +14,55 @@ conventions on every endpoint.
 
 ## What you can do with it
 
-- **Read your catalog.** List and fetch the products and categories that you
-  configured in the panel, including prices, availability, and metadata.
-- **Track sales.** List and fetch orders, inspect their status, line items,
-  customer, totals, and fees.
-- **Manage delivery.** See which line items are delivered, pending, or failed,
-  and confirm a delivery once your system has granted it.
-- **Stay in sync.** Read the immutable event log and register webhook endpoints
-  so 2Pay pushes changes to you instead of you polling.
+- **Read your catalog.** List and fetch the products and categories you
+  configured in the panel.
+- **Take payments.** Create a checkout for existing products and mount the
+  payment form in your own site.
+- **Track sales.** List and fetch orders with their line items, discount, VAT,
+  and totals.
+- **Manage delivery.** List pending deliveries and mark them completed or failed
+  once your system has acted on them.
+- **Move money.** Refund an order in full, request a payout of your available
+  balance, and read your balance and ledger.
+- **Watch disputes.** List chargebacks and their evidence deadlines.
+- **Stay in sync.** Read the event log and register webhook endpoints so 2Pay
+  pushes changes to you instead of you polling.
 
 ## Scope
 
-This API is intentionally narrow. It manages and observes a store whose
-**products are defined in the panel**, it is not a toolkit for inventing
-products or building checkouts in code.
+This API manages and observes a store whose **products are defined in the
+panel**. It is not a toolkit for inventing products in code.
 
-**In scope today**
+**Available with an API key**
 
-- Reading products and categories.
-- Reading orders and their line items.
-- Reading and confirming deliveries.
-- Reading the event log and managing webhook endpoints.
-- Creating a checkout that references existing products (see
-  [Checkout](/dev/checkout/overview)).
+| Area | Endpoints |
+| --- | --- |
+| Catalog | `GET /v1/products`, `GET /v1/categories` |
+| Checkouts | `POST /v1/checkouts` |
+| Orders | `GET /v1/orders` |
+| Deliveries | `GET /v1/deliveries`, `POST /v1/deliveries/{id}/complete`, `POST /v1/deliveries/{id}/fail` |
+| Refunds | `POST /v1/refunds`, `GET /v1/refunds` |
+| Payouts | `POST /v1/payouts`, `GET /v1/payouts` |
+| Balance and ledger | `GET /v1/balance`, `GET /v1/ledger_entries` |
+| Disputes | `GET /v1/disputes` |
+| Events and webhooks | `GET /v1/events`, `/v1/webhook_endpoints` |
 
-**Deliberately out of scope, for now**
+**Done in the panel, not over this API**
 
-- **Creating ad-hoc products in the request body.** Products live in the panel;
-  the API references them by `id`. (This is the main thing we do differently from
-  Tebex's "Checkout API" pattern.)
-- **Editing pricing, themes, or store configuration.** Those are panel
-  operations.
-- **Baskets, subscriptions, refunds, payouts, and coupons as public write
-  endpoints.** These exist in the platform but are not part of the public API
-  surface yet.
+- **Creating or editing products, prices, and categories.** The API references
+  products by `id`.
+- **Store configuration**: themes, payment methods, tax display, sales, coupons,
+  and gift cards.
+- **Partial refunds.** The API refunds a whole order. Partial refunds are issued
+  by 2Pay staff.
+- **Submitting dispute evidence.** You read disputes over the API and answer them
+  in the panel.
+- **Bank account details** for payouts.
 
 <Callout type="info">
-  Some of these may open up over time. If a missing endpoint is blocking you,
-  tell us at [support@2pay.gg](mailto:support@2pay.gg), real use cases drive what
-  we expose next.
+  If a missing endpoint is blocking you, tell us at
+  [support@2pay.gg](mailto:support@2pay.gg), real use cases drive what we expose
+  next.
 </Callout>
 
 ## The shape of a request
@@ -68,25 +79,28 @@ Responses are JSON. Single resources carry an `object` field naming their type;
 lists wrap their results in a `{ "object": "list", "data": [...], "has_more": ... }`
 envelope.
 
+The machine-readable OpenAPI description of every endpoint is served at
+`https://api.2pay.gg/openapi.json`.
+
 ## Where to go next
 
 <Cards>
   <Card title="Authentication" href="/dev/developer-api/authentication">
-    Key types, test vs live mode, scopes, and rotation.
+    Key modes, scopes, and rotation.
+  </Card>
+  <Card title="Test mode" href="/dev/developer-api/test-mode">
+    Build against a sandbox copy of your store with test cards.
   </Card>
   <Card title="Conventions" href="/dev/developer-api/conventions">
-    Base URL, errors, pagination, idempotency, money, IDs, and rate limits.
-  </Card>
-  <Card title="Products" href="/dev/developer-api/products">
-    Read the catalog you configured in the panel.
+    Base URL, errors, pagination, idempotency, money, and IDs.
   </Card>
   <Card title="Orders" href="/dev/developer-api/orders">
-    Inspect sales, line items, customers, and totals.
+    Inspect sales, line items, VAT, and totals.
   </Card>
   <Card title="Deliveries" href="/dev/developer-api/deliveries">
     Track fulfillment state and confirm deliveries.
   </Card>
-  <Card title="Events" href="/dev/developer-api/events">
-    The immutable log behind webhooks.
+  <Card title="Refunds" href="/dev/developer-api/refunds">
+    Refund a paid order in full.
   </Card>
 </Cards>

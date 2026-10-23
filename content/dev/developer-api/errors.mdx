@@ -13,35 +13,57 @@ your code can branch on a stable machine-readable field rather than parsing pros
   "error": {
     "type": "invalid_request_error",
     "code": "resource_missing",
-    "message": "No such product: prod_123",
-    "param": "product"
+    "message": "No such order: ord_nope",
+    "request_id": "req_faf9b1de-cefd-4cd2-9dea-0620f82341ed"
   }
 }
 ```
 
-- `type` groups the error. Branch on this first.
-- `code` is a stable, specific identifier for the exact problem.
-- `message` is a human-readable description. Do not match on it.
-- `param` is present when a specific field caused the error.
+| Field | Meaning |
+| --- | --- |
+| `type` | Broad class of error, see below. |
+| `code` | Stable, specific identifier for the exact problem. Branch on this. |
+| `message` | Human-readable explanation. Do not pattern-match on it. |
+| `param` | The offending field, when one specific field caused the error. Omitted otherwise. |
+| `request_id` | Identifier for this request. Include it when contacting support. |
 
 ## Error types
 
 | `type` | HTTP | Meaning |
 | --- | --- | --- |
 | `invalid_request_error` | 400 / 404 / 409 | The request was malformed, referenced something that does not exist, or conflicted with current state. |
-| `authentication_error` | 401 | The API key is missing, malformed, or invalid. |
-| `permission_error` | 403 | The key is valid but lacks the scope or access for this action. |
+| `authentication_error` | 401 | The API key is missing, invalid, or revoked. |
+| `permission_error` | 403 | The key is valid but lacks the scope, or the store or account is not allowed to do this yet. |
 | `rate_limit_error` | 429 | Too many requests. See [Rate limits](/dev/developer-api/rate-limits). |
 | `api_error` | 500 / 503 | Something went wrong on our side, or a dependency is unavailable. |
 
+## Common codes
+
+| Status | `code` | Meaning |
+| --- | --- | --- |
+| `400` | `validation_error` | The body or query did not match the endpoint's schema (for example `limit=500`). `param` names the field when there is one. |
+| `400` | `invalid_cursor` | Both `starting_after` and `ending_before` were sent, or a cursor was empty. |
+| `401` | `missing_api_key` / `invalid_api_key` | See [Authentication](/dev/developer-api/authentication#errors). |
+| `403` | `insufficient_scope` | The key lacks the scope this endpoint needs. |
+| `404` | `resource_missing` | No such object in this store and mode. |
+| `404` | `unknown_route` | The method and path do not exist. |
+| `409` | `idempotency_key_reuse` | The `Idempotency-Key` was already used for a different request. |
+| `429` | `rate_limit_exceeded` | Slow down, see [Rate limits](/dev/developer-api/rate-limits). |
+| `500` | `internal_error` | An unexpected failure on our side. |
+
+Endpoint-specific codes, such as `order_not_refundable` or
+`insufficient_balance`, are listed on each endpoint's page.
+
 <Callout type="info">
-  A `404` uses `invalid_request_error` with `code: "resource_missing"`. To avoid
-  leaking whether a resource exists across accounts, some endpoints return `404`
-  rather than `403` for objects you cannot access.
+  Objects that belong to another store, or to the other mode, return `404
+  resource_missing`, never `403`. The API does not reveal whether an id exists
+  somewhere you cannot see.
 </Callout>
 
 ## Handling errors
 
 Treat `4xx` as caller mistakes to fix, and `5xx` (plus `429`) as transient.
-Retry `5xx` and `429` with backoff and an [Idempotency-Key](/dev/developer-api/idempotency);
-do not retry `4xx` without changing the request.
+Retry `5xx` and `429` with backoff, and send an
+[Idempotency-Key](/dev/developer-api/idempotency) on the endpoints that accept
+one so a retry never repeats an action. Do not retry a `4xx` without changing the
+request.

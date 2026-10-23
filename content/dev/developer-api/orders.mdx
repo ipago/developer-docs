@@ -1,53 +1,47 @@
 ---
 title: Orders
-description: Inspect sales, their line items, customer, totals, fees, and status.
+description: Inspect sales, their line items, discount, VAT, totals, and status.
 ---
 
 An **order** is a single sale: one buyer, one payment, one or more line items.
-Orders are created by 2Pay when a buyer pays through a [Webstore](/dev/webstores/overview)
-or embedded [Checkout](/dev/checkout/overview). Over the API they are
-**read-only**, you list them, fetch them, and read their delivery state, but you
-never create or mutate an order directly.
+Orders are created when a buyer starts paying through a
+[Webstore](/dev/webstores/overview) or when you
+[create a checkout](/dev/checkout/overview). Over the API they are **read-only**:
+you list them and fetch them, but you never edit an order directly. To refund
+one, see [Refunds](/dev/developer-api/refunds).
+
+Requires the `orders:read` scope.
 
 ## The order object
 
 ```json
 {
   "object": "order",
-  "id": "ord_01HA0XYZ",
+  "id": "ord_01M5MWDACTVABBZT3E8T2B6QA5",
   "status": "paid",
-  "customer": {
-    "email": "player@example.com",
-    "name": "Alex P.",
-    "country": "DE",
-    "ip": "203.0.113.7"
-  },
+  "customer": { "email": "player@example.com", "name": "Alex P." },
   "items": [
     {
       "object": "order_item",
-      "id": "oi_01HA0...",
-      "product": "prod_01H9Z4ABCDEF",
+      "id": "oi_01M5MWDACTVABBZT3E8T2B6QA4",
+      "product": "prod_01M5MWCZPX3X7V41C1J6Y83TGW",
       "name": "VIP Rank",
       "quantity": 1,
-      "unit_price": { "amount": 999, "currency": "eur" },
-      "delivery": "dlv_01HA0..."
+      "unit_price": { "amount": 999, "currency": "eur" }
     }
   ],
-  "totals": {
-    "subtotal": { "amount": 999, "currency": "eur" },
-    "tax": { "amount": 190, "currency": "eur" },
-    "total": { "amount": 1189, "currency": "eur" }
-  },
-  "fees": {
-    "platform": { "amount": 59, "currency": "eur" },
-    "gateway": { "amount": 35, "currency": "eur" }
-  },
-  "payment_method": "paypal",
-  "coupon": null,
-  "referral": null,
-  "delivery_status": "pending",
-  "created": "2026-06-28T11:42:09Z",
-  "paid_at": "2026-06-28T11:42:11Z"
+  "subtotal": { "amount": 999, "currency": "eur" },
+  "discount": { "amount": 0, "currency": "eur" },
+  "tax_amount": { "amount": 190, "currency": "eur" },
+  "gift_card": null,
+  "total": { "amount": 999, "currency": "eur" },
+  "coupon_code": null,
+  "delivery_target": "Notch",
+  "payment_method": "card",
+  "card_last4": "4242",
+  "decline_reason": null,
+  "created": "2026-10-23T17:19:42.212Z",
+  "paid_at": "2026-10-23T17:21:05.104Z"
 }
 ```
 
@@ -55,16 +49,27 @@ never create or mutate an order directly.
 | --- | --- | --- |
 | `id` | string | Order id (`ord_`). |
 | `status` | string | Payment lifecycle, see [statuses](#statuses). |
-| `customer` | object | Buyer email, name, country, and IP. |
-| `items` | array | Line items, see [the line item](#line-items). |
-| `totals` | object | `subtotal`, `tax`, and `total` as [money](/dev/developer-api/conventions#money). |
-| `fees` | object | What 2Pay's `platform` fee and the `gateway` fee cost on this sale. |
-| `payment_method` | string | Provider used, for example `paypal`, `card`, `klarna`. |
-| `coupon` | string \| null | Coupon code applied, if any. |
-| `referral` | string \| null | [Referral](/dev/affiliate-api/overview) id, if the sale was attributed to an affiliate. |
-| `delivery_status` | string | Aggregate of all line-item deliveries: `pending`, `partial`, `completed`, or `failed`. |
+| `customer` | object | Buyer `email` and `name`, each `null` when unknown. |
+| `items` | array | Line items, see [line items](#line-items). |
+| `subtotal` | money | Sum of the line items at the prices the buyer saw. |
+| `discount` | money | Amount taken off by a coupon. Zero when none was used. |
+| `gift_card` | object \| null | `{ "amount": money }` paid with a gift card, or `null`. |
+| `tax_amount` | money | VAT collected by 2Pay as Merchant of Record. See [Tax & VAT](/dev/developer-api/tax). |
+| `total` | money | The order's net amount, **excluding VAT**, after discount and gift card. This is the base your fees and earnings are computed on. |
+| `coupon_code` | string \| null | Coupon code applied, if any. |
+| `delivery_target` | string \| null | Who receives the purchase, typically the buyer's in-game name. |
+| `payment_method` | string \| null | How the buyer paid, for example `card`. `null` until paid. |
+| `card_last4` | string \| null | Last four digits of the card, when the buyer paid by card. |
+| `decline_reason` | string \| null | Why the payment was declined, on a `failed` order. |
 | `created` | string | When the order was opened. |
 | `paid_at` | string \| null | When payment completed; `null` until paid. |
+
+The buyer was charged `total` plus `tax_amount`. For a store with tax-inclusive
+prices the VAT is already inside `subtotal`, so `total` is the subtotal minus
+discount, gift card, and VAT.
+
+Orders returned by `GET /v1/orders` also carry `refunded_at`: when the latest
+successful refund completed, or `null`.
 
 ### Line items
 
@@ -77,7 +82,9 @@ Each entry in `items` is an `order_item`:
 | `name` | Product name captured at purchase time. |
 | `quantity` | How many were bought. |
 | `unit_price` | Price per unit at purchase time. |
-| `delivery` | The `dlv_` id tracking this line's fulfillment. See [Deliveries](/dev/developer-api/deliveries). |
+
+Each line item gets its own [delivery](/dev/developer-api/deliveries) once the
+order is paid; a delivery points back to its line item with `order_item`.
 
 <Callout type="info">
   `name` and `unit_price` are snapshots taken when the order was placed. If you
@@ -89,12 +96,12 @@ Each entry in `items` is an `order_item`:
 
 | `status` | Meaning |
 | --- | --- |
-| `pending` | Created, awaiting payment (buyer is mid-checkout). |
-| `paid` | Payment completed. Delivery can begin. |
-| `refunded` | Fully refunded. |
-| `partially_refunded` | Part of the order was refunded. |
-| `disputed` | A chargeback or dispute is open. |
-| `cancelled` | Abandoned or cancelled before payment. |
+| `pending` | Created, awaiting payment (the buyer is mid-checkout). |
+| `paid` | Payment completed. Delivery can begin. An order that was only partly refunded stays `paid`. |
+| `failed` | The payment was declined. See `decline_reason`. |
+| `cancelled` | The checkout expired or was abandoned before payment. |
+| `refunded` | Refunded in full. |
+| `disputed` | The buyer's bank charged the payment back and the dispute was lost. |
 
 Only `paid` orders should trigger fulfillment. Never deliver on `pending`.
 
@@ -108,19 +115,13 @@ GET /v1/orders
 
 | Parameter | Description |
 | --- | --- |
-| `status` | Filter by order status. |
-| `delivery_status` | Filter by aggregate delivery state. |
-| `created[gte]` / `created[lte]` | Time-range filter (RFC 3339). |
-| `customer_email` | Orders for one buyer. |
-| `limit`, `starting_after`, `ending_before` | [Pagination](/dev/developer-api/conventions#pagination). |
+| `status` | Only orders with this status, for example `paid`. |
+| `limit`, `starting_after`, `ending_before` | [Pagination](/dev/developer-api/pagination). Results run oldest first. |
 
 ```bash
-curl "https://api.2pay.gg/v1/orders?status=paid&delivery_status=pending" \
+curl "https://api.2pay.gg/v1/orders?status=paid&limit=50" \
   -H "Authorization: Bearer sk_live_..."
 ```
-
-This particular query, paid but not yet delivered, is a useful reconciliation
-sweep: run it periodically to catch anything a missed webhook left undelivered.
 
 ## Retrieve an order
 
@@ -129,19 +130,23 @@ GET /v1/orders/{id}
 ```
 
 ```bash
-curl https://api.2pay.gg/v1/orders/ord_01HA0XYZ \
+curl https://api.2pay.gg/v1/orders/ord_01M5MWDACTVABBZT3E8T2B6QA5 \
   -H "Authorization: Bearer sk_live_..."
 ```
+
+Returns the order, or `404 resource_missing` if no order with that id exists in
+the key's store and mode.
 
 ## Reconciliation pattern
 
 Webhooks are your real-time signal, but treat them as a hint, not the system of
 record. The robust pattern:
 
-1. React to `order.paid` webhooks as they arrive.
+1. React to `order.paid` and `delivery.pending` webhooks as they arrive.
 2. On a schedule (say, every few minutes), run
-   `GET /orders?status=paid&delivery_status=pending` and process anything your
-   webhook handler missed.
-3. Use the [Deliveries](/dev/developer-api/deliveries) endpoint to confirm each
-   item, with an [idempotency key](/dev/developer-api/conventions#idempotency) so
-   the periodic sweep never double-grants.
+   `GET /v1/deliveries?status=pending` and process anything your webhook handler
+   missed.
+3. Mark each one done with
+   [`POST /v1/deliveries/{id}/complete`](/dev/developer-api/deliveries#confirm-a-delivery).
+   Completing a delivery that is already completed changes nothing, so the
+   periodic sweep never double-confirms.

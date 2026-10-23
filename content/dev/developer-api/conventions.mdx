@@ -1,11 +1,10 @@
 ---
 title: Conventions
-description: Base URL, versioning, errors, pagination, idempotency, money, IDs, and rate limits.
+description: Base URL, requests, IDs, money, timestamps, pagination, idempotency, errors, and rate limits.
 ---
 
-Every HTTP endpoint in the Developer API (and the [Affiliate API](/dev/affiliate-api/overview),
-which shares this surface) follows the rules on this page. Learn them once and
-they hold everywhere.
+Every endpoint in the Developer API follows the rules on this page. Learn them
+once and they hold everywhere.
 
 ## Base URL and versioning
 
@@ -13,21 +12,24 @@ they hold everywhere.
 https://api.2pay.gg/v1
 ```
 
-The major version is pinned in the path (`/v1`). We add new fields and new
-endpoints without bumping it, so write tolerant parsers: **ignore fields you do
-not recognize** rather than failing on them. A breaking change would ship under a
-new path (`/v2`) with prior notice; it would never silently change `/v1`.
-
-All traffic is HTTPS. Plain HTTP requests are rejected.
+The major version is pinned in the path (`/v1`). New fields and endpoints are
+added without changing it, so write tolerant parsers: **ignore fields you do not
+recognize** rather than failing on them.
 
 ## Requests
 
-- Send bodies as `application/x-www-form-urlencoded` or `application/json`; both
-  are accepted on writes.
-- Nested fields use bracket notation in form bodies, for example
-  `items[0][product]=prod_...`.
+- Send request bodies as **JSON** with `Content-Type: application/json`. Form
+  encoding (`application/x-www-form-urlencoded`) is not accepted.
+- Query parameters are plain strings, for example `?status=paid&limit=50`.
 - Authenticate with a bearer key on every request (see
   [Authentication](/dev/developer-api/authentication)).
+
+```bash
+curl https://api.2pay.gg/v1/refunds \
+  -H "Authorization: Bearer sk_live_..." \
+  -H "Content-Type: application/json" \
+  -d '{ "order": "ord_01M5MWDACTVABBZT3E8T2B6QA5" }'
+```
 
 ## Responses and object types
 
@@ -36,7 +38,7 @@ Responses are JSON. Every resource includes an `object` field naming its type:
 ```json
 {
   "object": "product",
-  "id": "prod_01H9Z4...",
+  "id": "prod_01M5MWCZPX3X7V41C1J6Y83TGW",
   "name": "VIP Rank"
 }
 ```
@@ -46,83 +48,57 @@ handy for [events](/dev/developer-api/events) and webhook payloads.
 
 ## IDs
 
-Identifiers are opaque, URL-safe strings with a type prefix. Never parse meaning
-out of the part after the prefix; treat the whole string as a token.
+Identifiers are a type prefix, an underscore, and a 26-character
+[ULID](https://github.com/ulid/spec). Treat the whole string as an opaque token;
+never parse meaning out of the part after the prefix.
 
 | Prefix | Resource |
 | --- | --- |
 | `prod_` | Product |
 | `cat_` | Category |
-| `ord_` | Order |
-| `dlv_` | Delivery (a line item's fulfillment) |
+| `ord_` | Order (also the `id` of a checkout) |
+| `oi_` | Order line item |
+| `del_` | Delivery |
+| `re_` | Refund |
+| `po_` | Payout |
+| `dp_` | Dispute |
+| `le_` | Ledger entry |
+| `ltx_` | Ledger transaction |
 | `evt_` | Event |
 | `we_` | Webhook endpoint |
-| `chk_` | Checkout |
-| `aff_` | Affiliate |
-| `ref_` | Referral |
-| `com_` | Commission |
+| `sub_` | Subscription |
+| `bskt_` | Storefront basket |
 
 ## Money
 
 Monetary amounts are an **integer in the currency's minor unit** plus an ISO 4217
 `currency` code in lowercase. There are no floating-point amounts anywhere in the
-API, which avoids rounding drift.
+API.
 
 ```json
 { "amount": 999, "currency": "eur" }
 ```
 
-That is `9.99 EUR`. For zero-decimal currencies such as JPY, the minor unit is
-the whole unit, so `500` is `500 JPY`.
+That is `9.99 EUR`. Some objects (refunds, payouts, disputes, ledger entries)
+carry `amount` and `currency` as two top-level fields instead of a nested object;
+the units are the same.
 
 ## Timestamps
 
-All times are **RFC 3339 / ISO 8601 strings in UTC**, for example
-`2026-06-28T11:42:09Z`. There are no Unix-epoch integers in responses.
+All times are **ISO 8601 strings in UTC**, for example
+`2026-10-23T17:19:42.212Z`. There are no Unix-epoch integers in responses.
 
 ## Pagination
 
-List endpoints are **cursor-based**. They return at most `limit` items (default
-`20`, max `100`) wrapped in a list envelope:
-
-```json
-{
-  "object": "list",
-  "data": [ { "object": "order", "id": "ord_03..." } ],
-  "has_more": true
-}
-```
-
-To page forward, pass the last id you saw as `starting_after`:
-
-```bash
-curl "https://api.2pay.gg/v1/orders?limit=50&starting_after=ord_03..." \
-  -H "Authorization: Bearer sk_live_..."
-```
-
-Keep requesting until `has_more` is `false`. Cursors are stable under inserts, so
-you will not skip or double-read rows that change mid-iteration. Use
-`ending_before` to page backward.
+List endpoints return at most `limit` items (default `20`, max `100`) in a list
+envelope and page with `starting_after` / `ending_before` cursors. See
+[Pagination](/dev/developer-api/pagination).
 
 ## Idempotency
 
-Every `POST` accepts an **`Idempotency-Key`** header: a unique value you generate
-(a UUID is ideal). If a request is interrupted and you retry with the same key,
-2Pay returns the original result instead of performing the action twice.
-
-```bash
-curl -X POST https://api.2pay.gg/v1/deliveries/dlv_01.../complete \
-  -H "Authorization: Bearer sk_live_..." \
-  -H "Idempotency-Key: 0d5a1f2e-..."
-```
-
-Keys are retained for **24 hours**. Reuse the same key only for a retry of the
-exact same request; reusing it for a different payload returns an error.
-
-<Callout type="info">
-  Always send an idempotency key on writes. Network timeouts are the normal
-  case, not the exception, and retrying safely is the whole point.
-</Callout>
+`POST /v1/checkouts`, `POST /v1/refunds`, `POST /v1/payouts`, and
+`POST /v1/webhook_endpoints` accept an **`Idempotency-Key`** header so a retry
+never repeats the action. See [Idempotency](/dev/developer-api/idempotency).
 
 ## Errors
 
@@ -133,52 +109,24 @@ object:
 {
   "error": {
     "type": "invalid_request_error",
-    "code": "parameter_missing",
-    "message": "Missing required parameter: items.",
+    "code": "validation_error",
+    "message": "body/items Too small: expected array to have >=1 items",
     "param": "items",
-    "request_id": "req_01HA0..."
+    "request_id": "req_a9cb6e6e-2d08-4171-be59-9db7346a7cdf"
   }
 }
 ```
 
-| Field | Meaning |
-| --- | --- |
-| `type` | Broad class: `invalid_request_error`, `authentication_error`, `permission_error`, `rate_limit_error`, `api_error`. |
-| `code` | Stable, machine-readable reason. Branch on this. |
-| `message` | Human-readable explanation. Do not pattern-match on it. |
-| `param` | The offending parameter, when applicable. |
-| `request_id` | Identifier for this request. Include it when contacting support. |
-
-### Status codes
-
-| Status | Meaning |
-| --- | --- |
-| `200` | Success. |
-| `201` | A resource was created. |
-| `400` | Malformed request (bad JSON, wrong type). |
-| `401` | Missing or invalid key. |
-| `403` | Valid key without the required scope. |
-| `404` | No such resource, or not visible to this key. |
-| `409` | Conflict (for example, confirming an already-completed delivery). |
-| `422` | Well-formed but semantically invalid. |
-| `429` | Rate limited, see below. |
-| `5xx` | Something failed on our side; safe to retry idempotent calls. |
+Branch on `error.code`, never on `message`. The full list of fields, types, and
+status codes is on [Errors](/dev/developer-api/errors).
 
 ## Rate limits
 
-Requests are rate limited per key. Each response carries your current budget:
-
-| Header | Meaning |
-| --- | --- |
-| `RateLimit-Limit` | Requests allowed in the current window. |
-| `RateLimit-Remaining` | Requests left in this window. |
-| `RateLimit-Reset` | Seconds until the window resets. |
-
-On a `429`, back off and retry after `RateLimit-Reset` seconds. Use exponential
-backoff with jitter for repeated `429`s or `5xx`s.
+Requests are rate limited per key, and every response reports your remaining
+budget in `x-ratelimit-*` headers. See [Rate limits](/dev/developer-api/rate-limits).
 
 ## Request IDs
 
-Every response includes a `request_id` (also echoed in the `X-Request-Id`
-header). Log it. When something looks wrong, quoting the `request_id` lets us
-find the exact request instantly.
+Every error body includes a `request_id` (for example `req_a9cb6e6e-...`). Log
+it. When something looks wrong, quoting the `request_id` lets us find the exact
+request.

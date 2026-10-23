@@ -3,6 +3,7 @@
   "pages": [
     "overview",
     "authentication",
+    "test-mode",
     "conventions",
     "idempotency",
     "errors",
@@ -10,8 +11,11 @@
     "pagination",
     "products",
     "orders",
-    "balance",
     "deliveries",
+    "refunds",
+    "balance",
+    "payouts",
+    "disputes",
     "events",
     "payment-methods",
     "tax"

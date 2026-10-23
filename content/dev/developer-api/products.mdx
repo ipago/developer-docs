@@ -24,10 +24,11 @@ your Webstore.
   "category": "cat_01H9Z3KQ",
   "price": { "amount": 999, "currency": "eur" },
   "type": "single",
+  "billing_interval": null,
   "delivery_target": "game_server",
-  "image_url": "https://cdn.2pay.gg/p/prod_01H9Z4.png",
-  "created": "2026-05-02T08:14:00Z",
-  "updated": "2026-06-20T19:03:11Z"
+  "image_url": null,
+  "created": "2026-05-02T08:14:00.000Z",
+  "updated": "2026-06-20T19:03:11.000Z"
 }
 ```
 
@@ -35,19 +36,20 @@ your Webstore.
 | --- | --- | --- |
 | `id` | string | Unique product id (`prod_`). |
 | `name` | string | Display name, as set in the panel. |
-| `description` | string | Long description, may contain formatting. |
+| `description` | string | Long description. An empty string when none is set. |
 | `active` | boolean | Whether the product is currently purchasable. Inactive products stay readable for historical orders. |
 | `category` | string \| null | Id of the category it belongs to. |
 | `price` | object | [Money](/dev/developer-api/conventions#money): `amount` (minor units) and `currency`. |
 | `type` | string | `single` (one-time) or `subscription`. |
-| `delivery_target` | string | Where fulfillment happens: `game_server`, `manual`, or `none`. Drives whether the [Game API](/dev/game-api/overview) sees it. |
+| `billing_interval` | string \| null | `month` or `year` for a subscription, `null` for a one-time product. |
+| `delivery_target` | string | Your label for how the product is fulfilled: `game_server`, `manual`, or `none`. It is informational; the commands the [Game API](/dev/game-api/overview) runs come from the product's delivery configuration in the panel. |
 | `image_url` | string \| null | Product image. |
-| `created` / `updated` | string | RFC 3339 timestamps. |
+| `created` / `updated` | string | ISO 8601 timestamps. |
 
 <Callout type="info">
-  The API never returns a price you can override per request. Pricing, sales, and
-  currency are panel settings. If you need a buyer-specific price, model it as a
-  separate product or a coupon configured in the panel.
+  You cannot override a price per request. Pricing, sales, and currency are panel
+  settings. If you need a buyer-specific price, model it as a separate product or
+  a coupon configured in the panel.
 </Callout>
 
 ## List products
@@ -56,8 +58,8 @@ your Webstore.
 GET /v1/products
 ```
 
-Returns a [paginated list](/dev/developer-api/conventions#pagination) of
-products.
+Returns a [paginated list](/dev/developer-api/pagination) of products, oldest
+first. Requires the `products:read` scope, as do the category endpoints.
 
 **Query parameters**
 
@@ -65,13 +67,14 @@ products.
 | --- | --- |
 | `active` | `true` / `false` to filter by availability. |
 | `category` | Restrict to one category id. |
-| `limit` | Page size, 1 to 100 (default 20). |
-| `starting_after` / `ending_before` | Cursor for paging. |
+| `limit`, `starting_after`, `ending_before` | [Pagination](/dev/developer-api/pagination). |
 
 ```bash
 curl "https://api.2pay.gg/v1/products?active=true&limit=50" \
   -H "Authorization: Bearer sk_live_..."
 ```
+
+The response, with the product shortened:
 
 ```json
 {
@@ -94,8 +97,8 @@ curl https://api.2pay.gg/v1/products/prod_01H9Z4ABCDEF \
   -H "Authorization: Bearer sk_live_..."
 ```
 
-Returns the full product object, or `404` if no product with that id exists in
-the key's mode (test vs live).
+Returns the full product object, or `404 resource_missing` if no product with
+that id exists in the key's store and mode (test vs live).
 
 ## Categories
 
@@ -117,7 +120,9 @@ A category object:
 ```
 
 Pass `?include=products` on either endpoint to embed each category's products
-inline, which is handy when you are rendering a full storefront in one pass:
+inline as a `products` array (up to 100 per category), which is handy when you
+are rendering a full storefront in one pass. Without it, the `products` field is
+absent.
 
 ```bash
 curl "https://api.2pay.gg/v1/categories?include=products" \
@@ -126,7 +131,7 @@ curl "https://api.2pay.gg/v1/categories?include=products" \
 
 ## Keeping a local copy in sync
 
-If you mirror the catalog locally (for a custom storefront, say), do not poll on
-a tight loop. Instead, subscribe to the `product.updated` and `product.created`
-[events](/dev/developer-api/events) and refetch only what changed. Fall back to a
-periodic full `GET /products` reconcile as a safety net.
+If you mirror the catalog locally (for a custom storefront, say), there are no
+catalog events to subscribe to, so refresh on a schedule: a periodic full
+`GET /v1/products` and `GET /v1/categories` pass is cheap, and the catalog
+changes rarely. Do not refetch on every page view.

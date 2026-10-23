@@ -4,10 +4,17 @@ description: Read your available and pending balance and the underlying ledger e
 ---
 
 2Pay keeps a double-entry ledger behind every sale, refund, payout, and dispute.
-You can read your balance and the raw entries through the API. These are read-only:
-money moves through checkout, refunds, and payouts, never through direct writes.
+You can read your balance and the raw entries through the API. These are
+read-only: money moves through checkouts, [refunds](/dev/developer-api/refunds),
+and [payouts](/dev/developer-api/payouts), never through direct writes.
+
+Both endpoints require the `ledger:read` scope.
 
 ## Balance
+
+```
+GET /v1/balance
+```
 
 ```bash
 curl https://api.2pay.gg/v1/balance \
@@ -17,29 +24,59 @@ curl https://api.2pay.gg/v1/balance \
 ```json
 {
   "object": "balance",
-  "available": [ { "currency": "eur", "amount": 48210 } ],
-  "pending": [ { "currency": "eur", "amount": 12500 } ]
+  "available": [ { "amount": 48210, "currency": "eur" } ],
+  "pending": [ { "amount": 12500, "currency": "eur" } ]
 }
 ```
 
-Amounts are integers in the currency's smallest unit (cents for EUR). `pending`
-covers earnings still inside the payout hold window; `available` is what can be
-paid out now.
+There is one entry per currency, and currencies with nothing in them are left
+out, so both arrays can be empty. Amounts are in minor units.
+
+- **`pending`** is what you earned within the payout hold window (7 days by
+  default): it is yours, but not yet withdrawable.
+- **`available`** is what you can request as a [payout](/dev/developer-api/payouts)
+  now. It can briefly go negative, for example after a refund or a lost dispute
+  is booked against earnings you already paid out.
 
 <Callout type="info">
-  Tax collected as Merchant of Record is a platform liability that 2Pay remits.
-  It is never part of your balance. See [Tax & VAT](/dev/developer-api/tax).
+  VAT collected as Merchant of Record is a liability that 2Pay remits. It is
+  never part of your balance. See [Tax & VAT](/dev/developer-api/tax).
 </Callout>
 
 ## Ledger entries
 
-For a line-by-line view, list `ledger_entries`:
+```
+GET /v1/ledger_entries
+```
+
+For a line-by-line view, list the ledger entries for your store. The list is
+[paginated](/dev/developer-api/pagination).
 
 ```bash
 curl "https://api.2pay.gg/v1/ledger_entries?limit=50" \
   -H "Authorization: Bearer sk_live_..."
 ```
 
-Each entry records a debit or credit against an account (for example
-`creator_payable`, `platform_revenue`, or `gateway_fee_charged`) for one
-transaction, so a sale's fees and your net payable are fully auditable.
+```json
+{
+  "object": "ledger_entry",
+  "id": "le_01M5MWF2T4C0J8B7K2Q9X1VZ3Q",
+  "account": "creator_payable",
+  "direction": "credit",
+  "amount": 939,
+  "currency": "eur",
+  "transaction": "ltx_01M5MWF2T4C0J8B7K2Q9X1VZ3R",
+  "created": "2026-10-23T17:21:05.104Z"
+}
+```
+
+| Field | Description |
+| --- | --- |
+| `account` | The ledger account, for example `creator_payable` (what 2Pay owes you), `platform_revenue`, `tax_payable`, or `payouts_payable`. |
+| `direction` | `debit` or `credit`. |
+| `amount`, `currency` | The entry's amount in minor units. |
+| `transaction` | The ledger transaction (`ltx_`) this entry belongs to. The entries of one transaction always balance. |
+
+A sale, for example, is one transaction whose entries split the buyer's payment
+into your `creator_payable` share, 2Pay's fees, and the VAT in `tax_payable`, so
+every cent is auditable.
