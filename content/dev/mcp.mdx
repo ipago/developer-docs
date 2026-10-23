@@ -37,7 +37,7 @@ The documentation tools work with or without a key. A trailing `?` marks an opti
 | Tool | Parameters | What it does |
 | --- | --- | --- |
 | `search_docs` | `query` | Searches the 2Pay documentation and returns matching pages with url, title and excerpt. |
-| `get_doc_page` | `slug` | Returns the full markdown of one documentation page, given a slug such as `dev/checkout`. Only `dev/...` and `creators/...` slugs are accepted. |
+| `get_doc_page` | `slug` | Returns the full markdown of one documentation page, given its slug: the path of a `search_docs` result URL after the domain, e.g. `https://docs.2pay.gg/dev/checkout/overview` gives `dev/checkout/overview`. Only `dev/...` and `creators/...` slugs are accepted. |
 
 The API tools need a `sk_test_` key. Every list tool also takes `limit?` (1 to 100) and
 `starting_after?`, listed below only where it has extra filters.
