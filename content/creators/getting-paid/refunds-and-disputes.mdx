@@ -5,19 +5,29 @@ description: How refunds and chargebacks work when 2Pay is the Merchant of Recor
 
 ## Refunds
 
-You can refund a paid order from the panel. The refund reverses the sale in your
-ledger, and the buyer is notified. Because 2Pay is the Merchant of Record, the tax
-portion is handled for you: the buyer gets back what they paid, VAT included, and
-the VAT is removed from what 2Pay remits on your behalf.
+Owners and admins can refund a paid order from its page under **Transactions**.
+A refund from the panel is always **full**: it returns the whole order. The
+refund reverses the sale in your ledger and returns the money to the buyer's
+payment method. Because 2Pay
+is the Merchant of Record, the tax portion is handled for you: the buyer gets back
+what they paid, VAT included, and the VAT is removed from what 2Pay remits on your
+behalf.
+
+Need to return only part of an order? Contact 2Pay support. Partial refunds are
+issued by 2Pay staff on request.
+
+Refunds you have issued are listed on the **Refunds** tab of **Transactions**.
 
 ### What a refund costs you
 
-**Fees are not returned.** Your balance is reduced by the full amount refunded,
-while the platform fee and the payment fee on the original sale stay charged. This
-is how card processing works everywhere: the cost of taking the payment was already
-incurred, and it is not recoverable when the money goes back.
+**Fees are not returned.** Your balance is reduced by the order amount excluding
+VAT, while the platform fee and the payment fee on the original sale stay
+charged. The cost of taking the payment was already incurred, and it is not
+recoverable when the money goes back. No extra fee is charged for the refund
+itself.
 
-A worked example, on a 100.00 sale with a 5% platform fee and a 2.9% payment fee:
+A simplified example, on a 100.00 sale (excluding VAT) with a 5% platform fee and
+a 2.9% payment fee:
 
 | | Amount |
 | --- | --- |
@@ -25,22 +35,22 @@ A worked example, on a 100.00 sale with a 5% platform fee and a 2.9% payment fee
 | Your balance is reduced by the refund | 100.00 |
 | Net effect of selling and then refunding | **-7.90** |
 
-**Partial refunds work the same way, per slice.** Refunding half returns half the
-amount and keeps the fees. Refunding an order in several pieces costs you exactly
-the same as refunding it in one go, so you never need to think about how to split
-it.
-
-A partially refunded order stays **paid** until the whole amount has been returned,
-at which point it becomes **refunded**.
+A partial refund issued by 2Pay works the same way per slice: it returns that
+part of the amount and keeps the fees. A partially refunded order stays **paid**
+until the whole amount has been returned, at which point it becomes **refunded**.
 
 ## Disputes (chargebacks)
 
-If a buyer disputes a charge with their bank, 2Pay handles the process. You will be
-alerted, and you can **submit evidence** (a description of what was delivered,
-proof, and context) from the panel before the deadline.
+If a buyer disputes a charge with their bank, 2Pay handles the process as the
+seller. You get an email alert, the dispute appears under **Inquiries**, and you can **submit evidence**
+(a description of what was delivered, proof, and context) there before the
+deadline.
 
 - If the dispute is **won**, the funds stand.
-- If it is **lost**, the amount is reversed, and a dispute fee may apply.
+- If it is **lost**, the sale is reversed from your balance the same way a full
+  refund is.
+
+See [Fees & billing](/creators/pricing/fees-billing) for the dispute fee.
 
 <Callout type="warn">
   Submit evidence promptly. Disputes have hard deadlines set by the card networks,

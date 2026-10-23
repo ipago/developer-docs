@@ -1,25 +1,52 @@
 ---
 title: Payouts
-description: How your earnings become a payout, and the hold window before funds are available.
+description: How your earnings become a payout, where the money goes, and who sends it.
 ---
 
-When a sale is paid, your net (the price minus fees) is credited to your store's
-balance. That balance becomes **available** after a short hold window, then can be
-paid out.
+When a sale is paid, your net (the price excluding VAT, minus fees) is credited to
+your store's balance. That balance becomes **available** after a hold window, and
+then you can pay it out to your bank account.
 
 ## Available vs pending
 
-- **Pending**: recent earnings still inside the payout hold window.
+- **Pending**: recent earnings still inside the payout hold window (7 days by
+  default).
 - **Available**: matured earnings you can withdraw now.
 
-The hold protects against refunds and disputes landing right after a sale. You can
-see both figures for your store in the panel.
+The hold protects against refunds and disputes landing right after a sale. You
+can see both figures under **Balances** in the panel.
+
+## Add your bank account
+
+Payouts go by bank transfer to an IBAN. Add it under **Balances**, on the
+**Payouts** tab, with the account holder's name, the IBAN and, optionally, the
+BIC. The bank account belongs to your account, so it is shared by all its
+stores.
+
+- **Only the account owner can add or change it.** Admins and members see it
+  masked to the last four digits.
+- **Every change is announced by email**, so an unexpected change does not go
+  unnoticed.
+- A payout keeps the bank details it was requested with. Changing the bank
+  account later does not redirect a payout that is already on its way.
 
 ## Requesting a payout
 
-From the panel, request a payout of your available balance to your configured
-payout details. A minimum amount may apply. You will get a confirmation once the
-payout is sent.
+From **Balances**, on the **Payouts** tab, request a payout of some or all of
+your available balance. Owners and admins can request payouts. A live payout
+needs:
+
+- a **verified account** (see [Identity verification](/creators/getting-started/identity-verification)),
+- a **bank account** on file.
+
+Payouts are not available while a store is suspended.
+
+## What happens next
+
+2Pay sends the bank transfer to your IBAN. When it has gone out, 2Pay marks the
+payout as **paid** and records the bank transfer reference, which you can see on
+the payout, and you get an email. If the transfer comes back, the payout is marked
+failed, you are emailed, and the amount returns to your balance.
 
 <Callout type="info">
   Tax collected on your sales is never part of your balance. 2Pay remits it as
