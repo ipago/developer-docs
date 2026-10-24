@@ -78,7 +78,7 @@ Build directly against the API only for a custom integration.
 
 ## Rate limits
 
-Each Game API endpoint allows 120 requests per minute per source IP address.
+Each Game API endpoint allows 120 requests per minute per server token.
 Polling at the pace the queue asks for (`meta.next_check`, 15 to 60 seconds)
 stays well inside it. Details in
 [Delivery queue](/dev/game-api/delivery-queue#rate-limits).
