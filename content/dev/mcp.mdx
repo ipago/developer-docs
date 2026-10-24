@@ -16,7 +16,13 @@ you already use.
 | Authentication | `Authorization: Bearer sk_test_...` header |
 
 Without a key the server still works, but only the two documentation tools are available.
-With a test key you also get the API tools below.
+With a test key you also get the API tools below. A restricted test key (`rk_test_...`) works
+too: the API tools then can do only what that key's scopes allow.
+
+If you send an `Authorization` header that is not a valid key, the server answers HTTP 401 with a
+JSON-RPC error (code `-32001`) instead of falling back to the documentation tools. That covers a
+typo in the key, a publishable key (`pk_...`), and any scheme other than `Bearer`. Leave the
+header out entirely if you only want the documentation tools.
 
 ## Test keys only
 
