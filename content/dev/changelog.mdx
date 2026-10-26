@@ -1,9 +1,9 @@
 ---
 title: API changelog
-description: Developer-visible changes to the 2Pay API, newest first.
+description: Developer-visible changes to the iPago API, newest first.
 ---
 
-Changes to the 2Pay API that affect integrations: new endpoints, new fields, new events and
+Changes to the iPago API that affect integrations: new endpoints, new fields, new events and
 changes in behaviour. Internal and dashboard-only changes are left out. The
 [API reference](/dev/reference) always reflects the current API.
 
@@ -32,12 +32,12 @@ changes in behaviour. Internal and dashboard-only changes are left out. The
 
 ### Payouts, refunds and disputes
 
-- Payouts now carry the bank account they are paid to and, once 2Pay has paid them, a
+- Payouts now carry the bank account they are paid to and, once iPago has paid them, a
   `settlement_reference` that matches the bank transfer. See
   [Retrieve a payout](/dev/reference/balance-and-payouts#retrieve-a-payout).
 - Merchants keep a payout destination (a bank account) on file for their account in the
   dashboard. Payouts are paid to it.
-- Partial refunds can be issued by 2Pay staff. `POST /v1/refunds` with an API key still refunds the
+- Partial refunds can be issued by iPago staff. `POST /v1/refunds` with an API key still refunds the
   whole order.
 - When a dispute is lost on an order that was already partly refunded, only the part that was not
   refunded is clawed back.
@@ -61,8 +61,8 @@ changes in behaviour. Internal and dashboard-only changes are left out. The
 ### Game API
 
 - New: the [Game API](/dev/reference/game-api) for game server plugins, served on
-  `https://game.2pay.gg`. A plugin authenticates with a per-server token in the
-  `X-2Pay-Server-Token` header, polls `GET /v1/queue`, fetches online and offline commands, and
+  `https://game.ipago.io`. A plugin authenticates with a per-server token in the
+  `X-iPago-Server-Token` header, polls `GET /v1/queue`, fetches online and offline commands, and
   confirms what it ran with `DELETE /v1/queue`. Server tokens can be rolled from the dashboard.
 - When an order is paid, the product's game commands are queued for the store's servers. A
   delivery completes when its last queued command is confirmed.
@@ -87,4 +87,4 @@ changes in behaviour. Internal and dashboard-only changes are left out. The
 - Webhook deliveries are claimed atomically, so an event is never delivered twice by two relays
   at once.
 - A suspended store is read-only: write requests are rejected while the suspension lasts.
-- The OpenAPI document is published at `https://api.2pay.gg/openapi.json`, on the real API host.
+- The OpenAPI document is published at `https://api.ipago.io/openapi.json`, on the real API host.

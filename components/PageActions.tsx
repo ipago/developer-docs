@@ -5,15 +5,15 @@ import { useState } from "react";
 // Stripe-style page actions shown under the title: copy the page's markdown for pasting into an
 // LLM, or open the raw markdown. The markdown is passed in from the statically-rendered server
 // page (no runtime fetch needed to copy).
-/** Builds the prompt an AI chat opens with: read this page, then help with 2Pay. */
+/** Builds the prompt an AI chat opens with: read this page, then help with iPago. */
 export function aiPrompt(absoluteMdUrl: string): string {
-  return `Read ${absoluteMdUrl} so you can answer questions about it and help me integrate 2Pay. The full 2Pay docs are at https://docs.2pay.gg/llms-full.txt.`;
+  return `Read ${absoluteMdUrl} so you can answer questions about it and help me integrate iPago. The full iPago docs are at https://docs.ipago.io/llms-full.txt.`;
 }
 
 export default function PageActions({
   markdown,
   mdHref,
-  origin = "https://docs.2pay.gg",
+  origin = "https://docs.ipago.io",
 }: {
   markdown: string;
   mdHref: string;

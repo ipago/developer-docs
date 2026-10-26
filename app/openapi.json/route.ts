@@ -9,7 +9,7 @@ export function GET() {
   return new Response(JSON.stringify(spec, null, 2), {
     headers: {
       "content-type": "application/json; charset=utf-8",
-      "content-disposition": 'inline; filename="2pay-openapi.json"',
+      "content-disposition": 'inline; filename="ipago-openapi.json"',
     },
   });
 }

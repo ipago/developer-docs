@@ -25,7 +25,7 @@ conventions on every endpoint.
 - **Move money.** Refund an order in full, request a payout of your available
   balance, and read your balance and ledger.
 - **Watch disputes.** List chargebacks and their evidence deadlines.
-- **Stay in sync.** Read the event log and register webhook endpoints so 2Pay
+- **Stay in sync.** Read the event log and register webhook endpoints so iPago
   pushes changes to you instead of you polling.
 
 ## Scope
@@ -54,24 +54,24 @@ panel**. It is not a toolkit for inventing products in code.
 - **Store configuration**: themes, payment methods, tax display, sales, coupons,
   and gift cards.
 - **Partial refunds.** The API refunds a whole order. Partial refunds are issued
-  by 2Pay staff.
+  by iPago staff.
 - **Submitting dispute evidence.** You read disputes over the API and answer them
   in the panel.
 - **Bank account details** for payouts.
 
 <Callout type="info">
   If a missing endpoint is blocking you, tell us at
-  [support@2pay.gg](mailto:support@2pay.gg), real use cases drive what we expose
+  [support@ipago.io](mailto:support@ipago.io), real use cases drive what we expose
   next.
 </Callout>
 
 ## The shape of a request
 
-Every call is an HTTPS request to `https://api.2pay.gg/v1` carrying a secret key
+Every call is an HTTPS request to `https://api.ipago.io/v1` carrying a secret key
 as a bearer token:
 
 ```bash
-curl https://api.2pay.gg/v1/products \
+curl https://api.ipago.io/v1/products \
   -H "Authorization: Bearer sk_live_..."
 ```
 
@@ -80,7 +80,7 @@ lists wrap their results in a `{ "object": "list", "data": [...], "has_more": ..
 envelope.
 
 The machine-readable OpenAPI description of every endpoint is served at
-`https://api.2pay.gg/openapi.json`.
+`https://api.ipago.io/openapi.json`.
 
 ## Where to go next
 

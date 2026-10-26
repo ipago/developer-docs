@@ -3,7 +3,7 @@ title: Events
 description: Every webhook event type and the payload it carries.
 ---
 
-This is the catalog of events 2Pay pushes to your
+This is the catalog of events iPago pushes to your
 [endpoints](/dev/webhooks/endpoints). Every payload is a standard
 [event object](/dev/developer-api/events):
 
@@ -105,7 +105,7 @@ fulfillment. A subscription renewal does not emit `order.paid`; it emits
 | --- | --- |
 | `customer` | `email` and `name` as captured at checkout; either can be `null`. |
 | `items[].product` | The product id. `name` and `unit_price` are frozen at purchase time. |
-| `subtotal`, `discount`, `tax_amount`, `total` | Money objects. `tax_amount` is the VAT 2Pay collected as merchant of record. |
+| `subtotal`, `discount`, `tax_amount`, `total` | Money objects. `tax_amount` is the VAT iPago collected as merchant of record. |
 | `gift_card` | `{ "amount": { ... } }` when a gift card paid part of the order, otherwise `null`. |
 | `delivery_target` | The in-game username the buyer entered, or `null` when the store does not ask for one. |
 | `payment_method`, `card_last4` | How the buyer paid. `card_last4` is `null` for non-card methods. |
@@ -304,7 +304,7 @@ You cannot subscribe to it. It carries no resource, just a marker:
   "data": {
     "endpoint": "we_01JB7R0D4F7H2K5M8P1S4V7Y0B",
     "test": true,
-    "message": "This is a test event from 2Pay."
+    "message": "This is a test event from iPago."
   }
 }
 ```

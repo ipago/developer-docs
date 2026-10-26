@@ -13,8 +13,8 @@ All requests use the Game API base URL and
 [server token](/dev/game-api/authentication):
 
 ```
-https://game.2pay.gg/v1
-X-2Pay-Server-Token: srv_live_...
+https://game.ipago.io/v1
+X-iPago-Server-Token: srv_live_...
 ```
 
 ## Online vs offline commands
@@ -55,8 +55,8 @@ GET /v1/queue
 ```
 
 ```bash
-curl https://game.2pay.gg/v1/queue \
-  -H "X-2Pay-Server-Token: srv_live_..."
+curl https://game.ipago.io/v1/queue \
+  -H "X-iPago-Server-Token: srv_live_..."
 ```
 
 ```json
@@ -89,8 +89,8 @@ GET /v1/queue/online-commands/{playerId}
 ```
 
 ```bash
-curl https://game.2pay.gg/v1/queue/online-commands/qp_01HA0... \
-  -H "X-2Pay-Server-Token: srv_live_..."
+curl https://game.ipago.io/v1/queue/online-commands/qp_01HA0... \
+  -H "X-iPago-Server-Token: srv_live_..."
 ```
 
 ```json
@@ -151,7 +151,7 @@ means there are more due, so fetch again after confirming this batch.
 
 ### 4. Confirm execution
 
-After a command runs successfully, **delete it** so 2Pay marks its delivery
+After a command runs successfully, **delete it** so iPago marks its delivery
 complete and never re-sends it:
 
 ```
@@ -159,8 +159,8 @@ DELETE /v1/queue
 ```
 
 ```bash
-curl -X DELETE https://game.2pay.gg/v1/queue \
-  -H "X-2Pay-Server-Token: srv_live_..." \
+curl -X DELETE https://game.ipago.io/v1/queue \
+  -H "X-iPago-Server-Token: srv_live_..." \
   -H "Content-Type: application/json" \
   -d '{"commands":["cmd_01HA0AAA","cmd_01HA0BBB"]}'
 ```

@@ -4,7 +4,7 @@ description: Safely retry money-moving requests without creating duplicates usin
 ---
 
 The `POST` endpoints that create something accept an `Idempotency-Key` header. If
-a request with the same key already succeeded, 2Pay replays the stored response
+a request with the same key already succeeded, iPago replays the stored response
 instead of performing the action again. This protects you against network
 timeouts and dropped connections, where you cannot tell whether the first
 attempt went through.
@@ -29,7 +29,7 @@ Generate a unique key per logical operation (a UUID is a good choice) and send i
 on the request:
 
 ```bash
-curl https://api.2pay.gg/v1/refunds \
+curl https://api.ipago.io/v1/refunds \
   -H "Authorization: Bearer sk_live_..." \
   -H "Idempotency-Key: 5f0c2b1a-9d3e-4a7c-8f2b-1c9e2d3f4a5b" \
   -H "Content-Type: application/json" \

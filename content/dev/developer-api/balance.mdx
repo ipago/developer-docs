@@ -3,7 +3,7 @@ title: Balance & ledger
 description: Read your available and pending balance and the underlying ledger entries.
 ---
 
-2Pay keeps a double-entry ledger behind every sale, refund, payout, and dispute.
+iPago keeps a double-entry ledger behind every sale, refund, payout, and dispute.
 You can read your balance and the raw entries through the API. These are
 read-only: money moves through checkouts, [refunds](/dev/developer-api/refunds),
 and [payouts](/dev/developer-api/payouts), never through direct writes.
@@ -17,7 +17,7 @@ GET /v1/balance
 ```
 
 ```bash
-curl https://api.2pay.gg/v1/balance \
+curl https://api.ipago.io/v1/balance \
   -H "Authorization: Bearer sk_live_..."
 ```
 
@@ -39,7 +39,7 @@ out, so both arrays can be empty. Amounts are in minor units.
   is booked against earnings you already paid out.
 
 <Callout type="info">
-  VAT collected as Merchant of Record is a liability that 2Pay remits. It is
+  VAT collected as Merchant of Record is a liability that iPago remits. It is
   never part of your balance. See [Tax & VAT](/dev/developer-api/tax).
 </Callout>
 
@@ -53,7 +53,7 @@ For a line-by-line view, list the ledger entries for your store. The list is
 [paginated](/dev/developer-api/pagination).
 
 ```bash
-curl "https://api.2pay.gg/v1/ledger_entries?limit=50" \
+curl "https://api.ipago.io/v1/ledger_entries?limit=50" \
   -H "Authorization: Bearer sk_live_..."
 ```
 
@@ -72,11 +72,11 @@ curl "https://api.2pay.gg/v1/ledger_entries?limit=50" \
 
 | Field | Description |
 | --- | --- |
-| `account` | The ledger account, for example `creator_payable` (what 2Pay owes you), `platform_revenue`, `tax_payable`, or `payouts_payable`. |
+| `account` | The ledger account, for example `creator_payable` (what iPago owes you), `platform_revenue`, `tax_payable`, or `payouts_payable`. |
 | `direction` | `debit` or `credit`. |
 | `amount`, `currency` | The entry's amount in minor units. |
 | `transaction` | The ledger transaction (`ltx_`) this entry belongs to. The entries of one transaction always balance. |
 
 A sale, for example, is one transaction whose entries split the buyer's payment
-into your `creator_payable` share, 2Pay's fees, and the VAT in `tax_payable`, so
+into your `creator_payable` share, iPago's fees, and the VAT in `tax_payable`, so
 every cent is auditable.

@@ -105,16 +105,16 @@ has some. The rest depends on `fields`:
 | `order_paid_at` | ISO timestamp, or `null`. |
 | `order_item_id` | The order item id (`oi_`). |
 
-This is not an event object, and it carries none of the `2Pay-Event-*` or
-`2Pay-Delivery-Id` headers. Deduplicate on `delivery_id`.
+This is not an event object, and it carries none of the `iPago-Event-*` or
+`iPago-Delivery-Id` headers. Deduplicate on `delivery_id`.
 
 ### Signing
 
-With a `secret`, the request carries a `2Pay-Signature` header in the same
+With a `secret`, the request carries a `iPago-Signature` header in the same
 format as store webhooks, always with a single `v1`:
 
 ```
-2Pay-Signature: t=1751110929,v1=<hex HMAC-SHA256 of "{t}." + raw_body>
+iPago-Signature: t=1751110929,v1=<hex HMAC-SHA256 of "{t}." + raw_body>
 ```
 
 The HMAC key is the `secret` string exactly as you stored it. The

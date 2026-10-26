@@ -5,7 +5,7 @@ description: The log of everything that happened in your store, and the source b
 
 An **event** is an immutable record that something happened in your store: an
 order was paid, a delivery completed, a payout landed. Every
-[webhook](/dev/webhooks/overview) 2Pay sends is the same event object, just
+[webhook](/dev/webhooks/overview) iPago sends is the same event object, just
 pushed to your endpoint instead of pulled from this log.
 
 The event log is your safety net. If your webhook endpoint was down, you read the
@@ -85,7 +85,7 @@ parameters are the [pagination](/dev/developer-api/pagination) ones: `limit`,
 filter on `type` in your own code.
 
 ```bash
-curl "https://api.2pay.gg/v1/events?limit=100" \
+curl "https://api.ipago.io/v1/events?limit=100" \
   -H "Authorization: Bearer sk_live_..."
 ```
 
@@ -102,7 +102,7 @@ last event you processed is a bookmark. Store it, and when your consumer comes
 back, read everything after it:
 
 ```bash
-curl "https://api.2pay.gg/v1/events?limit=100&starting_after=evt_01M5MWF2T4C0J8B7K2Q9X1VZ3N" \
+curl "https://api.ipago.io/v1/events?limit=100&starting_after=evt_01M5MWF2T4C0J8B7K2Q9X1VZ3N" \
   -H "Authorization: Bearer sk_live_..."
 ```
 

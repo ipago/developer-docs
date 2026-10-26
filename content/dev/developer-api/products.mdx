@@ -5,7 +5,7 @@ description: Read the products and categories you configured in the panel.
 
 A **product** is something a buyer can purchase: a rank, a kit, an item bundle, a
 license, a one-off donation perk. Products are created and priced in the panel at
-[app.2pay.gg](https://app.2pay.gg); over the API they are **read-only**. You list
+[app.ipago.io](https://app.ipago.io); over the API they are **read-only**. You list
 them and fetch them, you reference them by `id` at [checkout](/dev/checkout/overview),
 and you read which product a given order line item maps to.
 
@@ -70,7 +70,7 @@ first. Requires the `products:read` scope, as do the category endpoints.
 | `limit`, `starting_after`, `ending_before` | [Pagination](/dev/developer-api/pagination). |
 
 ```bash
-curl "https://api.2pay.gg/v1/products?active=true&limit=50" \
+curl "https://api.ipago.io/v1/products?active=true&limit=50" \
   -H "Authorization: Bearer sk_live_..."
 ```
 
@@ -93,7 +93,7 @@ GET /v1/products/{id}
 ```
 
 ```bash
-curl https://api.2pay.gg/v1/products/prod_01H9Z4ABCDEF \
+curl https://api.ipago.io/v1/products/prod_01H9Z4ABCDEF \
   -H "Authorization: Bearer sk_live_..."
 ```
 
@@ -125,7 +125,7 @@ are rendering a full storefront in one pass. Without it, the `products` field is
 absent.
 
 ```bash
-curl "https://api.2pay.gg/v1/categories?include=products" \
+curl "https://api.ipago.io/v1/categories?include=products" \
   -H "Authorization: Bearer sk_live_..."
 ```
 

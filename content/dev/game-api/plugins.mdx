@@ -1,6 +1,6 @@
 ---
 title: Plugins and RCON
-description: The official Minecraft plugin, and RCON delivery where 2Pay pushes commands to your server itself.
+description: The official Minecraft plugin, and RCON delivery where iPago pushes commands to your server itself.
 ---
 
 You rarely need to write the [queue loop](/dev/game-api/delivery-queue) yourself.
@@ -10,7 +10,7 @@ under **Integration → Game servers**:
 | Connection | Who does the work | You need |
 | --- | --- | --- |
 | **Plugin** | A plugin on your server polls the Game API, runs the commands, and confirms them. | The plugin and the server's token. |
-| **RCON** | 2Pay's own worker connects to your server's RCON port and runs the commands. | RCON enabled on the server, and its host, port and password. |
+| **RCON** | iPago's own worker connects to your server's RCON port and runs the commands. | RCON enabled on the server, and its host, port and password. |
 
 Available plugin today: **Minecraft** (Paper and Spigot 1.20 or newer). Every
 other game that speaks RCON can use the RCON connection.
@@ -43,39 +43,39 @@ to open in your firewall.
 
 - Paper or Spigot **1.20 or newer** (it uses the Bukkit API).
 - **Java 17** or newer.
-- Outbound HTTPS to `game.2pay.gg`.
+- Outbound HTTPS to `game.ipago.io`.
 
 ### Download
 
-{/* TODO: verify this link and the jar name once the 2pay-minecraft repository is public on GitHub. */}
+{/* TODO: verify this link and the jar name once the ipago-minecraft repository is public on GitHub. */}
 
 The current release is **v0.1.0**. The download link will be published on the
-plugin's [releases page](https://github.com/dkpgroup/2pay-minecraft/releases);
-take the `2pay-minecraft-<version>.jar` file from the latest release.
+plugin's [releases page](https://github.com/dkpgroup/ipago-minecraft/releases);
+take the `ipago-minecraft-<version>.jar` file from the latest release.
 
 ### Install
 
 1. In the panel, open **Integration → Game servers**, choose **Plugin** as the
    connection, add the server, and copy its token. It is shown once. Add it in
    test mode first if you want to [try it safely](#testing-before-you-go-live).
-2. Put `2pay-minecraft-<version>.jar` in your server's `plugins/` directory.
-3. Start the server once. That creates `plugins/2pay/config.yml`. Until a token
+2. Put `ipago-minecraft-<version>.jar` in your server's `plugins/` directory.
+3. Start the server once. That creates `plugins/ipago/config.yml`. Until a token
    is set, the plugin stays idle and logs a reminder.
-4. Paste the token into `token:` in `plugins/2pay/config.yml`.
-5. Restart the server. The log shows `Delivering 2pay purchases from https://game.2pay.gg/v1`,
+4. Paste the token into `token:` in `plugins/ipago/config.yml`.
+5. Restart the server. The log shows `Delivering iPago purchases from https://game.ipago.io/v1`,
    and the first poll happens a few seconds later.
-6. Run `/2pay status` in the console to confirm it is talking to 2Pay.
+6. Run `/ipago status` in the console to confirm it is talking to iPago.
 
 ### Configuration
 
-`plugins/2pay/config.yml`:
+`plugins/ipago/config.yml`:
 
 ```yaml
-# The server token from the 2pay panel, under Integration > Game servers.
+# The server token from the iPago panel, under Integration > Game servers.
 token: "srv_live_paste-yours-here"
 
 # The Game API base URL. Change this only to point at a sandbox or a local instance.
-base-url: "https://game.2pay.gg/v1"
+base-url: "https://game.ipago.io/v1"
 
 # Seconds to wait when the API does not say otherwise.
 fallback-interval: 60
@@ -87,22 +87,22 @@ log-commands: false
 | Key | Default | What it does |
 | --- | --- | --- |
 | `token` | none | The server token from the panel. Without it the plugin stays idle and says so. |
-| `base-url` | `https://game.2pay.gg/v1` | Change only to point at a sandbox or a local instance. |
+| `base-url` | `https://game.ipago.io/v1` | Change only to point at a sandbox or a local instance. |
 | `fallback-interval` | `60` | Seconds between polls when the API does not set the pace itself (minimum 5). Normally the API's `next_check` decides. |
 | `log-commands` | `false` | Log every command before it runs. Useful while setting up, noisy afterwards. |
 
 Changes take effect after a restart.
 
-### `/2pay status`
+### `/ipago status`
 
-Run it from the console, or in game with the `twopay.admin` permission (ops
+Run it from the console, or in game with the `iPago.admin` permission (ops
 have it by default). It reports:
 
-- where the plugin is pointed (`2pay talks to https://game.2pay.gg/v1`),
+- where the plugin is pointed (`iPago talks to https://game.ipago.io/v1`),
 - when it last completed a poll, or that it has not completed one yet,
 - the last error, or `No errors.`
 
-If no token is set it tells you to set `token` in `plugins/2pay/config.yml` and
+If no token is set it tells you to set `token` in `plugins/ipago/config.yml` and
 restart.
 
 ### Online and offline commands
@@ -114,7 +114,7 @@ restart.
 `{username}` and `{uuid}` are filled in for the player who bought it. The API
 does not carry a UUID, so the plugin resolves it from the game server.
 
-A command is reported back to 2Pay **only after it has actually run**. If your
+A command is reported back to iPago **only after it has actually run**. If your
 server was restarting, the player had no room, or the command failed, it stays
 queued and comes back on the next poll. Nothing a player paid for is quietly
 dropped. Once every command of a purchase has run, the delivery completes in
@@ -122,7 +122,7 @@ your panel and [`delivery.completed`](/dev/webhooks/events#deliverycompleted)
 fires.
 
 When the API is unreachable the plugin backs off, from 15 seconds up to 5
-minutes between tries. When 2Pay rejects the token it logs a warning and waits
+minutes between tries. When iPago rejects the token it logs a warning and waits
 5 minutes before each new try, since retrying faster cannot fix a bad token.
 
 ### Testing before you go live
@@ -133,7 +133,7 @@ can try the whole path without touching real orders.
 
 ### Troubleshooting
 
-**"2pay rejected this server token" in the log.** The token is wrong, or it was
+**"iPago rejected this server token" in the log.** The token is wrong, or it was
 rolled in the panel. Roll it again under **Integration → Game servers** and
 paste the new one into `config.yml`, then restart.
 
@@ -149,17 +149,17 @@ slots.
 **A command runs but nothing happens in game.** The plugin runs commands exactly
 as the console does. Type the same command into your server console with a real
 player name. If it does not work there, it is the command or the plugin it
-belongs to, not 2Pay.
+belongs to, not iPago.
 
 **Nothing at all in the log.** Confirm the jar is in `plugins/` and that the
-server loaded it (`/plugins` should list `2pay`), then check your server can
-reach `https://game.2pay.gg`.
+server loaded it (`/plugins` should list `iPago`), then check your server can
+reach `https://game.ipago.io`.
 
 ## RCON
 
 Many game servers expose **RCON**, a remote-console protocol (Source RCON, which
 Minecraft also speaks). With the RCON connection there is nothing to install and
-no token: 2Pay's own delivery worker connects to your server, logs in, and runs
+no token: iPago's own delivery worker connects to your server, logs in, and runs
 each owed command, then marks it delivered once the server has answered.
 
 ### Set it up
@@ -168,7 +168,7 @@ each owed command, then marks it delivered once the server has answered.
 2. In the panel, open **Integration → Game servers** and add a server.
 3. Choose **RCON** as the connection and enter the **Host**, **Port** and
    **RCON password**.
-4. Press **Test connection**. 2Pay logs in and runs the harmless `list`
+4. Press **Test connection**. iPago logs in and runs the harmless `list`
    command, and tells you whether it connected, the password was rejected, the
    server could not be reached, it timed out, or something answered that does
    not speak RCON.
@@ -196,23 +196,23 @@ port or password, remove the server and add it again.
 `{username}` is filled in only when the buyer's name is plainly a name: 1 to 64
 letters, digits, `_`, `-` or `.`. A name with anything else (a space, a `;`)
 could inject arguments or a second command into the console, so that command is
-never sent and fails at once. 2Pay does not know player UUIDs, so a command
+never sent and fails at once. iPago does not know player UUIDs, so a command
 containing `{uuid}` also fails at once over RCON. Commands and passwords must
 not contain line breaks.
 
 ### Retries and failure
 
-If 2Pay cannot connect, or a command errors, the command is retried on the
+If iPago cannot connect, or a command errors, the command is retried on the
 same [schedule as webhooks](/dev/webhooks/delivery-and-testing#retries): 15
 attempts over about 38.5 hours. Later commands for the same server wait with it,
 so they never overtake an earlier one. After the last attempt the command is
 marked failed, its delivery is failed and
 [`delivery.failed`](/dev/webhooks/events#deliveryfailed) fires, and an alert is
-raised on 2Pay's side.
+raised on iPago's side.
 
 ### Addresses and ports that are refused
 
-2Pay connects from its own servers, so it refuses targets that would reach a
+iPago connects from its own servers, so it refuses targets that would reach a
 private network. The host must resolve **only** to public addresses: loopback,
 private, link-local, CGNAT, multicast and other reserved ranges are refused,
 including `localhost`. Sensitive ports are refused too, for example 22 (SSH), 25
@@ -227,5 +227,5 @@ Implement the [delivery queue](/dev/game-api/delivery-queue) loop yourself in
 whatever language your server extends with. It is a small loop: `GET /queue`,
 run online and offline commands, `DELETE /queue` to confirm.
 
-Tell us which game you run at [support@2pay.gg](mailto:support@2pay.gg). Demand
+Tell us which game you run at [support@ipago.io](mailto:support@ipago.io). Demand
 directly shapes which plugins we build next.

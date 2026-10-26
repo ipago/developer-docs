@@ -19,7 +19,7 @@ Under **Webstore**, in **Storefront appearance** and **Storefront logo**:
 | Logo | Shown on the storefront. | PNG, JPEG or WebP, up to 1 MB. |
 | Display name | The name buyers see. Falls back to the store name. | Up to 120 characters. |
 | Description | A short text about your store. | Up to 500 characters. |
-| Store URL | The slug that makes your address, `{slug}.2pay.gg`. | 3 to 63 characters: lowercase letters, digits and hyphens, not starting or ending with a hyphen. Reserved names such as `www`, `api`, `app`, `admin`, `checkout` or `pay` are refused, and a slug already in use returns "That store URL is taken". |
+| Store URL | The slug that makes your address, `{slug}.ipago.io`. | 3 to 63 characters: lowercase letters, digits and hyphens, not starting or ending with a hyphen. Reserved names such as `www`, `api`, `app`, `admin`, `checkout` or `pay` are refused, and a slug already in use returns "That store URL is taken". |
 | Require player identifier | When on, a buyer must enter an identifier before buying, and it becomes the order's delivery target. | On by default. |
 | Identifier label | The label on that field, for example "Minecraft username". | Up to 40 characters. |
 
@@ -33,12 +33,12 @@ Under **Store settings**:
 | --- | --- |
 | Business name | Shown in the storefront footer as "Operated by ..." (up to 120 characters). |
 | Support email | Shown in the storefront footer so buyers can reach you (up to 160 characters). |
-| Tax display | **Exclusive**: prices are shown before VAT and VAT is added at checkout. **Inclusive**: the price shown already contains VAT. 2Pay remits the VAT either way. |
+| Tax display | **Exclusive**: prices are shown before VAT and VAT is added at checkout. **Inclusive**: the price shown already contains VAT. iPago remits the VAT either way. |
 | Payment methods | Which methods the checkout may offer: Card, BLIK, Przelewy24, Klarna, PayPal, iDEAL, Bancontact, and Link. With no selection, the payment provider's default set applies. A method only shows when it also works for the buyer's currency and country. |
 
 ## Not configurable
 
 - Your own HTML templates, CSS, JavaScript, or uploaded assets. See
   [Custom templates](/dev/webstores/templates).
-- A custom domain. The storefront is served on `{slug}.2pay.gg` only.
+- A custom domain. The storefront is served on `{slug}.ipago.io` only.
 - Page content beyond the settings above, such as extra pages or a custom footer.

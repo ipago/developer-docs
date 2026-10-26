@@ -6,12 +6,12 @@ export const dynamic = "force-static";
 
 export function GET() {
   const lines: string[] = [
-    "# 2Pay Documentation",
+    "# iPago Documentation",
     "",
-    "> 2Pay is a Merchant of Record for game monetization: hosted webstores, an embedded checkout, a developer API, and global payouts. The raw markdown of any page below is available by prefixing its path with /md.",
+    "> iPago is a Merchant of Record for game monetization: hosted webstores, an embedded checkout, a developer API, and global payouts. The raw markdown of any page below is available by prefixing its path with /md.",
     "",
-    "Every page in one file: https://docs.2pay.gg/llms-full.txt",
-    "OpenAPI spec: https://docs.2pay.gg/openapi.json",
+    "Every page in one file: https://docs.ipago.io/llms-full.txt",
+    "OpenAPI spec: https://docs.ipago.io/openapi.json",
     "",
   ];
 

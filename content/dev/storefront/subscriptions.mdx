@@ -7,7 +7,7 @@ For recurring products (memberships, monthly perks), start a subscription rather
 than a basket. Subscription products cannot be added to a basket.
 
 ```bash
-curl -X POST https://api.2pay.gg/v1/storefront/myshop/subscribe \
+curl -X POST https://api.ipago.io/v1/storefront/myshop/subscribe \
   -H "Content-Type: application/json" \
   -d '{ "product": "prod_01M5MWGB718BWKF7MDP3BX63TY", "game_username": "Steve",
         "customer_email": "player@example.com", "country": "PL" }'
@@ -21,7 +21,7 @@ curl -X POST https://api.2pay.gg/v1/storefront/myshop/subscribe \
 | `country` | no | ISO 3166-1 alpha-2 buyer country. The VAT rate is baked into the recurring price at signup. |
 
 A subscription is always for one unit; there is no `quantity`. There is no
-`return_url` either: after payment the buyer lands on 2Pay's hosted confirmation
+`return_url` either: after payment the buyer lands on iPago's hosted confirmation
 page. The route does not support `Idempotency-Key`, and it shares the 20 requests
 per minute limit of basket writes. It honours [test mode](/dev/storefront/baskets#test-mode)
 the same way baskets do.
@@ -49,6 +49,6 @@ display-safe `storefront_subscription` (status, product name, price, interval,
 delivery target, `current_period_end`).
 
 <Callout type="info">
-  Renewals are billed automatically by 2Pay. React to `subscription.renewed` to
+  Renewals are billed automatically by iPago. React to `subscription.renewed` to
   extend access, and to `subscription.canceled` to revoke it.
 </Callout>

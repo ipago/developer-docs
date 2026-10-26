@@ -4,7 +4,7 @@ description: Request a payout of your available balance and track it until it re
 ---
 
 A **payout** moves money from your available [balance](/dev/developer-api/balance)
-to your bank account. You request it over the API (or in the panel); 2Pay staff
+to your bank account. You request it over the API (or in the panel); iPago staff
 then send the bank transfer and mark the payout paid.
 
 Requesting a payout requires `payouts:write`; reading requires `payouts:read`.
@@ -57,7 +57,7 @@ Earnings are not withdrawable the moment a sale is paid. Each sale stays in your
 | `status` | string | `pending`, `paid`, or `failed`. |
 | `destination` | string \| null | The free-text `destination` you sent when creating it, if any. |
 | `bank_account` | object \| null | Where the money is going: `holder_name`, `iban` (masked to the country code and last four digits), and `bic` (may be `null`). It is copied from your payout account when the payout is created, so changing your bank details later never redirects a payout already requested. `null` when no bank account was set, which only test mode allows. |
-| `settlement_reference` | string \| null | The bank transfer reference, set when 2Pay marks the payout paid. Use it to match the payout against your bank statement. |
+| `settlement_reference` | string \| null | The bank transfer reference, set when iPago marks the payout paid. Use it to match the payout against your bank statement. |
 | `failure_reason` | string \| null | Why the payout failed, when it did. |
 | `created` | string | When the payout was requested. |
 | `paid_at` | string \| null | When it was marked paid. |
@@ -65,11 +65,11 @@ Earnings are not withdrawable the moment a sale is paid. Each sale stays in your
 ## Lifecycle
 
 - **`pending`**: requested. The amount has already left your available balance,
-  so it cannot be paid out twice. 2Pay emits `payout.created`.
-- **`paid`**: 2Pay staff sent the bank transfer and recorded its
-  `settlement_reference`. 2Pay emits `payout.paid`.
+  so it cannot be paid out twice. iPago emits `payout.created`.
+- **`paid`**: iPago staff sent the bank transfer and recorded its
+  `settlement_reference`. iPago emits `payout.paid`.
 - **`failed`**: the transfer did not go through. The amount returns to your
-  available balance and 2Pay emits `payout.failed`.
+  available balance and iPago emits `payout.failed`.
 
 See [Events](/dev/developer-api/events) for the event payloads.
 
@@ -86,7 +86,7 @@ POST /v1/payouts
 | `destination` | no | Free text kept on the payout for your own records. It does not choose where the money goes. |
 
 ```bash
-curl https://api.2pay.gg/v1/payouts \
+curl https://api.ipago.io/v1/payouts \
   -H "Authorization: Bearer sk_live_..." \
   -H "Content-Type: application/json" \
   -H "Idempotency-Key: 0b9d6c3e-2f1a-4d8c-b7e6-9a5f4c3d2e1b" \

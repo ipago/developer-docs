@@ -9,13 +9,13 @@ live.
 
 ## Acknowledging a delivery
 
-2Pay considers a webhook delivered when your endpoint returns any **`2xx`**
+iPago considers a webhook delivered when your endpoint returns any **`2xx`**
 status (`200` to `299`). Anything else counts as a failure and is retried: a
 `4xx`, a `5xx`, a connection error, or no answer within **30 seconds**. Redirects
 are followed and the final response decides, but register the final URL rather
 than relying on a redirect.
 
-2Pay keeps the first 512 characters of your response body with each attempt,
+iPago keeps the first 512 characters of your response body with each attempt,
 which is what you see in the panel's delivery log. Returning a short error
 message on failure makes debugging easier.
 
@@ -30,7 +30,7 @@ message on failure makes debugging easier.
 A failed delivery is retried with exponential backoff: the wait doubles after
 every failure, starting at one minute and capped at six hours. Each delivery
 gets **15 attempts** in total, spread over about **38.5 hours**. Every attempt
-carries the same `2Pay-Event-Id` and `2Pay-Delivery-Id` and the same body; only
+carries the same `iPago-Event-Id` and `iPago-Delivery-Id` and the same body; only
 the signature timestamp `t` is new.
 
 | Attempt | Wait after the previous attempt | Time after the first attempt |
@@ -73,7 +73,7 @@ Backfill anything you missed from the
 ### From the panel
 
 Open **Integration → Webhooks**, find the endpoint, and choose **Send test
-event**. 2Pay sends one signed [`endpoint.test`](/dev/webhooks/events#endpointtest)
+event**. iPago sends one signed [`endpoint.test`](/dev/webhooks/events#endpointtest)
 event to that endpoint straight away, whatever it subscribes to, and shows you
 the status code, the response body and how long it took. The panel waits up to
 10 seconds for your answer. A test is attempted once and never retried; press the button again to resend. It is limited to 30
@@ -89,7 +89,7 @@ POST /v1/webhook_endpoints/{id}/test
 ```
 
 ```bash
-curl -X POST https://api.2pay.gg/v1/webhook_endpoints/we_01JB7R0D4F7H2K5M8P1S4V7Y0B/test \
+curl -X POST https://api.ipago.io/v1/webhook_endpoints/we_01JB7R0D4F7H2K5M8P1S4V7Y0B/test \
   -H "Authorization: Bearer sk_test_..."
 ```
 
@@ -106,7 +106,7 @@ like any other event, with the normal retries:
   "data": {
     "endpoint": "we_01JB7R0D4F7H2K5M8P1S4V7Y0B",
     "test": true,
-    "message": "This is a test event from 2Pay."
+    "message": "This is a test event from iPago."
   }
 }
 ```
@@ -126,13 +126,13 @@ sequences, `order.paid` then `delivery.pending`, without moving money.
 
 ### Local development
 
-Your endpoint must be reachable over public HTTPS, and 2Pay refuses `localhost`
+Your endpoint must be reachable over public HTTPS, and iPago refuses `localhost`
 and private addresses, so for local work put a tunnel in front of your machine:
 
 ```bash
 # example with a tunneling tool of your choice
 ngrok http 3000
-# then register the https://<id>.ngrok.app/hooks/2pay URL as an endpoint
+# then register the https://<id>.ngrok.app/hooks/ipago URL as an endpoint
 ```
 
 Register the tunnel URL as a test-mode endpoint, and trigger events with **Send

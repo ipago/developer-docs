@@ -1,12 +1,12 @@
 ---
 title: Verifying signatures
-description: Prove a webhook request genuinely came from 2Pay before acting on it.
+description: Prove a webhook request genuinely came from iPago before acting on it.
 ---
 
 A webhook URL is public, so anyone could `POST` a fake `order.paid` to it and try
 to trick you into granting items for free. The signature is what stops that:
 every genuine request carries an HMAC computed with your endpoint's secret, which
-only you and 2Pay know. **Verify it before you trust a single byte of the body.**
+only you and iPago know. **Verify it before you trust a single byte of the body.**
 
 ## Delivery headers
 
@@ -15,20 +15,24 @@ Every store webhook request is a `POST` with these headers:
 | Header | Value |
 | --- | --- |
 | `Content-Type` | `application/json` |
-| `2Pay-Signature` | `t=<unix seconds>,v1=<hex>`, with a second `v1=<hex>` during a [secret rotation](/dev/webhooks/endpoints#rotating-the-signing-secret). |
-| `2Pay-Event-Type` | The event `type`, for example `order.paid`. |
-| `2Pay-Event-Id` | The event `id` (`evt_`). The same on every retry. |
-| `2Pay-Delivery-Id` | The id (`wd_`) of this endpoint's delivery of the event. The same on every retry of it. |
+| `iPago-Signature` | `t=<unix seconds>,v1=<hex>`, with a second `v1=<hex>` during a [secret rotation](/dev/webhooks/endpoints#rotating-the-signing-secret). |
+| `iPago-Event-Type` | The event `type`, for example `order.paid`. |
+| `iPago-Event-Id` | The event `id` (`evt_`). The same on every retry. |
+| `iPago-Delivery-Id` | The id (`wd_`) of this endpoint's delivery of the event. The same on every retry of it. |
+
+Each of these is also sent under its name from before the rename to iPago (`2Pay-Signature`,
+`2Pay-Event-Type`, `2Pay-Event-Id`, `2Pay-Delivery-Id`), with the same value, so handlers
+written against those names keep verifying. Read the `iPago-` names in new code.
 
 Header names are case-insensitive in HTTP, and most frameworks hand them to you
-lower-cased (`2pay-signature`). The three metadata headers are convenient for
+lower-cased (`ipago-signature`). The three metadata headers are convenient for
 routing and deduplication, but they are not covered by the signature: once the
 signature checks out, take the type and id from the body.
 
 ## The signature header
 
 ```
-2Pay-Signature: t=1751110929,v1=bd743717fc2838ee61da44afc05dd821b4af54c5fed306298cb7df9ccfd5aea7
+iPago-Signature: t=1751110929,v1=bd743717fc2838ee61da44afc05dd821b4af54c5fed306298cb7df9ccfd5aea7
 ```
 
 | Part | Meaning |
@@ -53,7 +57,7 @@ is in its 24-hour grace window, the header carries one `v1` per live secret,
 newest first:
 
 ```
-2Pay-Signature: t=1751110929,v1=<signed with new secret>,v1=<signed with old secret>
+iPago-Signature: t=1751110929,v1=<signed with new secret>,v1=<signed with old secret>
 ```
 
 Accept the request if **any** `v1` matches the signature you compute. A parser
@@ -70,7 +74,7 @@ rotation.
 ## Verifying, step by step
 
 1. Read the raw request body as bytes or a string.
-2. Split the `2Pay-Signature` header on `,`. Take `t`, and collect **every**
+2. Split the `iPago-Signature` header on `,`. Take `t`, and collect **every**
    `v1` value into a list.
 3. Reject if `t` is too far from your clock (5 minutes is a sensible
    tolerance). The timestamp is inside the signed payload, so an attacker
@@ -119,11 +123,11 @@ Wire it in with the **raw** body, then parse only after it passes:
 ```ts
 import express from "express";
 
-const SECRET = process.env.TWOPAY_WEBHOOK_SECRET!; // whsec_...
+const SECRET = process.env.IPAGO_WEBHOOK_SECRET!; // whsec_...
 
-app.post("/hooks/2pay", express.raw({ type: "application/json" }), (req, res) => {
+app.post("/hooks/ipago", express.raw({ type: "application/json" }), (req, res) => {
   const raw = req.body.toString("utf8");
-  if (!verifyWebhook(raw, req.get("2Pay-Signature") ?? "", SECRET)) {
+  if (!verifyWebhook(raw, req.get("iPago-Signature") ?? "", SECRET)) {
     return res.sendStatus(400);
   }
 
@@ -175,10 +179,10 @@ from flask import Flask, request
 
 app = Flask(__name__)
 
-@app.post("/hooks/2pay")
+@app.post("/hooks/ipago")
 def hook():
     raw = request.get_data()  # bytes, exactly as sent
-    if not verify_webhook(raw, request.headers.get("2Pay-Signature", ""), SECRET):
+    if not verify_webhook(raw, request.headers.get("iPago-Signature", ""), SECRET):
         return "", 400
     event = request.get_json()
     enqueue(event)
@@ -209,5 +213,5 @@ Python, `hash_equals` in PHP.
 
 ## Source addresses
 
-2Pay does not publish a fixed list of source IP addresses for webhooks, so do
+iPago does not publish a fixed list of source IP addresses for webhooks, so do
 not build an IP allowlist. The signature is what authenticates a request.

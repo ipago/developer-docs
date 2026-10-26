@@ -4,7 +4,7 @@ description: The callbacks the checkout widget calls, and how you learn that a p
 ---
 
 <Callout type="warn">
-  **Coming soon.** `@2pay/checkout` is not published to npm or a CDN yet. This
+  **Coming soon.** `@ipago/checkout` is not published to npm or a CDN yet. This
   page describes the widget as it exists today.
 </Callout>
 
@@ -31,7 +31,7 @@ mount({
 
 When the buyer pays, the embedded checkout redirects them to the `return_url`
 your server set on [`POST /v1/checkouts`](/dev/checkout/integrating#1-create-a-checkout-server-side)
-(or to 2Pay's hosted confirmation page if you set none). Put
+(or to iPago's hosted confirmation page if you set none). Put
 `{CHECKOUT_SESSION_ID}` in the URL if your return page needs the session id.
 
 Your return page is for showing the buyer a thank-you message. It is not proof of

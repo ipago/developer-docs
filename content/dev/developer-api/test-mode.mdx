@@ -50,7 +50,7 @@ mode.
 
 ### When test payments are not available
 
-If the 2Pay deployment you are calling has no test payment provider configured,
+If the iPago deployment you are calling has no test payment provider configured,
 test-mode payment calls fail rather than ever touching live credentials:
 
 ```json
@@ -70,7 +70,7 @@ refunds of test orders.
 ## Going live: store approval
 
 A new store can use test mode straight away. Taking **live** payments needs the
-store to be approved by 2Pay first (submit it for review in the panel). Until
+store to be approved by iPago first (submit it for review in the panel). Until
 then, a live checkout is refused:
 
 ```json
@@ -78,7 +78,7 @@ then, a live checkout is refused:
   "error": {
     "type": "permission_error",
     "code": "store_not_live",
-    "message": "This store must be approved by 2pay before it can accept live payments.",
+    "message": "This store must be approved by iPago before it can accept live payments.",
     "request_id": "req_..."
   }
 }

@@ -4,7 +4,7 @@ description: Every option the checkout widget's mount function accepts, and the 
 ---
 
 <Callout type="warn">
-  **Coming soon.** `@2pay/checkout` is not published to npm or a CDN yet. This
+  **Coming soon.** `@ipago/checkout` is not published to npm or a CDN yet. This
   page describes the widget as it exists today so you can plan around it.
 </Callout>
 
@@ -16,10 +16,10 @@ showing.
 
 | Option | Type | Required | Description |
 | --- | --- | --- | --- |
-| `element` | `string \| HTMLElement` | yes | A CSS selector or an element to render into. A selector that matches nothing throws `2Pay Checkout: element not found`. |
+| `element` | `string \| HTMLElement` | yes | A CSS selector or an element to render into. A selector that matches nothing throws `iPago Checkout: element not found`. |
 | `fields` | `Field[]` | yes | The inputs to collect before payment, in order. |
 | `createSession` | `(values) => Promise<{ clientSecret: string }>` | yes | Called with the submitted values as a `Record<string, string>`. Must resolve to `{ clientSecret }` from your server. |
-| `publishableKey` | `string` | yes | The payment provider's public key for 2Pay's account. |
+| `publishableKey` | `string` | yes | The payment provider's public key for iPago's account. |
 | `onError` | `(error: Error) => void` | no | Called when `createSession` throws or returns no `clientSecret`, or the payment form fails to load. Without it, errors go to `console.error`. |
 | `onComplete` | `(result: { sessionId?: string }) => void` | no | Accepted but **not called** in the current version. See [Events](/dev/checkout/events). |
 
@@ -64,11 +64,11 @@ Select:
 
 The form is plain, unstyled HTML, so your page's CSS controls its look:
 
-- a `<form class="twopay-form">`,
-- one `<div class="twopay-field">` per field, holding a `<label>` and an
-  `<input>` or `<select>` with `id="twopay-{key}"` and `name="{key}"`,
+- a `<form class="ipago-form">`,
+- one `<div class="ipago-field">` per field, holding a `<label>` and an
+  `<input>` or `<select>` with `id="ipago-{key}"` and `name="{key}"`,
 - a submit button labelled **Continue**,
-- for each blank required field, a `<span class="twopay-error">` reading
+- for each blank required field, a `<span class="ipago-error">` reading
   `{label} is required`.
 
 After a successful `createSession`, the form is removed and the payment checkout

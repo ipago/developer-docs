@@ -36,11 +36,11 @@ Start without a cursor, then pass the id of the **last** item you received as
 `starting_after`:
 
 ```bash
-curl "https://api.2pay.gg/v1/orders?limit=50" \
+curl "https://api.ipago.io/v1/orders?limit=50" \
   -H "Authorization: Bearer sk_live_..."
 
 # next page: the id of the last item in the previous page
-curl "https://api.2pay.gg/v1/orders?limit=50&starting_after=ord_01M5MWDACTVABBZT3E8T2B6QA5" \
+curl "https://api.ipago.io/v1/orders?limit=50&starting_after=ord_01M5MWDACTVABBZT3E8T2B6QA5" \
   -H "Authorization: Bearer sk_live_..."
 ```
 

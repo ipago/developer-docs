@@ -6,7 +6,7 @@
  * Stripe-style LIGHT documentation theme.
  * Dark mode is disabled at the provider (RootProvider theme={{ enabled: false }}), so only
  * :root applies. Fumadocs colors are HSL triplets consumed as hsl(var(--fd-x) / alpha); we
- * override them here with a clean, cool, near-white palette and a 2Pay coral accent that keeps
+ * override them here with a clean, cool, near-white palette and an iPago coral accent that keeps
  * AA contrast on white.
  */
 :root {

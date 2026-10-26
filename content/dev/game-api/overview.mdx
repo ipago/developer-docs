@@ -3,42 +3,42 @@ title: Overview
 description: The runtime endpoint your game server polls to deliver purchases in-game and report them complete.
 ---
 
-The **Game API** is the runtime side of 2Pay: the interface your game server,
-plugin, or bot talks to in order to **grant what players bought** and tell 2Pay
+The **Game API** is the runtime side of iPago: the interface your game server,
+plugin, or bot talks to in order to **grant what players bought** and tell iPago
 it is done. Where the [Developer API](/dev/developer-api/overview) manages and
 observes your store from a backend, the Game API runs on (or right next to) the
 machine that actually applies a rank, drops an item, or executes a command.
 
-It is built around a **command queue**. 2Pay turns paid orders into per-player
+It is built around a **command queue**. iPago turns paid orders into per-player
 commands; your server pulls that queue, runs each command in-game, and deletes it
 to confirm. That design means your server only needs **outbound** HTTPS, no open
 ports, no inbound webhooks on the game host itself.
 
 ## What it's for
 
-- **Pull what's owed.** Ask 2Pay which players have purchases waiting and what to
+- **Pull what's owed.** Ask iPago which players have purchases waiting and what to
   run for them.
 - **Apply it in-game.** Give the rank, currency, crate, or run your configured
   command, whether the player is online now or offline.
-- **Confirm it.** Delete completed commands so 2Pay marks the matching
+- **Confirm it.** Delete completed commands so iPago marks the matching
   [delivery](/dev/developer-api/deliveries) complete and never re-sends it.
 
-## How it relates to the rest of 2Pay
+## How it relates to the rest of iPago
 
 ```
 Buyer pays (Webstore / Checkout)
         │
         ▼
-2Pay creates an order + deliveries  ──▶  order.paid / delivery.pending webhooks
+iPago creates an order + deliveries  ──▶  order.paid / delivery.pending webhooks
         │                                         (your backend, optional)
         ▼
-2Pay enqueues per-player commands
+iPago enqueues per-player commands
         │
         ▼
 Your game server polls the Game API ──▶ runs commands ──▶ deletes them (confirm)
         │
         ▼
-2Pay marks deliveries completed     ──▶  delivery.completed webhook
+iPago marks deliveries completed     ──▶  delivery.completed webhook
 ```
 
 You do **not** have to consume webhooks to use the Game API; polling the queue is
@@ -49,7 +49,7 @@ about sales.
 
 1. A player buys on your [Webstore](/dev/webstores/overview) or embedded
    [Checkout](/dev/checkout/overview).
-2. 2Pay creates the order and queues commands for the purchased products.
+2. iPago creates the order and queues commands for the purchased products.
 3. Your server [polls the queue](/dev/game-api/delivery-queue), gets the list of
    players with work waiting, and fetches their commands.
 4. Your plugin runs each command (online or offline as appropriate).
@@ -59,7 +59,7 @@ about sales.
 ## Authentication in one line
 
 The Game API uses a **server token** scoped to a single server of a single store,
-sent in the `X-2Pay-Server-Token` header. It can read and confirm that server's
+sent in the `X-iPago-Server-Token` header. It can read and confirm that server's
 queue and nothing else, which is what makes it safe to keep in a config on your
 game host. Details in [Authentication](/dev/game-api/authentication).
 
@@ -71,7 +71,7 @@ You rarely need to write this loop yourself:
   implements polling, execution, and confirmation.
 - **Any server with RCON** (Rust, ARK, Source games, Minecraft without a
   plugin): add it in the panel with the [RCON](/dev/game-api/plugins#rcon)
-  connection and 2Pay pushes the commands to it. Nothing to install, no token,
+  connection and iPago pushes the commands to it. Nothing to install, no token,
   and no Game API calls from your side.
 
 Build directly against the API only for a custom integration.

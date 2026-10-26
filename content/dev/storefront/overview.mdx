@@ -8,7 +8,7 @@ Every route is scoped to a store by its slug, `/v1/storefront/{slug}/...`, and
 serves what a shopper needs: browse the catalog, build a basket, and check out.
 It needs no API key.
 
-It is the API the hosted 2Pay storefront (`{slug}.2pay.gg`) runs on. Product and
+It is the API the hosted iPago storefront (`{slug}.ipago.io`) runs on. Product and
 price definitions live in the panel; the Storefront API reads them and turns a
 basket into a paid order.
 
@@ -33,7 +33,7 @@ price display.
 
 ## Which stores answer
 
-Only a **live** store (approved by 2Pay) is visible. A draft, pending or rejected
+Only a **live** store (approved by iPago) is visible. A draft, pending or rejected
 store returns the same `404 resource_missing` as a slug that does not exist, so
 the API never reveals which stores exist.
 
@@ -50,8 +50,8 @@ The one exception is the owner's preview and test mode, described in
   Over the limit you get `429`.
 - **Caching.** Store and catalog responses send `Cache-Control: public, max-age=60`,
   so changes in the panel can take up to a minute to show.
-- **CORS.** Browsers may call the API only from 2Pay storefront origins
-  (`2pay.gg` and its subdomains). From your own domain, call it from your server.
+- **CORS.** Browsers may call the API only from iPago storefront origins
+  (`ipago.io` and its subdomains). From your own domain, call it from your server.
 
 <Callout type="info">
   The Storefront API is read-and-buy only. It never creates products or changes

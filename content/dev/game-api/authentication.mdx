@@ -11,10 +11,10 @@ nothing else.
 ## Base URL
 
 ```
-https://game.2pay.gg/v1
+https://game.ipago.io/v1
 ```
 
-The Game API has its own host, separate from `api.2pay.gg`, because the
+The Game API has its own host, separate from `api.ipago.io`, because the
 credential and the traffic pattern (frequent polling from game servers) are
 different from the backend Developer API.
 
@@ -23,13 +23,16 @@ different from the backend Developer API.
 In the panel, open **Integration → Game servers**, add a server with the
 **Plugin** connection, and copy its token. It is shown once, at that moment,
 and stored only as a hash afterwards; if you lose it, choose **Roll token** and
-paste the new one. Send it on every request in the `X-2Pay-Server-Token`
+paste the new one. Send it on every request in the `X-iPago-Server-Token`
 header:
 
 ```bash
-curl https://game.2pay.gg/v1/queue \
-  -H "X-2Pay-Server-Token: srv_live_..."
+curl https://game.ipago.io/v1/queue \
+  -H "X-iPago-Server-Token: srv_live_..."
 ```
+
+Plugins written before the rename to iPago send `X-2Pay-Server-Token`. That name is still
+accepted, so existing servers keep working; new integrations should use `X-iPago-Server-Token`.
 
 | Token prefix | Mode |
 | --- | --- |
@@ -40,7 +43,7 @@ The mode is fixed when you add the server: a server added while the panel is in
 test mode gets a `srv_test_` token.
 
 <Callout type="info">
-  Servers with the **RCON** connection have no token. 2Pay connects to them and
+  Servers with the **RCON** connection have no token. iPago connects to them and
   pushes the commands itself, so they never call the Game API. See
   [RCON](/dev/game-api/plugins#rcon).
 </Callout>
@@ -79,7 +82,7 @@ as the rest of the platform, so you can reuse one error handler across both APIs
 
 | Status | `code` | When |
 | --- | --- | --- |
-| `401` | `missing_server_token` | The `X-2Pay-Server-Token` header is absent or empty. |
+| `401` | `missing_server_token` | The `X-iPago-Server-Token` header is absent or empty. |
 | `401` | `invalid_server_token` | The token is unknown, was rolled, or its server was removed. |
 | `429` | `rate_limit_exceeded` | Too many requests. See [Rate limits](/dev/game-api/delivery-queue#rate-limits). |
 

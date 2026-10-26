@@ -54,7 +54,7 @@ Requires the `orders:read` scope.
 | `subtotal` | money | Sum of the line items at the prices the buyer saw. |
 | `discount` | money | Amount taken off by a coupon. Zero when none was used. |
 | `gift_card` | object \| null | `{ "amount": money }` paid with a gift card, or `null`. |
-| `tax_amount` | money | VAT collected by 2Pay as Merchant of Record. See [Tax & VAT](/dev/developer-api/tax). |
+| `tax_amount` | money | VAT collected by iPago as Merchant of Record. See [Tax & VAT](/dev/developer-api/tax). |
 | `total` | money | The order's net amount, **excluding VAT**, after discount and gift card. This is the base your fees and earnings are computed on. |
 | `coupon_code` | string \| null | Coupon code applied, if any. |
 | `delivery_target` | string \| null | Who receives the purchase, typically the buyer's in-game name. |
@@ -119,7 +119,7 @@ GET /v1/orders
 | `limit`, `starting_after`, `ending_before` | [Pagination](/dev/developer-api/pagination). Results run oldest first. |
 
 ```bash
-curl "https://api.2pay.gg/v1/orders?status=paid&limit=50" \
+curl "https://api.ipago.io/v1/orders?status=paid&limit=50" \
   -H "Authorization: Bearer sk_live_..."
 ```
 
@@ -130,7 +130,7 @@ GET /v1/orders/{id}
 ```
 
 ```bash
-curl https://api.2pay.gg/v1/orders/ord_01M5MWDACTVABBZT3E8T2B6QA5 \
+curl https://api.ipago.io/v1/orders/ord_01M5MWDACTVABBZT3E8T2B6QA5 \
   -H "Authorization: Bearer sk_live_..."
 ```
 

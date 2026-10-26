@@ -3,17 +3,17 @@ import type { ReactNode } from "react";
 import type { Metadata } from "next";
 import { Hanken_Grotesk, Geist, Geist_Mono } from "next/font/google";
 
-const DOCS_URL = "https://docs.2pay.gg";
-const DOCS_DESCRIPTION = "Developer and creator documentation for 2Pay — the Merchant of Record payments engine for games. Guides, API reference, and webstore setup.";
+const DOCS_URL = "https://docs.ipago.io";
+const DOCS_DESCRIPTION = "Developer and creator documentation for iPago — the Merchant of Record payments engine for games. Guides, API reference, and webstore setup.";
 
 export const metadata: Metadata = {
   metadataBase: new URL(DOCS_URL),
-  title: { default: "2Pay Documentation", template: "%s | 2Pay Docs" },
+  title: { default: "iPago Documentation", template: "%s | iPago Docs" },
   description: DOCS_DESCRIPTION,
-  applicationName: "2Pay Documentation",
+  applicationName: "iPago Documentation",
   alternates: { canonical: "/" },
-  openGraph: { type: "website", siteName: "2Pay Documentation", title: "2Pay Documentation", description: DOCS_DESCRIPTION, url: DOCS_URL, locale: "en_US" },
-  twitter: { card: "summary", title: "2Pay Documentation", description: DOCS_DESCRIPTION },
+  openGraph: { type: "website", siteName: "iPago Documentation", title: "iPago Documentation", description: DOCS_DESCRIPTION, url: DOCS_URL, locale: "en_US" },
+  twitter: { card: "summary", title: "iPago Documentation", description: DOCS_DESCRIPTION },
   robots: { index: true, follow: true },
 };
 

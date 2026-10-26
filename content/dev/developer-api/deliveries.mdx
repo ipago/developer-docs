@@ -7,8 +7,8 @@ A **delivery** is the fulfillment record for a single order line item. It answer
 one question: has the buyer actually received this thing yet? When an order is
 paid, every line item gets exactly one delivery, identified by a `del_` id.
 
-Deliveries are where your integration does its real work. 2Pay handles the money;
-**you** grant the rank, send the key, or run the command, then tell 2Pay it is
+Deliveries are where your integration does its real work. iPago handles the money;
+**you** grant the rank, send the key, or run the command, then tell iPago it is
 done.
 
 Reading requires `deliveries:read`; completing or failing requires
@@ -82,7 +82,7 @@ GET /v1/deliveries
 | `limit`, `starting_after`, `ending_before` | [Pagination](/dev/developer-api/pagination). Results run oldest first. |
 
 ```bash
-curl "https://api.2pay.gg/v1/deliveries?status=pending" \
+curl "https://api.ipago.io/v1/deliveries?status=pending" \
   -H "Authorization: Bearer sk_live_..."
 ```
 
@@ -105,7 +105,7 @@ POST /v1/deliveries/{id}/complete
 ```
 
 ```bash
-curl -X POST https://api.2pay.gg/v1/deliveries/del_01M5MWF2T4C0J8B7K2Q9X1VZ3P/complete \
+curl -X POST https://api.ipago.io/v1/deliveries/del_01M5MWF2T4C0J8B7K2Q9X1VZ3P/complete \
   -H "Authorization: Bearer sk_live_..." \
   -H "Content-Type: application/json" \
   -d '{ "note": "Granted VIP to Notch" }'
@@ -133,7 +133,7 @@ POST /v1/deliveries/{id}/fail
 ```
 
 ```bash
-curl -X POST https://api.2pay.gg/v1/deliveries/del_01M5MWF2T4C0J8B7K2Q9X1VZ3P/fail \
+curl -X POST https://api.ipago.io/v1/deliveries/del_01M5MWF2T4C0J8B7K2Q9X1VZ3P/fail \
   -H "Authorization: Bearer sk_live_..." \
   -H "Content-Type: application/json" \
   -d '{ "note": "Key pool empty" }'
@@ -147,7 +147,7 @@ This sets `status: "failed"`, stores `note`, and emits
 
 | Fulfillment | Who confirms |
 | --- | --- |
-| In-game items, ranks, commands | Your game server, via the [Game API](/dev/game-api/overview). When the plugin reports the queued commands as done, 2Pay completes the delivery for you. |
+| In-game items, ranks, commands | Your game server, via the [Game API](/dev/game-api/overview). When the plugin reports the queued commands as done, iPago completes the delivery for you. |
 | License keys, roles, account flags handled by your backend | Your backend, via `POST /v1/deliveries/{id}/complete`. |
 
 For the game-server path you generally never call these endpoints by hand. Use

@@ -10,9 +10,9 @@ export const dynamic = "force-static";
 
 export function GET() {
   const parts: string[] = [
-    "# 2Pay Documentation (full text)",
+    "# iPago Documentation (full text)",
     "",
-    "> 2Pay is a Merchant of Record for game monetization: hosted webstores, an embedded checkout, a developer API, a Game API for game servers, and payouts. This file contains every documentation page except the generated API reference; for exact request and response shapes, read the OpenAPI spec at https://docs.2pay.gg/openapi.json.",
+    "> iPago is a Merchant of Record for game monetization: hosted webstores, an embedded checkout, a developer API, a Game API for game servers, and payouts. This file contains every documentation page except the generated API reference; for exact request and response shapes, read the OpenAPI spec at https://docs.ipago.io/openapi.json.",
     "",
   ];
 

@@ -40,7 +40,7 @@ Requires the `disputes:read` scope.
 | `evidence_due_by` | string \| null | Deadline for submitting evidence. After it, the dispute is decided on what was sent. |
 | `evidence_submitted_at` | string \| null | When evidence was submitted, or `null` if none yet. |
 | `evidence_text` | string \| null | The defence exactly as it was sent to the payment provider. |
-| `evidence_submitted_by` | string \| null | Who submitted it: `merchant` (you, from the panel) or `admin` (2Pay staff). |
+| `evidence_submitted_by` | string \| null | Who submitted it: `merchant` (you, from the panel) or `admin` (iPago staff). |
 | `created` | string | When the dispute was opened. |
 | `closed_at` | string \| null | When it was decided. |
 
@@ -51,7 +51,7 @@ Requires the `disputes:read` scope.
 - **`lost`**: resolved against you. The order becomes `disputed` and the order's
   net `total`, less anything already refunded, is taken back from your balance.
 
-2Pay emits `dispute.created`, `dispute.won`, and `dispute.lost`
+iPago emits `dispute.created`, `dispute.won`, and `dispute.lost`
 [events](/dev/developer-api/events) as a dispute moves through these states.
 
 ## List disputes
@@ -66,7 +66,7 @@ GET /v1/disputes
 | `limit`, `starting_after`, `ending_before` | [Pagination](/dev/developer-api/pagination). Results run oldest first. |
 
 ```bash
-curl "https://api.2pay.gg/v1/disputes?status=open" \
+curl "https://api.ipago.io/v1/disputes?status=open" \
   -H "Authorization: Bearer sk_live_..."
 ```
 

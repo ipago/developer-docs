@@ -1,24 +1,24 @@
 ---
 title: Developers
-description: Integrate 2Pay into your site, app, or game with the Developer API, Game API, and webhooks.
+description: Integrate iPago into your site, app, or game with the Developer API, Game API, and webhooks.
 ---
 
-The **2Pay Developer docs** are the technical reference for wiring 2Pay into
+The **iPago Developer docs** are the technical reference for wiring iPago into
 software you already run: a website, a backend service, a game server, or a
 storefront. Everything here assumes one thing about your account, so let's get it
 out of the way first.
 
-## How 2Pay is shaped
+## How iPago is shaped
 
-2Pay is a **Merchant of Record (MoR)**. When a buyer pays, 2Pay is the seller on
-record, so 2Pay owns the parts of a sale that are painful to build yourself:
+iPago is a **Merchant of Record (MoR)**. When a buyer pays, iPago is the seller on
+record, so iPago owns the parts of a sale that are painful to build yourself:
 payment processing, sales tax and VAT, fraud screening, chargebacks, and your
 payouts. Your integration never touches card data and never has to register for
 tax in dozens of jurisdictions.
 
 Because of that, the developer surface is split cleanly in two:
 
-- **The panel at [app.2pay.gg](https://app.2pay.gg)** is where products,
+- **The panel at [app.ipago.io](https://app.ipago.io)** is where products,
   prices, categories, themes, and payout details are **created and
   configured**. This is the source of truth.
 - **The APIs documented here** let your own systems **read** that catalog,
@@ -47,11 +47,11 @@ These are the two ways a buyer can actually reach a checkout.
 
 <Cards>
   <Card title="Webstores" href="/dev/webstores/overview">
-    A hosted storefront on your own 2Pay subdomain, styled with themes. No
+    A hosted storefront on your own iPago subdomain, styled with themes. No
     frontend code required.
   </Card>
   <Card title="Checkout" href="/dev/checkout/overview">
-    Drop the 2Pay checkout straight into your existing site or app, so buyers
+    Drop the iPago checkout straight into your existing site or app, so buyers
     pay without ever leaving your page.
   </Card>
 </Cards>

@@ -1,13 +1,13 @@
 {
   "openapi": "3.0.3",
   "info": {
-    "title": "2Pay API",
+    "title": "iPago API",
     "version": "1.0.0",
-    "description": "The public 2Pay API: the Developer API, the Storefront API and the Game API. Generated from the API's own OpenAPI document. Reference: https://docs.2pay.gg/dev/reference"
+    "description": "The public iPago API: the Developer API, the Storefront API and the Game API. Generated from the API's own OpenAPI document. Reference: https://docs.ipago.io/dev/reference"
   },
   "servers": [
     {
-      "url": "https://api.2pay.gg"
+      "url": "https://api.ipago.io"
     }
   ],
   "tags": [
@@ -41,7 +41,7 @@
     },
     {
       "name": "Webhook endpoints and events",
-      "description": "Register the URLs 2Pay sends events to, send a test event, and read past events."
+      "description": "Register the URLs iPago sends events to, send a test event, and read past events."
     },
     {
       "name": "Storefront",
@@ -67,7 +67,7 @@
       "ServerToken": {
         "type": "apiKey",
         "in": "header",
-        "name": "X-2Pay-Server-Token",
+        "name": "X-iPago-Server-Token",
         "description": "A game server token."
       },
       "BasketToken": {
@@ -2721,7 +2721,7 @@
           }
         },
         "summary": "Create a refund",
-        "description": "Refunds the order in full. Partial refunds can only be issued by 2Pay staff.",
+        "description": "Refunds the order in full. Partial refunds can only be issued by iPago staff.",
         "tags": [
           "Refunds"
         ],
@@ -12125,7 +12125,7 @@
         ],
         "servers": [
           {
-            "url": "https://game.2pay.gg"
+            "url": "https://game.ipago.io"
           }
         ]
       },
@@ -12280,7 +12280,7 @@
         ],
         "servers": [
           {
-            "url": "https://game.2pay.gg"
+            "url": "https://game.ipago.io"
           }
         ]
       }
@@ -12486,7 +12486,7 @@
         ],
         "servers": [
           {
-            "url": "https://game.2pay.gg"
+            "url": "https://game.ipago.io"
           }
         ]
       }
@@ -12643,7 +12643,7 @@
         ],
         "servers": [
           {
-            "url": "https://game.2pay.gg"
+            "url": "https://game.ipago.io"
           }
         ]
       }
@@ -12810,7 +12810,7 @@
         ],
         "servers": [
           {
-            "url": "https://game.2pay.gg"
+            "url": "https://game.ipago.io"
           }
         ]
       }

@@ -8,7 +8,7 @@ items, optionally apply a coupon or gift card, and then check out to get a
 payment session.
 
 All routes below take the store's slug. Purchases in live mode need a **live**
-store, one approved by 2Pay; for any other store every basket route returns
+store, one approved by iPago; for any other store every basket route returns
 `404 resource_missing`. To try purchases before approval, use
 [test mode](#test-mode).
 
@@ -20,7 +20,7 @@ minute.
 ## 1. Create a basket
 
 ```bash
-curl -X POST https://api.2pay.gg/v1/storefront/myshop/baskets \
+curl -X POST https://api.ipago.io/v1/storefront/myshop/baskets \
   -H "Content-Type: application/json" \
   -d '{ "game_username": "Steve" }'
 ```
@@ -49,7 +49,7 @@ The response is `201` with the basket and, **only this once**, its `token`:
 }
 ```
 
-Store both the `id` and the `token`. The token is the basket's secret: 2Pay keeps
+Store both the `id` and the `token`. The token is the basket's secret: iPago keeps
 only a hash of it and never returns it again. A basket expires 24 hours after it
 is created (`expires_at`).
 
@@ -60,7 +60,7 @@ header. Without it you get `401 basket_token_required`; with a wrong token, or a
 basket from another store, you get `404 resource_missing`.
 
 ```bash
-curl https://api.2pay.gg/v1/storefront/myshop/baskets/bskt_01M5MWGBZQ5H7PDK7ZNQ91AC15 \
+curl https://api.ipago.io/v1/storefront/myshop/baskets/bskt_01M5MWGBZQ5H7PDK7ZNQ91AC15 \
   -H "X-Basket-Token: bskt_example"
 ```
 
@@ -70,7 +70,7 @@ curl https://api.2pay.gg/v1/storefront/myshop/baskets/bskt_01M5MWGBZQ5H7PDK7ZNQ9
 ## 2. Add and remove items
 
 ```bash
-curl -X POST https://api.2pay.gg/v1/storefront/myshop/baskets/bskt_01M5MWGBZQ5H7PDK7ZNQ91AC15/items \
+curl -X POST https://api.ipago.io/v1/storefront/myshop/baskets/bskt_01M5MWGBZQ5H7PDK7ZNQ91AC15/items \
   -H "X-Basket-Token: bskt_example" \
   -H "Content-Type: application/json" \
   -d '{ "product": "prod_01M5MWGB718BWKF7MDP3BX63TY", "quantity": 2 }'
@@ -88,7 +88,7 @@ basket unchanged.
 ## 3. Apply a coupon or gift card (optional)
 
 ```bash
-curl -X POST https://api.2pay.gg/v1/storefront/myshop/baskets/bskt_01M5MWGBZQ5H7PDK7ZNQ91AC15/coupon \
+curl -X POST https://api.ipago.io/v1/storefront/myshop/baskets/bskt_01M5MWGBZQ5H7PDK7ZNQ91AC15/coupon \
   -H "X-Basket-Token: bskt_example" \
   -H "Content-Type: application/json" \
   -d '{ "code": "LAUNCH10" }'
@@ -104,7 +104,7 @@ product. Invalid codes return `400` with a code such as `coupon_expired`,
 ## 4. Check out
 
 ```bash
-curl -X POST https://api.2pay.gg/v1/storefront/myshop/baskets/bskt_01M5MWGBZQ5H7PDK7ZNQ91AC15/checkout \
+curl -X POST https://api.ipago.io/v1/storefront/myshop/baskets/bskt_01M5MWGBZQ5H7PDK7ZNQ91AC15/checkout \
   -H "X-Basket-Token: bskt_example" \
   -H "Content-Type: application/json" \
   -d '{ "customer_email": "player@example.com", "method": "card", "country": "PL" }'
@@ -116,7 +116,7 @@ curl -X POST https://api.2pay.gg/v1/storefront/myshop/baskets/bskt_01M5MWGBZQ5H7
 | `method` | no | A payment method key from the store's `payment_methods` (for example `card`, `blik`, `paypal`). The checkout opens on that method. A key the store does not offer returns `400 invalid_payment_method`. |
 | `country` | no | ISO 3166-1 alpha-2 buyer country, used to compute VAT. |
 
-There is no `return_url`: after payment the buyer is sent to 2Pay's hosted
+There is no `return_url`: after payment the buyer is sent to iPago's hosted
 confirmation page. If you need your own return page, create the checkout from
 your server with the Developer API [`POST /v1/checkouts`](/dev/checkout/integrating),
 which accepts `return_url`.
@@ -137,7 +137,7 @@ The response is `201`:
 `client_secret` opens the payment provider's embedded checkout. Today the hosted
 storefront is the only front end that mounts it: the publishable key needed to
 mount it on your own page is not exposed by the API, and the
-[2Pay checkout widget](/dev/checkout/overview) is not released yet.
+[iPago checkout widget](/dev/checkout/overview) is not released yet.
 
 Other errors: `400 basket_empty`, `403 customer_blocked` when the merchant has
 blocked this player, and `503 test_payments_unconfigured` in test mode when no
@@ -149,7 +149,7 @@ The confirmation page resolves the order from the payment session id it receives
 on return:
 
 ```bash
-curl https://api.2pay.gg/v1/storefront/myshop/orders/by-session/cs_test_123
+curl https://api.ipago.io/v1/storefront/myshop/orders/by-session/cs_test_123
 ```
 
 It returns a display-safe `storefront_order` (status, totals, items, delivery
@@ -165,7 +165,7 @@ store goes live. Add `mode=test` and a preview token to the query string of any
 storefront or basket route:
 
 ```bash
-curl -X POST "https://api.2pay.gg/v1/storefront/myshop/baskets?mode=test&preview=<token>" \
+curl -X POST "https://api.ipago.io/v1/storefront/myshop/baskets?mode=test&preview=<token>" \
   -H "Content-Type: application/json" \
   -d '{ "game_username": "Steve" }'
 ```

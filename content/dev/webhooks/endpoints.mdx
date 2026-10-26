@@ -18,12 +18,12 @@ You can also create endpoints over the Developer API with a key that has the
 `webhooks:write` scope. The body is JSON:
 
 ```bash
-curl https://api.2pay.gg/v1/webhook_endpoints \
+curl https://api.ipago.io/v1/webhook_endpoints \
   -H "Authorization: Bearer sk_live_..." \
   -H "Content-Type: application/json" \
   -H "Idempotency-Key: $(uuidgen)" \
   -d '{
-    "url": "https://example.com/hooks/2pay",
+    "url": "https://example.com/hooks/ipago",
     "events": ["order.paid", "delivery.pending"]
   }'
 ```
@@ -35,7 +35,7 @@ returned this once and never again:
 {
   "object": "webhook_endpoint",
   "id": "we_01JB7R0D4F7H2K5M8P1S4V7Y0B",
-  "url": "https://example.com/hooks/2pay",
+  "url": "https://example.com/hooks/ipago",
   "events": ["order.paid", "delivery.pending"],
   "status": "active",
   "created": "2026-06-28T12:00:00.000Z",
@@ -53,7 +53,7 @@ returned this once and never again:
 
 <Callout type="warn">
   Store the `secret` immediately and treat it like a password. It is how you
-  prove a delivery is genuinely from 2Pay. If it leaks,
+  prove a delivery is genuinely from iPago. If it leaks,
   [rotate it](#rotating-the-signing-secret) and update your handler.
 </Callout>
 
@@ -77,7 +77,7 @@ POST   /v1/webhook_endpoints/{id}/test   # send a test     (webhooks:write)
 ```
 
 ```bash
-curl https://api.2pay.gg/v1/webhook_endpoints \
+curl https://api.ipago.io/v1/webhook_endpoints \
   -H "Authorization: Bearer sk_live_..."
 ```
 
@@ -99,7 +99,7 @@ The test route is covered in
 ## Disabled endpoints
 
 An endpoint is `disabled` either because you switched it off in the panel or
-because 2Pay gave up on it: when one delivery fails all 15
+because iPago gave up on it: when one delivery fails all 15
 [attempts](/dev/webhooks/delivery-and-testing#retries), the endpoint is
 disabled so a dead URL does not pile up a queue. Its remaining queued deliveries
 are marked failed, and no new events are queued for it.
@@ -114,10 +114,10 @@ In the panel, open the endpoint and choose **Rotate secret**. You get a new
 
 Rotation does not cut the old secret off straight away. For the next **24
 hours** every delivery is signed with **both** secrets, so the
-`2Pay-Signature` header carries two `v1=` values:
+`iPago-Signature` header carries two `v1=` values:
 
 ```
-2Pay-Signature: t=1751110929,v1=<signature with new secret>,v1=<signature with old secret>
+iPago-Signature: t=1751110929,v1=<signature with new secret>,v1=<signature with old secret>
 ```
 
 That window lets you deploy the new secret to your receiver after rotating,

@@ -67,13 +67,13 @@ export default function HomePage() {
         <div className="pointer-events-none absolute -top-20 right-10 h-64 w-64 rounded-full bg-[#7C5CFF]/[0.06] blur-3xl" />
         <div className="relative mx-auto max-w-5xl px-6 py-20 text-center sm:py-24">
           <p className="mb-4 font-mono text-xs font-medium uppercase tracking-[0.18em] text-[hsl(var(--fd-muted-foreground))]">
-            2Pay Documentation
+            iPago Documentation
           </p>
           <h1 className="mx-auto max-w-2xl text-4xl font-extrabold tracking-tight sm:text-5xl">
-            Everything you need to sell and build on 2Pay
+            Everything you need to sell and build on iPago
           </h1>
           <p className="mx-auto mt-5 max-w-xl text-lg leading-relaxed text-[hsl(var(--fd-muted-foreground))]">
-            2Pay is your Merchant of Record. We handle payments, tax, and payouts. These docs cover
+            iPago is your Merchant of Record. We handle payments, tax, and payouts. These docs cover
             running your store and integrating the API, webhooks, and storefront.
           </p>
           <div className="mt-8 flex flex-wrap items-center justify-center gap-3">

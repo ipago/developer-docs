@@ -1,10 +1,10 @@
 ---
 title: Overview
-description: Take a 2Pay payment on your own site with a server-created checkout and an embeddable payment form.
+description: Take an iPago payment on your own site with a server-created checkout and an embeddable payment form.
 ---
 
 <Callout type="warn">
-  **Coming soon.** The 2Pay checkout widget (`@2pay/checkout`) is not published to
+  **Coming soon.** The iPago checkout widget (`@ipago/checkout`) is not published to
   npm and is not served from a CDN yet, so you cannot load it on your own site
   today. These pages describe what the package does in its current form so you
   can plan an integration. The server side, `POST /v1/checkouts`, is available
@@ -12,13 +12,13 @@ description: Take a 2Pay payment on your own site with a server-created checkout
 </Callout>
 
 **Checkout** lets the purchase happen on your own website, launcher, or app
-while 2Pay stays the [Merchant of Record](/dev): 2Pay collects the payment,
+while iPago stays the [Merchant of Record](/dev): iPago collects the payment,
 handles tax, and settles with you. You never touch card data.
 
 ## Products come first
 
 A checkout sells products you have **already defined in the panel at
-[app.2pay.gg](https://app.2pay.gg)**, referenced by their `prod_` id. It does not
+[app.ipago.io](https://app.ipago.io)**, referenced by their `prod_` id. It does not
 create products on the fly, so your catalog stays the single source of truth.
 
 ## The shape of an integration
@@ -27,7 +27,7 @@ An integration has two halves, and the split matters for security:
 
 1. **Server side.** Your backend calls the
    [Developer API](/dev/developer-api/overview) `POST /v1/checkouts` with your
-   secret key. 2Pay creates an order (`ord_` id) and returns a `client_secret`
+   secret key. iPago creates an order (`ord_` id) and returns a `client_secret`
    for the payment session.
 2. **Client side.** The widget renders a short form you define (for example a
    username and an email), passes the values to a callback you write, and that
@@ -35,7 +35,7 @@ An integration has two halves, and the split matters for security:
    payment provider's embedded checkout on your page with it.
 
 ```
-Browser (widget)                 Your server                     2Pay
+Browser (widget)                 Your server                     iPago
   │ buyer fills your form          │                               │
   │ createSession(values) ───────▶ │                               │
   │                                │ POST /v1/checkouts ─────────▶ │
@@ -46,7 +46,7 @@ Browser (widget)                 Your server                     2Pay
   │                                │ ◀──────── order.paid webhook ─│
 ```
 
-The widget never calls the 2Pay API and never sees a secret key.
+The widget never calls the iPago API and never sees a secret key.
 
 ## Confirm payments server-side, always
 

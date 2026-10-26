@@ -3,9 +3,9 @@ title: Overview
 description: Signed, retried event callbacks that push store changes to your backend in real time.
 ---
 
-**Webhooks** are how 2Pay tells your systems that something happened, the moment
+**Webhooks** are how iPago tells your systems that something happened, the moment
 it happens: a payment cleared, an item is ready to deliver, a payout landed.
-Instead of polling our API on a loop, you register a URL once and 2Pay sends a
+Instead of polling our API on a loop, you register a URL once and iPago sends a
 signed `POST` to it for each event you care about.
 
 Webhooks are the real-time backbone of both the
@@ -18,12 +18,12 @@ Webhooks are the real-time backbone of both the
    subscribe it to one or more [event types](/dev/webhooks/events), or to `*`
    for everything. It is `active` straight away; there is no handshake to
    complete.
-2. Whenever a subscribed event occurs, 2Pay `POST`s the
+2. Whenever a subscribed event occurs, iPago `POST`s the
    [event object](/dev/developer-api/events) to your URL as JSON, signed with
    the endpoint's secret.
 3. Your server [verifies the signature](/dev/webhooks/verifying-signatures),
    acks fast with a `2xx`, and processes the event asynchronously.
-4. If your endpoint is down or returns a non-`2xx`, 2Pay
+4. If your endpoint is down or returns a non-`2xx`, iPago
    [retries with backoff](/dev/webhooks/delivery-and-testing#retries) for about
    a day and a half.
 
@@ -60,8 +60,8 @@ Dispatch on `type`, then read `data` (its `data.object` field names the
 resource kind). The full catalog of types and their payloads is in
 [Events](/dev/webhooks/events).
 
-Each request also carries `2Pay-Event-Type`, `2Pay-Event-Id` and
-`2Pay-Delivery-Id` headers, so you can route or deduplicate before parsing the
+Each request also carries `iPago-Event-Type`, `iPago-Event-Id` and
+`iPago-Delivery-Id` headers, so you can route or deduplicate before parsing the
 body. See [Delivery headers](/dev/webhooks/verifying-signatures#delivery-headers).
 
 ## The four rules that keep webhooks reliable
@@ -74,7 +74,7 @@ body. See [Delivery headers](/dev/webhooks/verifying-signatures#delivery-headers
 1. **Verify every signature** before trusting a body. Anyone can `POST` to a
    public URL; the signature is what proves it was us. See
    [Verifying signatures](/dev/webhooks/verifying-signatures).
-2. **Respond `2xx` quickly** and do the real work after. 2Pay waits at most 30
+2. **Respond `2xx` quickly** and do the real work after. iPago waits at most 30
    seconds for an answer; a slower handler counts as a failure and is retried.
 3. **Be idempotent.** The same event can arrive more than once (retries,
    network hiccups). Deduplicate on the event `id`, which is the same on every
@@ -100,7 +100,7 @@ small payload per paid item to a URL set on the product itself.
     Register a URL, choose events, rotate the secret.
   </Card>
   <Card title="Verifying signatures" href="/dev/webhooks/verifying-signatures">
-    Prove a request really came from 2Pay.
+    Prove a request really came from iPago.
   </Card>
   <Card title="Events" href="/dev/webhooks/events">
     Every event type and the shape of its payload.

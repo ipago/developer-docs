@@ -8,9 +8,9 @@ returns a client secret, and the browser widget that mounts the payment form on
 your page.
 
 <Callout type="warn">
-  **Coming soon.** The widget, `@2pay/checkout`, is not published to npm and is
+  **Coming soon.** The widget, `@ipago/checkout`, is not published to npm and is
   not on a CDN yet, so you cannot install or load it today. Step 1 works now;
-  step 2 documents the widget as it exists in the 2Pay codebase, so you can
+  step 2 documents the widget as it exists in the iPago codebase, so you can
   prepare for it.
 </Callout>
 
@@ -21,7 +21,7 @@ products they chose. This uses your [secret key](/dev/developer-api/authenticati
 with the `checkouts:write` scope, so it must run on your server.
 
 ```bash
-curl https://api.2pay.gg/v1/checkouts \
+curl https://api.ipago.io/v1/checkouts \
   -H "Authorization: Bearer sk_live_..." \
   -H "Idempotency-Key: $(uuidgen)" \
   -H "Content-Type: application/json" \
@@ -41,12 +41,12 @@ curl https://api.2pay.gg/v1/checkouts \
 | `customer_email` | no | Pre-fills the buyer's email and receives the receipt. |
 | `delivery_target` | no | In-game username, for products that deliver to a player. |
 | `country` | no | ISO 3166-1 alpha-2 buyer country, used to compute VAT. Omit for non-taxable. |
-| `return_url` | no | Where the buyer is sent after paying. `{CHECKOUT_SESSION_ID}` is replaced with the payment session id. Defaults to 2Pay's hosted confirmation page. |
+| `return_url` | no | Where the buyer is sent after paying. `{CHECKOUT_SESSION_ID}` is replaced with the payment session id. Defaults to iPago's hosted confirmation page. |
 
 `POST /v1/checkouts` supports `Idempotency-Key`. Always send one: retrying a
 checkout without it is how a single purchase becomes two orders.
 
-A live key only works once the store is approved by 2Pay; before that the call
+A live key only works once the store is approved by iPago; before that the call
 returns `403 store_not_live`. Test keys work at any time.
 
 The response carries the `client_secret` your frontend needs:
@@ -72,7 +72,7 @@ with their values, and swaps the form for the payment provider's embedded
 checkout once your server returns a `client_secret`.
 
 ```js
-import { mount } from "@2pay/checkout"; // not on npm yet
+import { mount } from "@ipago/checkout"; // not on npm yet
 
 const handle = mount({
   element: "#checkout",
@@ -99,11 +99,11 @@ handle.unmount();
 ```
 
 The package also builds a script-tag version that exposes the same function as
-`TwoPayCheckout.mount`. Neither form is hosted yet.
+`IPagoCheckout.mount`. Neither form is hosted yet.
 
-The `publishableKey` is the payment provider's public key for 2Pay's account. It
+The `publishableKey` is the payment provider's public key for iPago's account. It
 is safe in the browser, but there is no way to look it up through the API today;
-2Pay will provide it when the widget is released.
+iPago will provide it when the widget is released.
 
 Every option is listed in [Configuration](/dev/checkout/configuration). What the
 widget reports back is in [Events](/dev/checkout/events).
