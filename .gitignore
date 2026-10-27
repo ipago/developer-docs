@@ -1,0 +1,25 @@
+node_modules
+.pnp
+.pnp.*
+
+.next
+out
+build
+dist
+coverage
+.turbo
+.source
+*.tsbuildinfo
+
+# Local env. .env.example is the only env file that belongs in git.
+.env
+.env.*
+!.env.example
+
+# Full platform OpenAPI document. It includes non-public routes, so it stays local.
+openapi.source.json
+
+.DS_Store
+*.log
+npm-debug.log*
+.pnpm-debug.log*
