@@ -8,7 +8,7 @@ export function GET() {
   const lines: string[] = [
     "# iPago Documentation",
     "",
-    "> iPago is a Merchant of Record for game monetization: hosted webstores, an embedded checkout, a developer API, and global payouts. The raw markdown of any page below is available by prefixing its path with /md.",
+    "> iPago Sp. z o.o. is a reseller for game monetization: it buys licences from suppliers and sells them to players in its own name. Hosted webstores, an embedded checkout, a developer API, and weekly purchase invoices. The raw markdown of any page below is available by prefixing its path with /md.",
     "",
     "Every page in one file: https://docs.ipago.io/llms-full.txt",
     "OpenAPI spec: https://docs.ipago.io/openapi.json",

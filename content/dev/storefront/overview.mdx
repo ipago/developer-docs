@@ -31,6 +31,10 @@ render: `display_name`, `description`, `logo_url`, `accent_color`, `theme`,
 `?country=PL` (ISO 3166-1 alpha-2) to get the matching `vat_rate_bps` for gross
 price display.
 
+The same object still includes `business_name` and `support_email`. Those field
+names stay until a later API change. The hosted storefront does not render them.
+Its footer names iPago Sp. z o.o. as the only seller.
+
 ## Which stores answer
 
 Only a **live** store (approved by iPago) is visible. A draft, pending or rejected

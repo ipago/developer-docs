@@ -61,11 +61,11 @@ trust the shape of `data`.
 | `subscription.renewed` | A recurring plan bills for another period. | `subscription` |
 | `subscription.canceled` | A recurring plan ends and will not bill again. | `subscription` |
 | `payout.created` | A payout is requested. | `payout` |
-| `payout.paid` | A payout is sent to your bank account. | `payout` |
-| `payout.failed` | A payout is returned and the amount goes back to your balance. | `payout` |
+| `payout.paid` | A `payout` is marked paid. Supplier settlement is the weekly invoice, not this event. | `payout` |
+| `payout.failed` | A `payout` is marked failed. The event name stays until the ledger change. | `payout` |
 | `dispute.created` | A buyer's bank charges back an order. | `dispute` |
-| `dispute.won` | A dispute is resolved in your favour. | `dispute` |
-| `dispute.lost` | A dispute is resolved against you. | `dispute` |
+| `dispute.won` | A dispute is decided for the seller. | `dispute` |
+| `dispute.lost` | A dispute is decided against the seller. | `dispute` |
 | `endpoint.test` | You sent a test event to a webhook endpoint. | `{ "endpoint": "we_..." }` |
 
 <Callout type="info">

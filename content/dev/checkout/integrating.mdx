@@ -68,8 +68,8 @@ to this one payment and carries no account-level power.
 ## 2. Mount the form (client side)
 
 The widget renders the fields you ask for, calls your `createSession` callback
-with their values, and swaps the form for the payment provider's embedded
-checkout once your server returns a `client_secret`.
+with their values, and swaps the form for the embedded card checkout once your
+server returns a `client_secret`.
 
 ```js
 import { mount } from "@ipago/checkout"; // not on npm yet
@@ -101,7 +101,8 @@ handle.unmount();
 The package also builds a script-tag version that exposes the same function as
 `IPagoCheckout.mount`. Neither form is hosted yet.
 
-The `publishableKey` is the payment provider's public key for iPago's account. It
+The `publishableKey` is the public key for the embedded card checkout on iPago's
+account. It
 is safe in the browser, but there is no way to look it up through the API today;
 iPago will provide it when the widget is released.
 

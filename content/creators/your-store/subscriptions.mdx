@@ -17,7 +17,8 @@ subscription**.
   renew; it ends at the close of the period already paid for.
 
 <Callout type="info">
-  As with one-off sales, tax and payment collection on every renewal are handled
-  for you. If you deliver through webhooks, react to `subscription.renewed` and
+  As with one-off sales, iPago bills the player and remits VAT on every renewal.
+  The purchase price is still the suggested retail price minus the margin. If you
+  deliver through webhooks, react to `subscription.renewed` and
   `subscription.canceled` to keep access in step.
 </Callout>

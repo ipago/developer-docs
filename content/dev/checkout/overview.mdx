@@ -11,9 +11,10 @@ description: Take an iPago payment on your own site with a server-created checko
   now.
 </Callout>
 
-**Checkout** lets the purchase happen on your own website, launcher, or app
-while iPago stays the [Merchant of Record](/dev): iPago collects the payment,
-handles tax, and settles with you. You never touch card data.
+**Checkout** lets the purchase happen on your own website, launcher, or app.
+iPago Sp. z o.o. is the seller to the player: the player pays iPago, and iPago
+owes you the purchase price. You never touch card data. See
+[Tax & VAT](/dev/developer-api/tax).
 
 ## Products come first
 
@@ -32,7 +33,7 @@ An integration has two halves, and the split matters for security:
 2. **Client side.** The widget renders a short form you define (for example a
    username and an email), passes the values to a callback you write, and that
    callback asks your server for the `client_secret`. The widget then mounts the
-   payment provider's embedded checkout on your page with it.
+   embedded card checkout on your page with it.
 
 ```
 Browser (widget)                 Your server                     iPago

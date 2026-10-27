@@ -20,7 +20,7 @@ required scope fails with `403`.
 | Prefix | Mode | Use it for |
 | --- | --- | --- |
 | `sk_test_` | Test | Building and automated tests. No real money moves. |
-| `sk_live_` | Live | Your real store and real payouts. |
+| `sk_live_` | Live | Your real store, live sales, and the current `/v1/payouts` routes. |
 
 Test and live keys address two completely separate datasets. A `prod_...` id
 created in live mode does not exist in test mode, and vice versa. See
@@ -47,9 +47,9 @@ key needs:
 | `deliveries:write` | Mark a delivery completed or failed. |
 | `refunds:read` | List and fetch refunds. |
 | `refunds:write` | Refund an order. |
-| `payouts:read` | List and fetch payouts. |
-| `payouts:write` | Request a payout. |
-| `ledger:read` | Read the balance and ledger entries. |
+| `payouts:read` | List and fetch `payout` objects (`GET /v1/payouts`). The name stays until the ledger change. |
+| `payouts:write` | Call `POST /v1/payouts`. Supplier settlement is the weekly invoice, not this scope. |
+| `ledger:read` | Read `GET /v1/balance` and ledger entries. The path stays until the ledger change. |
 | `disputes:read` | List and fetch disputes. |
 | `events:read` | List and fetch events. |
 | `webhooks:read` | List and fetch webhook endpoints. |

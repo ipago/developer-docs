@@ -34,7 +34,7 @@ const modules = [
     icon: <StoreIcon />,
     eyebrow: "For creators & sellers",
     title: "Creator guides",
-    body: "Launch your store, add products, set pricing, and get paid. Step by step, no code required.",
+    body: "Launch your store, add products, set a suggested retail price, and read the weekly invoice. Step by step, no code required.",
     cta: "Start selling",
     accent: "#7C5CFF",
   },
@@ -55,7 +55,7 @@ const popular = [
   { href: "/dev/checkout/overview", title: "Checkout", desc: "Embed the hosted, tax-inclusive checkout." },
   { href: "/dev/webhooks/overview", title: "Webhooks", desc: "Subscribe to sales, refunds, and disputes." },
   { href: "/creators/getting-started", title: "Get verified", desc: "Identity and project verification to go live." },
-  { href: "/creators/pricing", title: "Pricing & fees", desc: "How platform and gateway fees work." },
+  { href: "/creators/pricing", title: "Pricing", desc: "How the margin and the purchase price work." },
 ];
 
 export default function HomePage() {
@@ -73,8 +73,8 @@ export default function HomePage() {
             Everything you need to sell and build on iPago
           </h1>
           <p className="mx-auto mt-5 max-w-xl text-lg leading-relaxed text-[hsl(var(--fd-muted-foreground))]">
-            iPago is your Merchant of Record. We handle payments, tax, and payouts. These docs cover
-            running your store and integrating the API, webhooks, and storefront.
+            iPago Sp. z o.o. buys licences from suppliers and resells them to players in its own name.
+            These docs cover running your store and integrating the API, webhooks, and storefront.
           </p>
           <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
             <Link

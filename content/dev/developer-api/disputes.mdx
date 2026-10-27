@@ -5,7 +5,7 @@ description: Read chargebacks on your orders, their deadlines, and the evidence 
 
 A **dispute** (chargeback) is opened when a buyer asks their bank to reverse a
 payment. The bank decides the outcome, based in part on the evidence submitted
-in your defence. Over the API disputes are **read-only**: you list them and watch
+from the panel. Over the API disputes are **read-only**: you list them and watch
 their deadlines. You submit evidence in the panel, under **Inquiries**.
 
 Requires the `disputes:read` scope.
@@ -34,12 +34,12 @@ Requires the `disputes:read` scope.
 | --- | --- | --- |
 | `id` | string | Dispute id (`dp_`). |
 | `order` | string | The disputed order. |
-| `amount`, `currency` | integer, string | The disputed amount in minor units, as reported by the payment provider. |
-| `reason` | string \| null | The reason the bank gave, as reported by the payment provider. |
+| `amount`, `currency` | integer, string | The disputed amount in minor units, as reported by the acquirer. |
+| `reason` | string \| null | The reason the bank gave, as reported by the acquirer. |
 | `status` | string | `open`, `won`, or `lost`. |
 | `evidence_due_by` | string \| null | Deadline for submitting evidence. After it, the dispute is decided on what was sent. |
 | `evidence_submitted_at` | string \| null | When evidence was submitted, or `null` if none yet. |
-| `evidence_text` | string \| null | The defence exactly as it was sent to the payment provider. |
+| `evidence_text` | string \| null | The defence exactly as it was sent to the acquirer. |
 | `evidence_submitted_by` | string \| null | Who submitted it: `merchant` (you, from the panel) or `admin` (iPago staff). |
 | `created` | string | When the dispute was opened. |
 | `closed_at` | string \| null | When it was decided. |
@@ -47,9 +47,11 @@ Requires the `disputes:read` scope.
 ## Outcomes
 
 - **`open`**: the bank is reviewing it. Submit evidence before `evidence_due_by`.
-- **`won`**: resolved in your favour. The order stays `paid`.
-- **`lost`**: resolved against you. The order becomes `disputed` and the order's
-  net `total`, less anything already refunded, is taken back from your balance.
+- **`won`**: decided for the seller. The order stays `paid`. The dispute fee does
+  not reduce the purchase price.
+- **`lost`**: resolved against the seller. The order becomes `disputed`. A €15
+  dispute fee reduces the purchase price only when the supplier is at fault. See
+  [Refunds & disputes](/creators/getting-paid/refunds-and-disputes).
 
 iPago emits `dispute.created`, `dispute.won`, and `dispute.lost`
 [events](/dev/developer-api/events) as a dispute moves through these states.

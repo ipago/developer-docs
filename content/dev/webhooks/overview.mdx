@@ -4,7 +4,7 @@ description: Signed, retried event callbacks that push store changes to your bac
 ---
 
 **Webhooks** are how iPago tells your systems that something happened, the moment
-it happens: a payment cleared, an item is ready to deliver, a payout landed.
+it happens: a payment cleared, an item is ready to deliver, a `payout` event fired.
 Instead of polling our API on a loop, you register a URL once and iPago sends a
 signed `POST` to it for each event you care about.
 

@@ -33,7 +33,7 @@
     },
     {
       "name": "Balance and payouts",
-      "description": "Read your balance and ledger, and request payouts to your bank account."
+      "description": "Current ledger routes: /v1/balance, /v1/ledger_entries, and /v1/payouts. Paths and field names stay until the ledger change. Supplier settlement is the weekly purchase invoice."
     },
     {
       "name": "Deliveries",
@@ -4376,7 +4376,7 @@
           }
         },
         "summary": "Create a payout",
-        "description": "The account must have passed verification and have a payout destination on file.",
+        "description": "The account must have passed verification and have a bank account on file. This route remains until the ledger change. Supplier settlement is the weekly purchase invoice, paid by the invoice due date.",
         "tags": [
           "Balance and payouts"
         ],
@@ -7526,6 +7526,7 @@
           }
         },
         "summary": "Retrieve a storefront",
+        "description": "The response still includes business_name and support_email. The hosted storefront footer does not show them. It names iPago Sp. z o.o. as the only seller.",
         "tags": [
           "Storefront"
         ],

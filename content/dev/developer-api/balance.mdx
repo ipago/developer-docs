@@ -1,16 +1,26 @@
 ---
-title: Balance & ledger
-description: Read your available and pending balance and the underlying ledger entries.
+title: Ledger
+description: Read GET /v1/balance and ledger entries. These names stay until the ledger change.
 ---
 
-iPago keeps a double-entry ledger behind every sale, refund, payout, and dispute.
-You can read your balance and the raw entries through the API. These are
-read-only: money moves through checkouts, [refunds](/dev/developer-api/refunds),
-and [payouts](/dev/developer-api/payouts), never through direct writes.
+iPago keeps a double-entry ledger behind every sale, refund, dispute, and the
+legacy payout routes. You can read the entries through the API. These routes are
+read-only: money moves through checkouts,
+[refunds](/dev/developer-api/refunds), and the routes under
+[payouts](/dev/developer-api/payouts), never through direct writes.
+
+**This is not how iPago pays you.** iPago owes the purchase price (suggested
+retail price minus the margin) and pays it on a weekly self-billing purchase
+invoice, by the invoice due date. See
+[Invoice payment](/creators/getting-paid/invoices).
+
+`GET /v1/balance` and the field names on this page are the current API. They
+remain until the ledger change. The response is not the amount iPago owes the
+supplier.
 
 Both endpoints require the `ledger:read` scope.
 
-## Balance
+## `GET /v1/balance`
 
 ```
 GET /v1/balance
@@ -32,15 +42,14 @@ curl https://api.ipago.io/v1/balance \
 There is one entry per currency, and currencies with nothing in them are left
 out, so both arrays can be empty. Amounts are in minor units.
 
-- **`pending`** is what you earned within the payout hold window (7 days by
-  default): it is yours, but not yet withdrawable.
-- **`available`** is what you can request as a [payout](/dev/developer-api/payouts)
-  now. It can briefly go negative, for example after a refund or a lost dispute
-  is booked against earnings you already paid out.
+- **`pending`** and **`available`** are the two amount lists this endpoint
+  returns today. They are legacy ledger figures from before weekly invoices.
+- **`available`** can be negative after a later entry, for example a refund or a
+  lost dispute booked on this ledger.
 
 <Callout type="info">
-  VAT collected as Merchant of Record is a liability that iPago remits. It is
-  never part of your balance. See [Tax & VAT](/dev/developer-api/tax).
+  VAT on the sale to the player is iPago's liability. It is not part of the
+  purchase price. See [Tax & VAT](/dev/developer-api/tax).
 </Callout>
 
 ## Ledger entries
@@ -72,11 +81,12 @@ curl "https://api.ipago.io/v1/ledger_entries?limit=50" \
 
 | Field | Description |
 | --- | --- |
-| `account` | The ledger account, for example `creator_payable` (what iPago owes you), `platform_revenue`, `tax_payable`, or `payouts_payable`. |
+| `account` | The ledger account name the API returns today, for example `creator_payable`, `platform_revenue`, `tax_payable`, or `payouts_payable`. These names predate reseller settlement and stay until the ledger change. |
 | `direction` | `debit` or `credit`. |
 | `amount`, `currency` | The entry's amount in minor units. |
 | `transaction` | The ledger transaction (`ltx_`) this entry belongs to. The entries of one transaction always balance. |
 
-A sale, for example, is one transaction whose entries split the buyer's payment
-into your `creator_payable` share, iPago's fees, and the VAT in `tax_payable`, so
-every cent is auditable.
+A sale is one transaction. The entries of one transaction always balance, so
+every cent on this ledger is auditable. The amount iPago owes the supplier is the
+purchase price on the weekly invoice, not a reading of `creator_payable` or
+`payouts_payable`.

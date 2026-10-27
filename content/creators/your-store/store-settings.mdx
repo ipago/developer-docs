@@ -1,6 +1,6 @@
 ---
 title: Store settings
-description: Identity, tax display, and payment methods for your store.
+description: Store identity, tax display, and payment methods.
 ---
 
 How your store looks is set under **Webstore**; how it charges is set under
@@ -14,20 +14,22 @@ require a **player identifier** at checkout and choose its label (for example
 "Minecraft username"). The full list, with limits, is in
 [Webstore customization](/dev/webstores/customization).
 
-Under **Store settings**, set your **business name** and **support email**,
-both shown in your storefront's footer.
+The storefront footer names **iPago Sp. z o.o.** as the only seller. It does not
+show your business name or a support email. There is no contract between you and
+the player.
 
 ## Tax display
 
 Choose whether your prices are shown **exclusive** of tax (VAT added at checkout)
-or **inclusive** (VAT already in the price). iPago remits the tax either way as
-your Merchant of Record; this setting only changes the sticker price buyers see.
+or **inclusive** (VAT already in the price). iPago is the seller to the player and
+remits that VAT either way. This setting only changes the sticker price players
+see. It does not change the purchase price (RRP minus the margin).
 
 ## Payment methods
 
 You can limit your checkout to a chosen set of methods: Card, BLIK, Przelewy24,
-Klarna, PayPal, iDEAL, Bancontact, and Link. With no selection, the payment
-provider's default set applies.
+Klarna, PayPal, iDEAL, Bancontact, and Link. With no selection, iPago's default
+set applies.
 
 <Callout type="info">
   A payment method only appears if it is enabled for your store and available for

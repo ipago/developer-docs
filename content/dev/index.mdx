@@ -10,22 +10,25 @@ out of the way first.
 
 ## How iPago is shaped
 
-iPago is a **Merchant of Record (MoR)**. When a buyer pays, iPago is the seller on
-record, so iPago owns the parts of a sale that are painful to build yourself:
-payment processing, sales tax and VAT, fraud screening, chargebacks, and your
-payouts. Your integration never touches card data and never has to register for
-tax in dozens of jurisdictions.
+iPago Sp. z o.o. is a **reseller**. It buys the licence from you (the supplier)
+and sells it to the player in its own name. There is no contract between the
+supplier and the player. iPago calculates VAT on the player sale, screens fraud,
+and handles refunds, complaints, and chargebacks. It owes the purchase price
+(suggested retail price minus the margin) and pays that on a weekly invoice.
+Your integration never touches card data and never has to register for tax in the
+player's country for that sale.
 
 Because of that, the developer surface is split cleanly in two:
 
 - **The panel at [app.ipago.io](https://app.ipago.io)** is where products,
-  prices, categories, themes, and payout details are **created and
-  configured**. This is the source of truth.
+  prices, categories, themes, and the bank account for invoice payment are
+  **created and configured**. This is the source of truth.
 - **The APIs documented here** let your own systems **read** that catalog,
   **take payments** against it, **watch** what sells, **confirm** delivery,
-  **move money** (refunds and payouts), and **react** to events. They are a
-  synchronization and runtime layer, not a place to define new products on the
-  fly.
+  **refund** an order, and **react** to events. `GET /v1/balance` and
+  `/v1/payouts` are still in the API; those names remain until the ledger change
+  and are not the weekly invoice. The APIs are a synchronization and runtime
+  layer, not a place to define new products on the fly.
 
 <Callout type="info">
   If your mental model comes from Tebex: we cover the same ground (a hosted
@@ -63,15 +66,15 @@ These are the programmatic interfaces your servers talk to.
 <Cards>
   <Card title="Developer API" href="/dev/developer-api/overview">
     The headless HTTP API: read products and orders, create checkouts, confirm
-    delivery, issue refunds and payouts, and read disputes and events.
+    delivery, issue refunds, and read disputes and events.
   </Card>
   <Card title="Game API" href="/dev/game-api/overview">
     The runtime endpoint a game server or plugin polls to fetch and execute
     in-game deliveries, then report them complete.
   </Card>
   <Card title="Webhooks" href="/dev/webhooks/overview">
-    Signed, retried event callbacks that push order, delivery, payout, and
-    dispute changes to your backend the moment they happen.
+    Signed, retried event callbacks that push order, delivery, dispute, and
+    legacy `payout.*` events to your backend the moment they happen.
   </Card>
 </Cards>
 
@@ -83,6 +86,6 @@ page, they live in one place:
 [Developer API → Conventions](/dev/developer-api/conventions).
 
 <Callout type="info">
-  Looking for plans, fees, payouts, or general product information instead of
-  integration details? Head to the [Creator docs](/creators).
+  Looking for the margin, invoice payment, or general product information instead
+  of integration details? Head to the [Creator docs](/creators).
 </Callout>

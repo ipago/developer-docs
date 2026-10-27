@@ -4,7 +4,7 @@ import type { Metadata } from "next";
 import { Hanken_Grotesk, Geist, Geist_Mono } from "next/font/google";
 
 const DOCS_URL = "https://docs.ipago.io";
-const DOCS_DESCRIPTION = "Developer and creator documentation for iPago — the Merchant of Record payments engine for games. Guides, API reference, and webstore setup.";
+const DOCS_DESCRIPTION = "Developer and creator documentation for iPago. iPago Sp. z o.o. resells game licences: guides, API reference, and webstore setup.";
 
 export const metadata: Metadata = {
   metadataBase: new URL(DOCS_URL),

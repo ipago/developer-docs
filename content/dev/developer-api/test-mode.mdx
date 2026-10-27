@@ -13,8 +13,8 @@ The mode comes from the key you call the API with:
 
 | Prefix | Mode |
 | --- | --- |
-| `sk_test_` | Test. Payments go through the test payment provider; nothing is charged. |
-| `sk_live_` | Live. Real payments, real refunds, real payouts. |
+| `sk_test_` | Test. Card checkouts use test credentials; nothing is charged. |
+| `sk_live_` | Live. Real payments, real refunds, and the current `/v1/payouts` routes. |
 
 Create test keys in the panel with the page switched to **Test** (see
 [Authentication](/dev/developer-api/authentication#creating-and-rotating-keys)).
@@ -22,7 +22,7 @@ Create test keys in the panel with the page switched to **Test** (see
 ## Test data is separate
 
 Test mode and live mode never see each other's data. Products, categories,
-orders, deliveries, refunds, payouts, balances, events, webhook endpoints, and
+orders, deliveries, refunds, `payout` objects, `/v1/balance` responses, events, webhook endpoints, and
 API keys all belong to one mode:
 
 - A test key only lists test products, and a `prod_` id from live mode returns
@@ -50,7 +50,7 @@ mode.
 
 ### When test payments are not available
 
-If the iPago deployment you are calling has no test payment provider configured,
+If the iPago deployment you are calling has no test card checkout configured,
 test-mode payment calls fail rather than ever touching live credentials:
 
 ```json
@@ -87,8 +87,9 @@ then, a live checkout is refused:
 `POST /v1/checkouts` with an `sk_live_` key returns this `403` whenever the store
 is not live, including while it is suspended. Test keys are not affected.
 
-Payouts have their own requirements (a verified account, and a bank account for
-live payouts); see [Payouts](/dev/developer-api/payouts).
+`POST /v1/payouts` still requires a verified account, and a bank account in live
+mode. Supplier settlement is the weekly invoice. See
+[Payouts](/dev/developer-api/payouts).
 
 ## Placing a test order on your own storefront
 

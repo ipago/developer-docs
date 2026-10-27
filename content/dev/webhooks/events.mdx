@@ -35,12 +35,12 @@ current and future types.
 | `subscription.created` | `subscription` | A customer started a recurring plan. |
 | `subscription.renewed` | `subscription` | A recurring plan billed for another period. |
 | `subscription.canceled` | `subscription` | A recurring plan ended and will not bill again. |
-| `payout.created` | `payout` | A payout of your available balance was requested. |
-| `payout.paid` | `payout` | A payout landed in your bank account. |
-| `payout.failed` | `payout` | A payout was returned and the amount went back to your balance. |
+| `payout.created` | `payout` | A `payout` object was created. The event name stays until the ledger change. |
+| `payout.paid` | `payout` | A `payout` was marked paid. Supplier settlement is the weekly invoice. |
+| `payout.failed` | `payout` | A `payout` was marked failed. |
 | `dispute.created` | `dispute` | A customer's bank charged back an order. |
-| `dispute.won` | `dispute` | A chargeback was resolved in your favour. |
-| `dispute.lost` | `dispute` | A chargeback was resolved against you. |
+| `dispute.won` | `dispute` | A chargeback was decided for the seller. |
+| `dispute.lost` | `dispute` | A chargeback was decided against the seller. |
 | `endpoint.test` | none | Sent only when you ask for a test. See [below](#endpointtest). |
 
 The same list is served to the panel, and the panel only lets you subscribe to
@@ -105,7 +105,7 @@ fulfillment. A subscription renewal does not emit `order.paid`; it emits
 | --- | --- |
 | `customer` | `email` and `name` as captured at checkout; either can be `null`. |
 | `items[].product` | The product id. `name` and `unit_price` are frozen at purchase time. |
-| `subtotal`, `discount`, `tax_amount`, `total` | Money objects. `tax_amount` is the VAT iPago collected as merchant of record. |
+| `subtotal`, `discount`, `tax_amount`, `total` | Money objects. `tax_amount` is the VAT on the sale to the player. iPago is the seller and remits it. `total` is not the purchase price. |
 | `gift_card` | `{ "amount": { ... } }` when a gift card paid part of the order, otherwise `null`. |
 | `delivery_target` | The in-game username the buyer entered, or `null` when the store does not ask for one. |
 | `payment_method`, `card_last4` | How the buyer paid. `card_last4` is `null` for non-card methods. |
@@ -248,9 +248,9 @@ refund.
 
 | Type | Notes |
 | --- | --- |
-| `payout.created` | A payout was requested. `status` is `pending`. |
-| `payout.paid` | The money was sent. `paid_at` and, when known, `settlement_reference` are set. |
-| `payout.failed` | The payout was returned. `failure_reason` says why, and the amount is back in your available balance. |
+| `payout.created` | A `payout` was created. `status` is `pending`. |
+| `payout.paid` | The `payout` was marked paid. `paid_at` and, when known, `settlement_reference` are set. |
+| `payout.failed` | The `payout` was marked failed. `failure_reason` says why. |
 
 `bank_account` shows the destination with the IBAN masked to its last four
 digits, or `null` when the payout has no saved destination.
@@ -286,8 +286,8 @@ digits, or `null` when the payout has no saved destination.
 | Type | Notes |
 | --- | --- |
 | `dispute.created` | A chargeback opened. `status` is `open` and the order's status becomes `disputed`. Use this to flag the account or pause perks while it resolves. |
-| `dispute.won` | Resolved in your favour. `status` is `won`, `closed_at` is set. |
-| `dispute.lost` | Resolved against you. `status` is `lost`, `closed_at` is set. |
+| `dispute.won` | Decided for the seller. `status` is `won`, `closed_at` is set. |
+| `dispute.lost` | Decided against the seller. `status` is `lost`, `closed_at` is set. A €15 dispute fee reduces the purchase price only when the supplier is at fault. |
 
 ## `endpoint.test`
 
