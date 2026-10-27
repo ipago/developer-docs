@@ -1,24 +1,29 @@
 ---
 title: Tax & VAT
-description: How iPago handles VAT as Merchant of Record, and inclusive vs exclusive pricing.
+description: VAT on sales to players, inclusive vs exclusive prices, and the purchase price.
 ---
 
-As Merchant of Record, iPago is the legal seller, so **we calculate, collect, and
-remit VAT**. You never register for tax in the countries your buyers are in, and
-tax is never part of your balance or payout.
+iPago Sp. z o.o. is the seller to the player, so **iPago calculates, collects, and
+remits VAT** on that sale. You are the supplier. You do not register for VAT in
+the player's country for the sale, and player VAT is not part of the purchase
+price.
+
+What iPago owes you is the suggested retail price minus the margin, paid on the
+weekly self-billing purchase invoice (article 106d of the Polish VAT Act). See
+[Invoice payment](/creators/getting-paid/invoices).
 
 ## Where tax shows up
 
-VAT is computed when the checkout is created, from the buyer's country:
+VAT is computed when the checkout is created, from the player's country:
 
 - On a [Webstore](/dev/webstores/overview), iPago determines the country itself.
 - On `POST /v1/checkouts`, you pass it as `country`, an ISO 3166-1 alpha-2 code
   such as `"DE"`. If you omit it, the order is treated as non-taxable and no VAT
-  is charged, so send it whenever you know where the buyer is.
+  is charged, so send it whenever you know where the player is.
 
 On the [order](/dev/developer-api/orders), VAT is reported separately as
-`tax_amount`, apart from your revenue. In the ledger it is booked to a dedicated
-`tax_payable` liability account that iPago settles with the tax authorities.
+`tax_amount`. In the ledger it is booked to a `tax_payable` account. That account
+name is the current API. It is not an amount owed to you.
 
 ## Inclusive vs exclusive
 
@@ -29,10 +34,11 @@ A store chooses, in its settings, how prices are shown:
 - **Inclusive**: the listed price already contains VAT, and the VAT portion is
   broken out of it.
 
-Either way, the order's `total` (the base your fees and earnings are computed on)
-and your payout exclude VAT. The only difference is what the buyer sees as the
-sticker price.
+Either way, the purchase price is the RRP minus the margin. The order's `total`
+is the net amount excluding VAT. It is not the purchase price. The only difference
+between the two settings is the sticker price the player sees.
 
 <Callout type="info">
-  The platform fee is always computed on the pre-tax base, never on the tax.
+  The margin is computed on the suggested retail price you set, not on the VAT
+  iPago charges the player.
 </Callout>

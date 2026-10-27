@@ -54,8 +54,8 @@ Requires the `orders:read` scope.
 | `subtotal` | money | Sum of the line items at the prices the buyer saw. |
 | `discount` | money | Amount taken off by a coupon. Zero when none was used. |
 | `gift_card` | object \| null | `{ "amount": money }` paid with a gift card, or `null`. |
-| `tax_amount` | money | VAT collected by iPago as Merchant of Record. See [Tax & VAT](/dev/developer-api/tax). |
-| `total` | money | The order's net amount, **excluding VAT**, after discount and gift card. This is the base your fees and earnings are computed on. |
+| `tax_amount` | money | VAT on the sale to the player. iPago is the seller and remits it. See [Tax & VAT](/dev/developer-api/tax). |
+| `total` | money | The order's net amount, **excluding VAT**, after discount and gift card. It is not the purchase price. The purchase price is the suggested retail price minus the margin. |
 | `coupon_code` | string \| null | Coupon code applied, if any. |
 | `delivery_target` | string \| null | Who receives the purchase, typically the buyer's in-game name. |
 | `payment_method` | string \| null | How the buyer paid, for example `card`. `null` until paid. |

@@ -15,7 +15,7 @@ attempt went through.
 | --- | --- |
 | `POST /v1/checkouts` | Opening two orders for one purchase. |
 | `POST /v1/refunds` | Refunding the same order twice. |
-| `POST /v1/payouts` | Paying out the same balance twice. |
+| `POST /v1/payouts` | Creating two `payout` objects for one request. The route name stays until the ledger change. |
 | `POST /v1/webhook_endpoints` | Registering the same endpoint twice. |
 
 Other endpoints ignore the header. `GET` requests are already safe to repeat, and

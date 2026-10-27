@@ -55,7 +55,7 @@ The API tools need a `sk_test_` key. Every list tool also takes `limit?` (1 to 1
 | `create_checkout` | `items` (array of `{product, quantity?}`), `customer_email?`, `country?` (2-letter code) | Creates a checkout session for the given products and returns it, including the hosted payment URL. |
 | `list_orders` | `limit?`, `starting_after?`, `status?` | Returns a page of orders. |
 | `get_order` | `id` | Returns one order by id. |
-| `get_balance` | none | Returns the current account balance. |
+| `get_balance` | none | Calls `GET /v1/balance` and returns that payload. The tool name stays until the ledger change. It is not the weekly invoice. |
 | `list_deliveries` | `limit?`, `starting_after?`, `status?` | Returns a page of fulfilment deliveries. |
 | `list_events` | `limit?`, `starting_after?` | Returns a page of API events. |
 | `get_event` | `id` | Returns one API event by id. |
@@ -64,7 +64,7 @@ The API tools need a `sk_test_` key. Every list tool also takes `limit?` (1 to 1
 | `send_test_event` | `endpoint_id` | Sends a test event to a webhook endpoint and returns the delivery result. |
 | `list_refunds` | `limit?`, `starting_after?`, `status?` | Returns a page of refunds. |
 | `list_disputes` | `limit?`, `starting_after?`, `status?` | Returns a page of disputes. |
-| `list_payouts` | `limit?`, `starting_after?`, `status?` | Returns a page of payouts. |
+| `list_payouts` | `limit?`, `starting_after?`, `status?` | Returns a page of `payout` objects from `GET /v1/payouts`. The tool name stays until the ledger change. |
 | `create_refund` | `order`, `reason?` | Refunds an order and returns the refund. Test mode only. |
 
 `starting_after` is the id of the last object of the previous page. The documentation tools read the same content as

@@ -11,7 +11,7 @@ changes in behaviour. Internal and dashboard-only changes are left out. The
 
 ### Two-factor sign-in and recovery codes
 
-- Merchants can turn on two-factor sign-in (TOTP) for their dashboard account, change their
+- Suppliers can turn on two-factor sign-in (TOTP) for their dashboard account, change their
   name and change their password.
 - Two-factor sign-in now comes with one-time recovery codes. They are shown once when they are
   generated, and each code can be used once at sign-in in place of an authenticator code.
@@ -19,9 +19,9 @@ changes in behaviour. Internal and dashboard-only changes are left out. The
 ### RCON delivery for game servers
 
 - Game commands can now be **pushed** to a game server over RCON, as an alternative to a plugin
-  polling the [Game API](/dev/reference/game-api). Merchants add the server's RCON host, port and
+  polling the [Game API](/dev/reference/game-api). Suppliers add the server's RCON host, port and
   password in the dashboard and can test the connection before saving it.
-- Connections to merchant RCON hosts only go to public addresses: private and internal network
+- Connections to supplier RCON hosts only go to public addresses: private and internal network
   addresses are refused.
 
 ### Test mode uses separate payment credentials
@@ -32,21 +32,23 @@ changes in behaviour. Internal and dashboard-only changes are left out. The
 
 ### Payouts, refunds and disputes
 
-- Payouts now carry the bank account they are paid to and, once iPago has paid them, a
-  `settlement_reference` that matches the bank transfer. See
-  [Retrieve a payout](/dev/reference/balance-and-payouts#retrieve-a-payout).
-- Merchants keep a payout destination (a bank account) on file for their account in the
-  dashboard. Payouts are paid to it.
+- `payout` objects carry the bank account and, once marked paid, a
+  `settlement_reference` that matches the bank transfer. The path `/v1/payouts`
+  remains until the ledger change. Supplier settlement is the weekly purchase
+  invoice. See [Retrieve a payout](/dev/reference/balance-and-payouts#retrieve-a-payout).
+- Accounts keep a bank account on file in the dashboard. Invoice payments are sent
+  to it. The API still records that account on the `payout` object.
 - Partial refunds can be issued by iPago staff. `POST /v1/refunds` with an API key still refunds the
   whole order.
-- When a dispute is lost on an order that was already partly refunded, only the part that was not
-  refunded is clawed back.
+- When a dispute is lost on an order that was already partly refunded, the legacy
+  ledger reverses only the part that was not refunded. Commercially, a €15 dispute
+  fee reduces the purchase price only when the supplier is at fault.
 - Disputes now keep the evidence submitted for them: `evidence_text`, `evidence_submitted_at` and
   `evidence_submitted_by` on the [dispute object](/dev/reference/disputes).
 
 ### Store review
 
-- A merchant must confirm their email address before their store can be submitted for review.
+- A supplier must confirm their email address before their store can be submitted for review.
 - Submitting a store for review now also requires a completed identity verification (KYC), a web
   address and at least one live product.
 
@@ -54,7 +56,7 @@ changes in behaviour. Internal and dashboard-only changes are left out. The
 
 - Storefronts can be shown in a light or dark theme. The storefront object exposes `theme` and
   `appearance`. See [Retrieve a storefront](/dev/reference/storefront#retrieve-a-storefront).
-- Refunds and dispute evidence are sent to the payment provider that took the original payment.
+- Refunds and dispute evidence are sent to the acquirer that took the original payment.
 
 ## August 2026
 
@@ -76,8 +78,8 @@ changes in behaviour. Internal and dashboard-only changes are left out. The
 
 - Every order records the buyer's country and the VAT rate applied, and buyers receive a
   transaction confirmation with the VAT breakdown.
-- The payment gateway fee is charged on what the buyer paid, not on the net amount.
-- Partial refunds made at the payment provider are now booked to the ledger instead of being
+- The ledger booked card costs on what the player paid. Those costs are not a deduction from the purchase price. The purchase price is the suggested retail price minus the margin.
+- Partial refunds made by the acquirer are now booked to the ledger instead of being
   dropped. Refunded and lost sales release their VAT liability.
 - Coupon and gift card reservations are released when a checkout expires without being paid.
 

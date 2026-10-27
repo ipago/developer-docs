@@ -12,7 +12,7 @@ export function GET() {
   const parts: string[] = [
     "# iPago Documentation (full text)",
     "",
-    "> iPago is a Merchant of Record for game monetization: hosted webstores, an embedded checkout, a developer API, a Game API for game servers, and payouts. This file contains every documentation page except the generated API reference; for exact request and response shapes, read the OpenAPI spec at https://docs.ipago.io/openapi.json.",
+    "> iPago Sp. z o.o. is a reseller for game monetization: it buys licences from suppliers and sells them to players in its own name. Hosted webstores, an embedded checkout, a developer API, a Game API for game servers, and weekly purchase invoices. This file contains every documentation page except the generated API reference; for exact request and response shapes, read the OpenAPI spec at https://docs.ipago.io/openapi.json.",
     "",
   ];
 

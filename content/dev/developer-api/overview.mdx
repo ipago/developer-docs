@@ -1,12 +1,13 @@
 ---
 title: Overview
-description: The headless HTTP API for your catalog, checkouts, orders, deliveries, and money movement.
+description: The headless HTTP API for your catalog, checkouts, orders, deliveries, and refunds.
 ---
 
 The **Developer API** is the headless, server-to-server HTTP interface for your
 store. It is how your own backend reads what you sell, takes payments, watches
-what gets bought, confirms that buyers received what they paid for, and moves
-money out through refunds and payouts.
+what gets bought, confirms that players received what they paid for, and refunds
+an order. `GET /v1/balance` and `/v1/payouts` are still available; those names
+remain until the ledger change and are not the weekly invoice.
 
 It is built to be predictable: resource-oriented URLs, JSON request and response
 bodies, standard HTTP verbs and status codes, bearer-token auth, and the same
@@ -22,8 +23,9 @@ conventions on every endpoint.
   and totals.
 - **Manage delivery.** List pending deliveries and mark them completed or failed
   once your system has acted on them.
-- **Move money.** Refund an order in full, request a payout of your available
-  balance, and read your balance and ledger.
+- **Refund an order.** Refund an order in full. The weekly invoice is how iPago
+  pays the purchase price. The ledger routes still named `/v1/balance` and
+  `/v1/payouts` are documented as they exist today.
 - **Watch disputes.** List chargebacks and their evidence deadlines.
 - **Stay in sync.** Read the event log and register webhook endpoints so iPago
   pushes changes to you instead of you polling.
@@ -57,7 +59,8 @@ panel**. It is not a toolkit for inventing products in code.
   by iPago staff.
 - **Submitting dispute evidence.** You read disputes over the API and answer them
   in the panel.
-- **Bank account details** for payouts.
+- **The bank account** invoice payments are sent to. `POST /v1/payouts` still
+  exists until the ledger change.
 
 <Callout type="info">
   If a missing endpoint is blocking you, tell us at

@@ -134,12 +134,12 @@ The response is `201`:
 ```
 
 `id` is the order id. `total` is what the buyer pays, VAT included. The
-`client_secret` opens the payment provider's embedded checkout. Today the hosted
+`client_secret` opens the embedded card checkout. Today the hosted
 storefront is the only front end that mounts it: the publishable key needed to
 mount it on your own page is not exposed by the API, and the
 [iPago checkout widget](/dev/checkout/overview) is not released yet.
 
-Other errors: `400 basket_empty`, `403 customer_blocked` when the merchant has
+Other errors: `400 basket_empty`, `403 customer_blocked` when the store has
 blocked this player, and `503 test_payments_unconfigured` in test mode when no
 test payment credentials are set up.
 
@@ -160,7 +160,7 @@ than polling, so delivery is driven by the confirmed event.
 
 ## Test mode
 
-A merchant can place test orders on their own storefront before (or after) the
+A supplier can place test orders on their own storefront before (or after) the
 store goes live. Add `mode=test` and a preview token to the query string of any
 storefront or basket route:
 
@@ -178,7 +178,7 @@ curl -X POST "https://api.ipago.io/v1/storefront/myshop/baskets?mode=test&previe
 - **It uses test data.** Test mode reads the store's test-mode products, sales,
   coupons and gift cards, and pays with test payment credentials. No real money
   moves, and orders are recorded as test orders.
-- **It is for the merchant's own testing.** Do not hand preview tokens to buyers.
+- **It is for the supplier's own testing.** Do not hand preview tokens to players.
   A preview token alone never unlocks a live purchase: without `mode=test`, a
   store that is not live still returns `404`.
 
