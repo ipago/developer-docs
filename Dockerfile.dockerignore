@@ -1,34 +1,20 @@
-# BuildKit reads <dockerfile>.dockerignore, so this file applies ONLY to
-# apps/docs/Dockerfile and leaves the other five images alone.
-#
-# Without it this image did not merely build slowly, it did not build at all: the context is
-# the repo root, so `COPY . .` dragged the host's node_modules into the deps layer, and
-# `pnpm install` then aborted with ERR_PNPM_ABORTED_REMOVE_MODULES_DIR_NO_TTY rather than
-# purge a modules directory it could not ask about. The context was also 1.7GB.
-#
-# The fix is to not copy any of it. Setting CI=true would only silence the prompt while
-# still shipping 1.7GB into a build layer.
+# Applies only to Dockerfile (BuildKit <dockerfile>.dockerignore).
+# Keep the build context to source. pnpm install and next build run inside the image.
 **/node_modules
 **/.next
 **/dist
 **/out
 **/build
-**/.turbo
 **/coverage
-**/.astro
+**/.turbo
 **/.source
 .git
 
-# Credentials have no business in a build layer, even a discarded one.
+# Credentials and the full API spec (non-public routes) stay out of every layer.
 **/.env
-**/.env.local
-**/.env.*.local
-deploy/certs
+**/.env.*
+!**/.env.example
+openapi.source.json
 
-# Visual regression screenshots and local planning notes: the build uses neither.
-apps/web/baseline
-apps/web/after
-.superpowers
-
-**/npm-debug.log*
+**/*.log
 **/.DS_Store

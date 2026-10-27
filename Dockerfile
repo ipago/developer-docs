@@ -1,34 +1,29 @@
 # syntax=docker/dockerfile:1
 #
-# Build context MUST be the repo root, e.g.:
-#   docker build -f apps/docs/Dockerfile -t ipago-docs:$TAG .
+# Build context is this repository:
+#   docker build -t ghcr.io/ipago/developer-docs .
 #
-# pnpm-workspace monorepo, so `next build` with output: "standalone" emits a NESTED layout:
-# the server entry lands at apps/docs/.next/standalone/apps/docs/server.js alongside a top-level
-# node_modules. Modeled on apps/app/Dockerfile. Fumadocs generates its .source during
-# `pnpm install` (the @ipago/docs postinstall runs `fumadocs-mdx`), and the /md raw-markdown
-# routes + /llms.txt are statically generated at build time, so no content/ is needed at runtime.
+# `next build` with output: "standalone" writes .next/standalone/server.js.
+# fumadocs-mdx runs on install and writes .source. Page routes are statically
+# generated, so the content directory is not required at runtime.
 
 FROM node:22-alpine AS base
 ENV PNPM_HOME=/pnpm
 ENV PATH=$PNPM_HOME:$PATH
-RUN corepack enable
-WORKDIR /repo
+RUN corepack enable && corepack prepare pnpm@10.33.0 --activate
+WORKDIR /app
 
-# 1. Install workspace dependencies (runs the fumadocs-mdx postinstall that emits .source).
 FROM base AS deps
 COPY . .
 RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile
 
-# 2. Build only the docs package.
 FROM base AS builder
-COPY --from=deps /repo /repo
+COPY --from=deps /app /app
 ENV NEXT_TELEMETRY_DISABLED=1
-RUN pnpm --filter @ipago/docs build
+RUN pnpm build
 
-# 3. Production image: copy only the standalone output.
 FROM base AS runner
-WORKDIR /repo
+WORKDIR /app
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV PORT=3000
@@ -37,10 +32,10 @@ ENV HOSTNAME=0.0.0.0
 RUN addgroup --system --gid 1001 nodejs \
   && adduser --system --uid 1001 nextjs
 
-COPY --from=builder --chown=nextjs:nodejs /repo/apps/docs/.next/standalone ./
-COPY --from=builder --chown=nextjs:nodejs /repo/apps/docs/.next/static ./apps/docs/.next/static
+COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
+COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
 USER nextjs
 EXPOSE 3000
 
-CMD ["node", "apps/docs/server.js"]
+CMD ["node", "server.js"]
