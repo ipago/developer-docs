@@ -44,8 +44,9 @@ out, so both arrays can be empty. Amounts are in minor units.
 
 - **`pending`** and **`available`** are the two amount lists this endpoint
   returns today. They are legacy ledger figures from before weekly invoices.
-- **`available`** can be negative after a later entry, for example a refund or a
-  lost dispute booked on this ledger.
+- **`available`** can be negative after a later entry, for example a refund, or
+  a dispute fee charged because staff found the dispute was the supplier's
+  fault. A lost dispute itself is iPago's cost and is not booked against you.
 
 <Callout type="info">
   VAT on the sale to the player is iPago's liability. It is not part of the
