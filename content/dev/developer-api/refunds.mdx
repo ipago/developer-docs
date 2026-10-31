@@ -42,8 +42,8 @@ A refund starts as `pending` while the acquirer processes it, then becomes:
 
 - **`succeeded`**: the money is on its way back to the player. The order's status
   becomes `refunded` and iPago emits an
-  [`order.refunded`](/dev/developer-api/events) event. A refund does not, by
-  itself, change the purchase price. See
+  [`order.refunded`](/dev/developer-api/events) event. The refunded price
+  before VAT comes off what the supplier is owed. See
   [Refunds & disputes](/creators/getting-paid/refunds-and-disputes).
 - **`failed`**: the acquirer could not refund the payment. The order stays
   `paid`, and you can try again.
