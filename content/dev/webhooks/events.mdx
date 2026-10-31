@@ -34,6 +34,7 @@ current and future types.
 | `delivery.failed` | `delivery` | A delivery failed and needs a retry or a refund. |
 | `subscription.created` | `subscription` | A customer started a recurring plan. |
 | `subscription.renewed` | `subscription` | A recurring plan billed for another period. |
+| `subscription.payment_failed` | `subscription` | A renewal charge was declined. The plan is past due while it is retried. |
 | `subscription.canceled` | `subscription` | A recurring plan ended and will not bill again. |
 | `payout.created` | `payout` | A `payout` object was created. The event name stays until the ledger change. |
 | `payout.paid` | `payout` | A `payout` was marked paid. Supplier settlement is the weekly invoice. |
@@ -215,6 +216,7 @@ refund.
 | --- | --- |
 | `subscription.created` | The first payment of a recurring plan went through. |
 | `subscription.renewed` | A renewal invoice was paid. A new order and its deliveries are created for the period, so `delivery.pending` follows. |
+| `subscription.payment_failed` | A renewal charge was declined. `status` is `past_due`, and an `invoice` object carries `amount_due`, `currency`, `attempt_count` and `next_attempt_at` (null when no retry is scheduled). The charge is retried automatically and fires this event again on each failed retry. Nothing is delivered for the period until a retry succeeds, which emits `subscription.renewed`. If the last retry fails the plan ends with `subscription.canceled`. |
 | `subscription.canceled` | The plan ended. `status` is `canceled` and `canceled_at` is set. |
 
 `billing_interval` is `month` or `year`; `status` is `active`, `past_due` or

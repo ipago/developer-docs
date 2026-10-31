@@ -42,8 +42,8 @@ the `client_secret` opens the embedded card checkout, which today
 only the hosted storefront mounts.
 
 Once the first payment succeeds you receive a `subscription.created` event, each
-renewal emits `subscription.renewed`, and an ended plan emits
-`subscription.canceled`. The confirmation page resolves the subscription with
+renewal emits `subscription.renewed`, a declined renewal emits
+`subscription.payment_failed`, and an ended plan emits `subscription.canceled`. The confirmation page resolves the subscription with
 `GET /v1/storefront/{slug}/subscriptions/by-session/{sessionId}`, which returns a
 display-safe `storefront_subscription` (status, product name, price, interval,
 delivery target, `current_period_end`).

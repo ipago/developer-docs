@@ -59,6 +59,7 @@ trust the shape of `data`.
 | `delivery.failed` | A delivery is marked failed. | `delivery` |
 | `subscription.created` | A buyer starts a recurring plan. | `subscription` |
 | `subscription.renewed` | A recurring plan bills for another period. | `subscription` |
+| `subscription.payment_failed` | A renewal charge is declined. The plan is past due while it is retried. | `subscription` |
 | `subscription.canceled` | A recurring plan ends and will not bill again. | `subscription` |
 | `payout.created` | A payout is requested. | `payout` |
 | `payout.paid` | A `payout` is marked paid. Supplier settlement is the weekly invoice, not this event. | `payout` |
