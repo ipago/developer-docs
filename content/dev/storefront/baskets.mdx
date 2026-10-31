@@ -107,7 +107,7 @@ product. Invalid codes return `400` with a code such as `coupon_expired`,
 curl -X POST https://api.ipago.io/v1/storefront/myshop/baskets/bskt_01M5MWGBZQ5H7PDK7ZNQ91AC15/checkout \
   -H "X-Basket-Token: bskt_example" \
   -H "Content-Type: application/json" \
-  -d '{ "customer_email": "player@example.com", "method": "card", "country": "PL" }'
+  -d '{ "customer_email": "player@example.com", "method": "card", "withdrawal_waiver": true }'
 ```
 
 | Field | Required | Description |
@@ -115,6 +115,7 @@ curl -X POST https://api.ipago.io/v1/storefront/myshop/baskets/bskt_01M5MWGBZQ5H
 | `customer_email` | no | Pre-fills the buyer's email for the receipt. |
 | `method` | no | A payment method key from the store's `payment_methods` (for example `card`, `blik`, `paypal`). The checkout opens on that method. A key the store does not offer returns `400 invalid_payment_method`. |
 | `country` | no | ISO 3166-1 alpha-2 buyer country, used to compute VAT. |
+| `withdrawal_waiver` | yes | Must be `true`. Ask the buyer with an unticked checkbox: they want delivery to start right away and lose the 14-day right of withdrawal once it has (EU Directive 2011/83/EU, art. 16(m)). Missing or `false`: `400 withdrawal_waiver_required`. iPago stores the time on the order and repeats it in the confirmation email. |
 
 There is no `return_url`: after payment the buyer is sent to iPago's hosted
 confirmation page. If you need your own return page, create the checkout from

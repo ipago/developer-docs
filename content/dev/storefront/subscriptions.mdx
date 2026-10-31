@@ -10,7 +10,7 @@ than a basket. Subscription products cannot be added to a basket.
 curl -X POST https://api.ipago.io/v1/storefront/myshop/subscribe \
   -H "Content-Type: application/json" \
   -d '{ "product": "prod_01M5MWGB718BWKF7MDP3BX63TY", "game_username": "Steve",
-        "customer_email": "player@example.com", "country": "PL" }'
+        "customer_email": "player@example.com", "withdrawal_waiver": true }'
 ```
 
 | Field | Required | Description |
@@ -19,6 +19,7 @@ curl -X POST https://api.ipago.io/v1/storefront/myshop/subscribe \
 | `game_username` | when the store requires it | The player identifier, 1 to 64 characters. Missing on a store that requires it: `400 username_required`. |
 | `customer_email` | no | A valid email; pre-fills the buyer's email. |
 | `country` | no | ISO 3166-1 alpha-2 buyer country. The VAT rate is baked into the recurring price at signup. |
+| `withdrawal_waiver` | yes | Must be `true`. Ask the buyer with an unticked checkbox: they want delivery to start right away and lose the 14-day right of withdrawal once it has (EU Directive 2011/83/EU, art. 16(m)). Missing or `false`: `400 withdrawal_waiver_required`. iPago stores the time on the subscription and on every renewal order and repeats it in the confirmation email. |
 
 A subscription is always for one unit; there is no `quantity`. There is no
 `return_url` either: after payment the buyer lands on iPago's hosted confirmation

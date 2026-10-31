@@ -30,6 +30,7 @@ curl https://api.ipago.io/v1/checkouts \
     "customer_email": "player@example.com",
     "delivery_target": "Steve",
     "country": "PL",
+    "withdrawal_waiver": true,
     "return_url": "https://example.com/thanks?session_id={CHECKOUT_SESSION_ID}"
   }'
 ```
@@ -41,6 +42,7 @@ curl https://api.ipago.io/v1/checkouts \
 | `customer_email` | no | Pre-fills the buyer's email and receives the receipt. |
 | `delivery_target` | no | In-game username, for products that deliver to a player. |
 | `country` | no | ISO 3166-1 alpha-2 buyer country, used to compute VAT. Omit for non-taxable. |
+| `withdrawal_waiver` | no | Send `true` once your page has asked the buyer, with an unticked checkbox, to agree that delivery starts right away and that they lose the 14-day right of withdrawal once it has. iPago stores the time on the order (`withdrawal_waiver_at`) and confirms it in the receipt email. Without it, an EU buyer keeps the right of withdrawal. |
 | `return_url` | no | Where the buyer is sent after paying. `{CHECKOUT_SESSION_ID}` is replaced with the payment session id. Defaults to iPago's hosted confirmation page. |
 
 `POST /v1/checkouts` supports `Idempotency-Key`. Always send one: retrying a
