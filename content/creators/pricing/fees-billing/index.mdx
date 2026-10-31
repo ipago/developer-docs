@@ -1,7 +1,8 @@
 ---
-title: Margin & purchase price
-description: How the margin, the purchase price, and the weekly invoice work.
+title: Margin & card cost
+description: How the margin, the card cost and settlement work.
 ---
+
 
 What iPago owes you for each licence, and when it is paid. iPago Sp. z o.o. is
 the seller to the player. You are the supplier. There is no contract between you
@@ -9,39 +10,45 @@ and the player.
 
 ## Margin
 
-iPago's **margin is 5%** of the suggested retail price (RRP) by default. The rate
-is stored per store, so a different rate can be agreed.
+iPago's **margin is 5%** of the price the player paid before VAT, by default.
+The rate is stored per store, so a different rate can be agreed.
 [Talk to us](mailto:support@ipago.io) for a high-volume store.
 
-## Purchase price
+## Card cost
 
-**Purchase price = RRP − margin.**
+Each payment also carries the **card cost: 2.9% of what the player paid, VAT
+included, plus €0.30**. It is the same for every payment method. See
+[Card costs](/creators/pricing/fees-billing/gateway-fees).
 
-The RRP is the price you set on the product. The purchase price does not depend
-on the price the player actually pays. iPago may sell at any price, including a
-discount or a higher price, and still owes the purchase price.
+## What you receive
 
-Player VAT is not part of the purchase price. Whether your store shows prices
-inclusive or exclusive of VAT only changes the price the player sees. iPago
-remits VAT on the sale to the player either way.
+**You receive = price before VAT − margin − card cost.**
+
+The price is what the player actually paid before VAT, after any sale, coupon or
+gift card. Player VAT is not part of it: iPago is the seller and remits that VAT.
+Whether your store shows prices inclusive or exclusive of VAT only changes the
+price the player sees.
 
 ## A worked example
 
-RRP of €10.00, margin 5%:
+A €10.00 item sold to a buyer in Poland (23% VAT), on a store with the default
+rates:
 
 | | Amount |
 | --- | --- |
-| Suggested retail price (RRP) | €10.00 |
-| Margin (5% of €10.00) | €0.50 |
-| **Purchase price** | **€9.50** |
+| Price before VAT | €10.00 |
+| VAT (23%, kept by iPago) | €2.30 |
+| Player pays | €12.30 |
+| Margin (5% of €10.00) | −€0.50 |
+| Card cost (2.9% of €12.30 = €0.36, plus €0.30) | −€0.66 |
+| **You receive** | **€8.84** |
 
-If iPago charges the player a different amount, the purchase price stays €9.50.
-Card costs are not a further deduction.
+A buyer outside the EU pays no VAT, so the card cost is 2.9% of €10.00 plus
+€0.30, which is €0.59, and you receive €8.91.
 
 ## Refunds
 
-iPago refunds the player. A refund does not, by itself, change the purchase
-price, and there is no separate refund fee. See
+iPago refunds the player. There is no separate refund fee. See
 [Refunds & disputes](/creators/getting-paid/refunds-and-disputes).
 
 ## Chargebacks

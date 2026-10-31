@@ -34,11 +34,11 @@ A store chooses, in its settings, how prices are shown:
 - **Inclusive**: the listed price already contains VAT, and the VAT portion is
   broken out of it.
 
-Either way, the purchase price is the RRP minus the margin. The order's `total`
-is the net amount excluding VAT. It is not the purchase price. The only difference
-between the two settings is the sticker price the player sees.
+Either way, the order's `total` is the net amount excluding VAT, and it is the
+base the supplier is paid on: `total` minus the margin (5% of `total` by default)
+minus the card cost (2.9% of `total + tax_amount`, plus €0.30 per payment).
 
 <Callout type="info">
-  The margin is computed on the suggested retail price you set, not on the VAT
-  iPago charges the player.
+  The margin is computed on the net amount, not on the VAT iPago charges the
+  player. The card cost is computed on what the player paid, VAT included.
 </Callout>
