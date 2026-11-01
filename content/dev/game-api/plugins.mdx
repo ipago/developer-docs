@@ -1,6 +1,6 @@
 ---
 title: Plugins and RCON
-description: The official Minecraft plugin, and RCON delivery where iPago pushes commands to your server itself.
+description: The official Minecraft plugin, and RCON and WebRCON delivery where iPago pushes commands to your server itself.
 ---
 
 You rarely need to write the [queue loop](/dev/game-api/delivery-queue) yourself.
@@ -10,10 +10,11 @@ under **Integration → Game servers**:
 | Connection | Who does the work | You need |
 | --- | --- | --- |
 | **Plugin** | A plugin on your server polls the Game API, runs the commands, and confirms them. | The plugin and the server's token. |
-| **RCON** | iPago's own worker connects to your server's RCON port and runs the commands. | RCON enabled on the server, and its host, port and password. |
+| **RCON** | iPago's own worker connects to your server's RCON port and runs the commands, over Source RCON or WebRCON. | RCON enabled on the server, and its host, port and password. |
 
 Available plugin today: **Minecraft** (Paper and Spigot 1.20 or newer). Every
-other game that speaks RCON can use the RCON connection.
+other game that speaks RCON can use the RCON connection, and Rust can use it
+over [WebRCON](#webrcon-rust), its default.
 
 ## Mapping products to commands
 
@@ -163,8 +164,9 @@ each owed command, then marks it delivered once the server has answered.
 
 1. Enable RCON on your game server and set a password.
 2. In the panel, open **Integration → Game servers** and add a server.
-3. Choose **RCON** as the connection and enter the **Host**, **Port** and
-   **RCON password**.
+3. Choose **RCON** as the connection, keep **RCON (Source)** as the protocol
+   (for Rust's default, see [WebRCON](#webrcon-rust)), and enter the **Host**,
+   **Port** and **RCON password**.
 4. Press **Test connection**. iPago logs in and runs the harmless `list`
    command, and tells you whether it connected, the password was rejected, the
    server could not be reached, it timed out, or something answered that does
@@ -217,6 +219,69 @@ including `localhost`. Sensitive ports are refused too, for example 22 (SSH), 25
 (Redis). The check runs when you save, when you test, and again before every
 connection, so a host name later repointed at a private address stops
 receiving commands.
+
+## WebRCON (Rust)
+
+Rust servers speak **WebRCON** by default: the same remote console, carried as
+JSON over a WebSocket instead of Source RCON's binary packets. iPago speaks it
+too, so a Rust server needs no plugin and no token. Everything in the
+[RCON](#rcon) section applies unchanged: commands run as soon as they are due,
+retries and failure work the same way, placeholders follow the same rules, and
+the same addresses and ports are refused.
+
+### Set it up
+
+1. Start the Rust server with WebRCON on, a port, and a strong password:
+
+   ```bash
+   ./RustDedicated -batchmode \
+     +rcon.web 1 \
+     +rcon.port 28016 \
+     +rcon.password "a-long-random-password" \
+     ...
+   ```
+
+   Open the RCON port (28016 here) to the internet in your firewall or with
+   your host. iPago connects to it from its own servers.
+2. In the panel, open **Integration → Game servers** and add a server.
+3. Choose **RCON** as the connection and **WebRCON (Rust)** as the protocol,
+   then enter the **Host**, **Port** (28016 above) and **RCON password**.
+4. Press **Test connection**. iPago opens the WebRCON connection and runs the
+   harmless `serverinfo` command, and shows what the server answered.
+5. Add the server.
+
+The password travels in the WebRCON address (`ws://host:port/password`), which
+is how Rust expects it. iPago stores it encrypted and never logs that address.
+A password made of letters, digits, `-` and `_` avoids any trouble with how a
+server reads special characters there.
+
+If you started Rust with `+rcon.web 0`, it speaks Source RCON instead: choose
+**RCON (Source)** as the protocol.
+
+### Rust commands
+
+Commands are written as you would type them into the Rust server console.
+Some typical packages, with Oxide (uMod) installed for the permission ones:
+
+| Package | Command | Kind |
+| --- | --- | --- |
+| VIP group | `oxide.usergroup add {username} vip` | Offline |
+| VIP permission | `oxide.grant user {username} kits.vip` | Offline |
+| An item | `inventory.giveto {username} rifle.ak 1` | Online |
+| Server-wide thanks | `say {username} just bought VIP, thank you!` | Offline |
+
+- **Prefer grants over items.** Over WebRCON, as over RCON, every command runs
+  as soon as it is due, online ones included, because iPago cannot ask whether
+  the player is connected. `inventory.giveto` only works for a player who is
+  in the game; an Oxide group or permission works whether they are or not.
+- **Ask buyers for their SteamID64.** Rust names often contain spaces, and a
+  name with a space is never substituted (see [Placeholders](#placeholders)).
+  `oxide.usergroup`, `oxide.grant` and `inventory.giveto` all accept a
+  SteamID64 such as `76561198000000000`, which always passes.
+- Many Rust commands print nothing when they succeed. That is fine: iPago sends
+  a harmless `echo` after each command to know when the server has finished
+  with it, so a silent command still counts as delivered. The `echo` shows up
+  in your server log.
 
 ## Games without a plugin or RCON
 

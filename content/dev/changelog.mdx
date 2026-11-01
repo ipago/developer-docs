@@ -9,6 +9,12 @@ changes in behaviour. Internal and dashboard-only changes are left out. The
 
 ## November 2026
 
+### WebRCON delivery for Rust
+
+- Game servers can now use **WebRCON**, Rust's default remote console, as well as Source RCON.
+  Game server objects carry `transport: "webrcon"` for these, with the same `rcon` host and port
+  as an RCON server. See [WebRCON (Rust)](/dev/game-api/plugins#webrcon-rust).
+
 ### Storefront banner, announcement and content blocks
 
 - Stores have a `banner_url`, an `announcement` and a list of `content_blocks` (text or image,
