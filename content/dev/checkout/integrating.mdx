@@ -37,12 +37,12 @@ curl https://api.ipago.io/v1/checkouts \
 
 | Field | Required | Description |
 | --- | --- | --- |
-| `items[].product` | yes | A `prod_` id from your catalog. At least one item. |
-| `items[].quantity` | no | A positive integer. Defaults to `1`. |
+| `items[].product` | yes | A `prod_` id from your catalog. At least one item. A [subscription product](#subscriptions) must be the only item. |
+| `items[].quantity` | no | A positive integer. Defaults to `1`. Must be `1` for a subscription. |
 | `customer_email` | no | Pre-fills the buyer's email and receives the receipt. |
 | `delivery_target` | no | In-game username, for products that deliver to a player. |
 | `country` | no | ISO 3166-1 alpha-2 buyer country, used to compute VAT. Omit for non-taxable. |
-| `withdrawal_waiver` | no | Send `true` once your page has asked the buyer, with an unticked checkbox, to agree that delivery starts right away and that they lose the 14-day right of withdrawal once it has. iPago stores the time on the order (`withdrawal_waiver_at`) and confirms it in the receipt email. Without it, an EU buyer keeps the right of withdrawal. |
+| `withdrawal_waiver` | no | Send `true` once your page has asked the buyer, with an unticked checkbox, to agree that delivery starts right away and that they lose the 14-day right of withdrawal once it has. iPago stores the time on the order (`withdrawal_waiver_at`), or on the subscription and every renewal order for a subscription, and confirms it in the receipt email. Without it, an EU buyer keeps the right of withdrawal. |
 | `return_url` | no | Where the buyer is sent after paying. `{CHECKOUT_SESSION_ID}` is replaced with the payment session id. Defaults to iPago's hosted confirmation page. |
 
 `POST /v1/checkouts` supports `Idempotency-Key`. Always send one: retrying a
@@ -57,15 +57,78 @@ The response carries the `client_secret` your frontend needs:
 {
   "object": "checkout",
   "id": "ord_01HA0K7Q2M4X8Y3Z5B6C7D8E9F",
+  "mode": "payment",
   "client_secret": "cs_test_..._secret_...",
   "status": "open",
   "total": { "amount": 1189, "currency": "eur" }
 }
 ```
 
-`id` is the id of the order this checkout created. `total` is what the buyer
-pays, VAT included. Return only the `client_secret` to the browser. It is scoped
-to this one payment and carries no account-level power.
+`id` is the id of the order this checkout created. `mode` is `payment` for a
+one-time checkout and `subscription` for a [subscription](#subscriptions).
+`total` is what the buyer pays now, VAT included. Return only the
+`client_secret` to the browser. It is scoped to this one payment and carries no
+account-level power.
+
+### Subscriptions
+
+A subscription product (one with a monthly or yearly billing interval) goes
+through the same call. Send it as the only item, with quantity `1`:
+
+```bash
+curl https://api.ipago.io/v1/checkouts \
+  -H "Authorization: Bearer sk_live_..." \
+  -H "Idempotency-Key: $(uuidgen)" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "items": [{ "product": "prod_01M5MWGB718BWKF7MDP3BX63TY" }],
+    "customer_email": "player@example.com",
+    "delivery_target": "Steve",
+    "country": "PL",
+    "withdrawal_waiver": true
+  }'
+```
+
+The other fields work as for a one-time checkout: `delivery_target` is the
+player every period is delivered to, `country` sets the VAT rate that is baked
+into the recurring price at signup, and `return_url`, `Idempotency-Key` and test
+mode behave the same. One checkout starts one subscription. A subscription next
+to other items returns `400 subscription_must_be_alone`, and a quantity above 1
+returns `400 subscription_quantity_must_be_one`.
+
+The response is the same checkout object, so the widget mounts it with the same
+`client_secret`:
+
+```json
+{
+  "object": "checkout",
+  "id": "cs_test_...",
+  "mode": "subscription",
+  "client_secret": "cs_test_..._secret_...",
+  "status": "open",
+  "total": { "amount": 615, "currency": "eur" }
+}
+```
+
+Here `id` is the payment session id, not an order id, and `total` is the first
+period, VAT included. Nothing is recorded until the buyer pays. Then:
+
+| Event | What it means |
+| --- | --- |
+| `subscription.created` | The first payment went through. `data` is the subscription, with its `sub_` id. |
+| `subscription.renewed` | A period was paid, the first one included. An order and its deliveries are created for it, so `delivery.pending` follows. |
+| `subscription.payment_failed` | A renewal charge was declined. The plan is past due while it is retried. |
+| `subscription.canceled` | The plan ended and will not bill again. Revoke access here. |
+
+A subscription order does not emit `order.paid`. Grant each period from
+`subscription.renewed` (or from its deliveries), not from the browser. See
+[Subscription events](/dev/webhooks/events#subscription-events) for the payloads.
+
+To end a plan, cancel it in the Merchant Center under the store's subscriptions.
+The buyer can also cancel from the link in their subscription confirmation
+email. Either way it ends at the close of the period already paid for, and
+`subscription.canceled` arrives then. There is no API-key endpoint to cancel a
+subscription yet.
 
 ## 2. Mount the form (client side)
 
