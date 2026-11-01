@@ -9,6 +9,19 @@ changes in behaviour. Internal and dashboard-only changes are left out. The
 
 ## November 2026
 
+### Discord roles
+
+- Packages can grant roles on the store's Discord server. iPago's bot grants them when the order
+  is paid and removes them when a subscription ends, or the order is fully refunded or charged
+  back. A package's `delivery_config` takes `discord: { roles: [...] }` next to `commands`. See
+  [Discord roles](/dev/discord).
+- [`POST /v1/checkouts`](/dev/reference/checkouts#create-a-checkout) takes `discord_user_id`,
+  required when an item grants Discord roles (`400 discord_link_required` without it). Orders and
+  subscriptions return it as `discord_user_id`.
+- Storefront: `POST /v1/storefront/{slug}/discord/authorize` links the buyer's Discord account;
+  basket checkout and subscribe take the resulting `discord_link`. Baskets and storefront
+  products carry `requires_discord`.
+
 ### WebRCON delivery for Rust
 
 - Game servers can now use **WebRCON**, Rust's default remote console, as well as Source RCON.
