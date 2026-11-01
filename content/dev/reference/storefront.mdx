@@ -54,6 +54,17 @@ The response still includes `business_name` and `support_email`. The hosted stor
 | `description` | `string or null` | Yes |   |
 | `accent_color` | `string or null` | Yes |   |
 | `logo_url` | `string or null` | Yes |   |
+| `banner_url` | `string or null` | Yes | The wide image at the top of the storefront home page. |
+| `announcement` | `string or null` | Yes | One line of plain text, shown in a bar above the header on every page. |
+| `content_blocks` | `array of object` | Yes | The supplier's text and image blocks, in display order. Empty when there are none. |
+| `content_blocks[].id` | `string` | Yes |   |
+| `content_blocks[].type` | `string` | Yes | One of `text`, `image`. |
+| `content_blocks[].position` | `string` | Yes | One of `top`, `bottom`: above or below the product list on the home page. |
+| `content_blocks[].title` | `string` | No |   |
+| `content_blocks[].body` | `string` | No | Text blocks only. Plain text: a blank line separates paragraphs. Render it as text, never as HTML. |
+| `content_blocks[].image_url` | `string` | No | Image blocks only, always present on them. An https URL. |
+| `content_blocks[].alt` | `string` | No | Image blocks only. |
+| `content_blocks[].link_url` | `string` | No | Image blocks only. An https URL the image links to. |
 | `theme` | `string` | Yes |   |
 | `appearance` | `string` | Yes |   |
 | `payment_methods` | `array of object` | Yes |   |

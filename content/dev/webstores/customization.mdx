@@ -25,6 +25,29 @@ Under **Webstore**, in **Storefront appearance** and **Storefront logo**:
 
 A store needs a URL before it can be submitted for review.
 
+## Banner and content
+
+Also under **Webstore**, in **Banner and content**:
+
+| Setting | What it does | Limits |
+| --- | --- | --- |
+| Banner | A wide image at the top of the storefront home page, under the header. It shows with every theme. | PNG, JPEG or WebP, up to 1 MB, like the logo. About 4:1 works best, for example 1600 x 400. |
+| Announcement | One line of text in a bar above the header, in your accent colour, on every storefront page. Leave it empty to hide the bar. | Up to 200 characters. Plain text on one line. |
+| Content blocks | Your own sections on the home page, each placed **above** or **below** the packages, in the order you set. Add, edit, reorder and remove them in the panel. | Up to 12 blocks. |
+
+There are two kinds of block:
+
+- **Text**: a title and some text. The text is shown as you wrote it: a blank line starts a
+  new paragraph and a single line break stays a line break. HTML and markdown are not
+  interpreted, so `<b>` or `**bold**` appear as typed. Title up to 120 characters, text up to
+  4,000. A text block needs a title or some text.
+- **Image**: an image by URL, with an optional title, alt text (what the image shows, read by
+  screen readers) and an optional link that the image opens. The image URL and the link must
+  be `https://` addresses. Title up to 120 characters, alt text up to 200.
+
+The [storefront object](/dev/reference/storefront#retrieve-a-storefront) returns these as
+`banner_url`, `announcement` and `content_blocks`, so a custom frontend can render them too.
+
 ## Store settings page
 
 Under **Store settings**:
@@ -41,4 +64,5 @@ Under **Store settings**:
 - Your own HTML templates, CSS, JavaScript, or uploaded assets. See
   [Custom templates](/dev/webstores/templates).
 - A custom domain. The storefront is served on `{slug}.ipago.io` only.
-- Page content beyond the settings above, such as extra pages or a custom footer.
+- Page content beyond the settings above, such as extra pages, a custom footer, or formatted
+  (HTML or markdown) text in content blocks.
