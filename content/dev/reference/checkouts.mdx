@@ -34,23 +34,26 @@ A test-mode key creates a test-mode checkout, paid through the store's separate 
 
 | Field | Type | Required | Notes |
 | --- | --- | --- | --- |
-| `items` | `array of object` | Yes | At least 1 item. |
+| `items` | `array of object` | Yes | At least 1 item. One-time products in any number, or a single subscription product with quantity 1. |
 | `items[].product` | `string` | Yes |   |
 | `items[].quantity` | `integer` | No | Greater than 0. |
 | `customer_email` | `string` | No |   |
 | `return_url` | `string` | No |   |
 | `delivery_target` | `string` | No |   |
 | `country` | `string` | No | Exactly 2 characters. |
+| `withdrawal_waiver` | `boolean` | No | Pass true once your checkout has asked the buyer to agree to immediate delivery and to losing the 14-day right of withdrawal. iPago records the time on the order, or on the subscription for a subscription checkout. |
+| `discord_user_id` | `string` | No | Pattern `^\d{17,20}$`. The buyer's Discord user id, for products that grant Discord roles. Required when any item does; iPago grants the roles to this account once the order is paid. For a subscription it is kept for every renewal. Link the account yourself (OAuth2 scope identify) so the id is really the buyer's. |
 
 **Response** `201`
 
 | Field | Type | Required | Notes |
 | --- | --- | --- | --- |
 | `object` | `string` | Yes | Always `checkout`. |
-| `id` | `string` | Yes |   |
+| `id` | `string` | Yes | The order id for a one-time checkout. For a subscription checkout, the checkout session id; the subscription itself arrives with the subscription.created webhook once the first payment succeeds. |
+| `mode` | `string` | Yes | One of `payment`, `subscription`. payment charges once. subscription charges the first period now and renews every billing interval. |
 | `client_secret` | `string` | Yes |   |
 | `status` | `string` | Yes |   |
-| `total` | `object` | Yes |   |
+| `total` | `object` | Yes | What the buyer pays now, VAT included. For a subscription, the first period. |
 | `total.amount` | `integer` | Yes |   |
 | `total.currency` | `string` | Yes |   |
 

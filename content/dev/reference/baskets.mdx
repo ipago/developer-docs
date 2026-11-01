@@ -19,6 +19,7 @@ Base URL: `https://api.ipago.io`
 | `DELETE` | `/v1/storefront/{slug}/baskets/{basketId}/gift-card` | [Remove the gift card](#remove-the-gift-card) |
 | `POST` | `/v1/storefront/{slug}/baskets/{basketId}/checkout` | [Check out a basket](#check-out-a-basket) |
 | `POST` | `/v1/storefront/{slug}/subscribe` | [Start a subscription checkout](#start-a-subscription-checkout) |
+| `POST` | `/v1/storefront/{slug}/discord/authorize` | [Link a Discord account](#link-a-discord-account) |
 
 ## Create a basket
 
@@ -86,6 +87,7 @@ The response carries the basket token. Send it as X-Basket-Token on every later 
 | `gift_card.amount.amount` | `integer` | Yes |   |
 | `gift_card.amount.currency` | `string` | Yes |   |
 | `gift_card.code_last4` | `string` | Yes |   |
+| `requires_discord` | `boolean` | Yes | Something in the basket grants Discord roles: checkout needs discord_link. |
 | `expires_at` | `string` | Yes |   |
 | `token` | `string` | Yes |   |
 
@@ -160,6 +162,7 @@ GET https://api.ipago.io/v1/storefront/{slug}/baskets/{basketId}
 | `gift_card.amount.amount` | `integer` | Yes |   |
 | `gift_card.amount.currency` | `string` | Yes |   |
 | `gift_card.code_last4` | `string` | Yes |   |
+| `requires_discord` | `boolean` | Yes | Something in the basket grants Discord roles: checkout needs discord_link. |
 | `expires_at` | `string` | Yes |   |
 
 **Errors**
@@ -240,6 +243,7 @@ POST https://api.ipago.io/v1/storefront/{slug}/baskets/{basketId}/items
 | `gift_card.amount.amount` | `integer` | Yes |   |
 | `gift_card.amount.currency` | `string` | Yes |   |
 | `gift_card.code_last4` | `string` | Yes |   |
+| `requires_discord` | `boolean` | Yes | Something in the basket grants Discord roles: checkout needs discord_link. |
 | `expires_at` | `string` | Yes |   |
 
 **Errors**
@@ -315,6 +319,7 @@ DELETE https://api.ipago.io/v1/storefront/{slug}/baskets/{basketId}/items/{itemI
 | `gift_card.amount.amount` | `integer` | Yes |   |
 | `gift_card.amount.currency` | `string` | Yes |   |
 | `gift_card.code_last4` | `string` | Yes |   |
+| `requires_discord` | `boolean` | Yes | Something in the basket grants Discord roles: checkout needs discord_link. |
 | `expires_at` | `string` | Yes |   |
 
 **Errors**
@@ -394,6 +399,7 @@ POST https://api.ipago.io/v1/storefront/{slug}/baskets/{basketId}/coupon
 | `gift_card.amount.amount` | `integer` | Yes |   |
 | `gift_card.amount.currency` | `string` | Yes |   |
 | `gift_card.code_last4` | `string` | Yes |   |
+| `requires_discord` | `boolean` | Yes | Something in the basket grants Discord roles: checkout needs discord_link. |
 | `expires_at` | `string` | Yes |   |
 
 **Errors**
@@ -468,6 +474,7 @@ DELETE https://api.ipago.io/v1/storefront/{slug}/baskets/{basketId}/coupon
 | `gift_card.amount.amount` | `integer` | Yes |   |
 | `gift_card.amount.currency` | `string` | Yes |   |
 | `gift_card.code_last4` | `string` | Yes |   |
+| `requires_discord` | `boolean` | Yes | Something in the basket grants Discord roles: checkout needs discord_link. |
 | `expires_at` | `string` | Yes |   |
 
 **Errors**
@@ -547,6 +554,7 @@ POST https://api.ipago.io/v1/storefront/{slug}/baskets/{basketId}/gift-card
 | `gift_card.amount.amount` | `integer` | Yes |   |
 | `gift_card.amount.currency` | `string` | Yes |   |
 | `gift_card.code_last4` | `string` | Yes |   |
+| `requires_discord` | `boolean` | Yes | Something in the basket grants Discord roles: checkout needs discord_link. |
 | `expires_at` | `string` | Yes |   |
 
 **Errors**
@@ -621,6 +629,7 @@ DELETE https://api.ipago.io/v1/storefront/{slug}/baskets/{basketId}/gift-card
 | `gift_card.amount.amount` | `integer` | Yes |   |
 | `gift_card.amount.currency` | `string` | Yes |   |
 | `gift_card.code_last4` | `string` | Yes |   |
+| `requires_discord` | `boolean` | Yes | Something in the basket grants Discord roles: checkout needs discord_link. |
 | `expires_at` | `string` | Yes |   |
 
 **Errors**
@@ -668,17 +677,20 @@ POST https://api.ipago.io/v1/storefront/{slug}/baskets/{basketId}/checkout
 | --- | --- | --- | --- |
 | `customer_email` | `string` | No |   |
 | `method` | `string` | No |   |
-| `country` | `string` | No | Exactly 2 characters. |
+| `country` | `string` | No | Exactly 2 characters. Ignored for VAT: the country comes from the storefront server. |
+| `withdrawal_waiver` | `boolean` | No | True once the buyer has ticked that they want delivery to start right away and that they lose the 14-day right of withdrawal once it has. Required on storefront checkouts. |
+| `discord_link` | `string` | No | Max length 2048. The signed link token iPago handed back after the buyer linked their Discord account (POST /v1/storefront/\{slug\}/discord/authorize). Required when the purchase grants Discord roles. |
 
 **Response** `201`
 
 | Field | Type | Required | Notes |
 | --- | --- | --- | --- |
 | `object` | `string` | Yes | Always `checkout`. |
-| `id` | `string` | Yes |   |
+| `id` | `string` | Yes | The order id for a one-time checkout. For a subscription checkout, the checkout session id; the subscription itself arrives with the subscription.created webhook once the first payment succeeds. |
+| `mode` | `string` | Yes | One of `payment`, `subscription`. payment charges once. subscription charges the first period now and renews every billing interval. |
 | `client_secret` | `string` | Yes |   |
 | `status` | `string` | Yes |   |
-| `total` | `object` | Yes |   |
+| `total` | `object` | Yes | What the buyer pays now, VAT included. For a subscription, the first period. |
 | `total.amount` | `integer` | Yes |   |
 | `total.currency` | `string` | Yes |   |
 
@@ -725,6 +737,8 @@ POST https://api.ipago.io/v1/storefront/{slug}/subscribe
 | `game_username` | `string` | No | Min length 1. Max length 64. |
 | `customer_email` | `string` | No | Format `email`. Pattern `^(?!\.)(?!.*\.\.)([A-Za-z0-9_'+\-\.]*)[A-Za-z0-9_+-]@([A-Za-z0-9][A-Za-z0-9\-]*\.)+[A-Za-z]{2,}$`. |
 | `country` | `string` | No | Exactly 2 characters. |
+| `withdrawal_waiver` | `boolean` | No | True once the buyer has ticked that they want delivery to start right away and that they lose the 14-day right of withdrawal once it has. Required on storefront checkouts. |
+| `discord_link` | `string` | No | Max length 2048. The signed link token iPago handed back after the buyer linked their Discord account (POST /v1/storefront/\{slug\}/discord/authorize). Required when the purchase grants Discord roles. |
 
 **Response** `201`
 
@@ -744,4 +758,52 @@ Every error uses the [error object](/dev/reference#errors).
 | `400` | The request is invalid: a missing or malformed parameter, or a rule the request breaks. |
 | `404` | The resource does not exist, or is not visible to this credential. |
 | `500` | Something went wrong on iPago's side. |
+| `503` | A dependency is temporarily unavailable. Retry later. |
+
+## Link a Discord account
+
+```http
+POST https://api.ipago.io/v1/storefront/{slug}/discord/authorize
+```
+
+Only needed when a product grants Discord roles. Send the buyer to the returned url; they come back to return_url with discord_link, which checkout and subscribe take.
+
+**Auth:** none. This is a public endpoint.
+
+**Operation ID:** `authorizeStorefrontDiscord`
+
+**Path parameters**
+
+| Name | Type | Required | Notes |
+| --- | --- | --- | --- |
+| `slug` | `string` | Yes |   |
+
+**Query parameters**
+
+| Name | Type | Required | Notes |
+| --- | --- | --- | --- |
+| `preview` | `string` | No |   |
+| `mode` | `string` | No | One of `live`, `test`. |
+
+**Request body** `application/json`
+
+| Field | Type | Required | Notes |
+| --- | --- | --- | --- |
+| `return_url` | `string` | Yes | Max length 2048. Where Discord's answer lands: a page of this storefront. It gets discord_link=\<token\> on success, or discord_error=\<code\>. |
+
+**Response** `200`
+
+| Field | Type | Required | Notes |
+| --- | --- | --- | --- |
+| `object` | `string` | Yes | Always `discord_authorization`. |
+| `url` | `string` | Yes | Send the buyer here. Discord returns them to return_url with discord_link (or discord_error) in the query. |
+
+**Errors**
+
+Every error uses the [error object](/dev/reference#errors).
+
+| Status | Meaning |
+| --- | --- |
+| `400` | The request is invalid: a missing or malformed parameter, or a rule the request breaks. |
+| `404` | The resource does not exist, or is not visible to this credential. |
 | `503` | A dependency is temporarily unavailable. Retry later. |

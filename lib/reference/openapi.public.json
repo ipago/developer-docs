@@ -1200,7 +1200,8 @@
                       "required": [
                         "product"
                       ]
-                    }
+                    },
+                    "description": "One-time products in any number, or a single subscription product with quantity 1."
                   },
                   "customer_email": {
                     "type": "string"
@@ -1215,6 +1216,15 @@
                     "type": "string",
                     "minLength": 2,
                     "maxLength": 2
+                  },
+                  "withdrawal_waiver": {
+                    "description": "Pass true once your checkout has asked the buyer to agree to immediate delivery and to losing the 14-day right of withdrawal. iPago records the time on the order, or on the subscription for a subscription checkout.",
+                    "type": "boolean"
+                  },
+                  "discord_user_id": {
+                    "description": "The buyer's Discord user id, for products that grant Discord roles. Required when any item does; iPago grants the roles to this account once the order is paid. For a subscription it is kept for every renewal. Link the account yourself (OAuth2 scope identify) so the id is really the buyer's.",
+                    "type": "string",
+                    "pattern": "^\\d{17,20}$"
                   }
                 },
                 "required": [
@@ -1239,7 +1249,16 @@
                       ]
                     },
                     "id": {
-                      "type": "string"
+                      "type": "string",
+                      "description": "The order id for a one-time checkout. For a subscription checkout, the checkout session id; the subscription itself arrives with the subscription.created webhook once the first payment succeeds."
+                    },
+                    "mode": {
+                      "type": "string",
+                      "enum": [
+                        "payment",
+                        "subscription"
+                      ],
+                      "description": "payment charges once. subscription charges the first period now and renews every billing interval."
                     },
                     "client_secret": {
                       "type": "string"
@@ -1263,12 +1282,14 @@
                         "amount",
                         "currency"
                       ],
-                      "additionalProperties": false
+                      "additionalProperties": false,
+                      "description": "What the buyer pays now, VAT included. For a subscription, the first period."
                     }
                   },
                   "required": [
                     "object",
                     "id",
+                    "mode",
                     "client_secret",
                     "status",
                     "total"
@@ -1692,6 +1713,79 @@
                                     "currency"
                                   ],
                                   "additionalProperties": false
+                                },
+                                "purchase": {
+                                  "nullable": true,
+                                  "description": "What iPago buys this line from you at: your RRP minus iPago's margin, per unit and for the line. Null on lines sold before purchase prices were recorded.",
+                                  "type": "object",
+                                  "properties": {
+                                    "rrp_unit": {
+                                      "type": "object",
+                                      "properties": {
+                                        "amount": {
+                                          "type": "integer",
+                                          "minimum": -9007199254740991,
+                                          "maximum": 9007199254740991
+                                        },
+                                        "currency": {
+                                          "type": "string"
+                                        }
+                                      },
+                                      "required": [
+                                        "amount",
+                                        "currency"
+                                      ],
+                                      "additionalProperties": false
+                                    },
+                                    "margin_bps": {
+                                      "type": "integer",
+                                      "minimum": -9007199254740991,
+                                      "maximum": 9007199254740991
+                                    },
+                                    "unit": {
+                                      "type": "object",
+                                      "properties": {
+                                        "amount": {
+                                          "type": "integer",
+                                          "minimum": -9007199254740991,
+                                          "maximum": 9007199254740991
+                                        },
+                                        "currency": {
+                                          "type": "string"
+                                        }
+                                      },
+                                      "required": [
+                                        "amount",
+                                        "currency"
+                                      ],
+                                      "additionalProperties": false
+                                    },
+                                    "total": {
+                                      "type": "object",
+                                      "properties": {
+                                        "amount": {
+                                          "type": "integer",
+                                          "minimum": -9007199254740991,
+                                          "maximum": 9007199254740991
+                                        },
+                                        "currency": {
+                                          "type": "string"
+                                        }
+                                      },
+                                      "required": [
+                                        "amount",
+                                        "currency"
+                                      ],
+                                      "additionalProperties": false
+                                    }
+                                  },
+                                  "required": [
+                                    "rrp_unit",
+                                    "margin_bps",
+                                    "unit",
+                                    "total"
+                                  ],
+                                  "additionalProperties": false
                                 }
                               },
                               "required": [
@@ -1700,7 +1794,8 @@
                                 "product",
                                 "name",
                                 "quantity",
-                                "unit_price"
+                                "unit_price",
+                                "purchase"
                               ],
                               "additionalProperties": false
                             }
@@ -1759,6 +1854,17 @@
                             ],
                             "additionalProperties": false
                           },
+                          "tax_country": {
+                            "nullable": true,
+                            "description": "Buyer country VAT was charged for (ISO alpha-2, lowercase). Null when it was never resolved.",
+                            "type": "string"
+                          },
+                          "tax_rate_bps": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991,
+                            "description": "VAT rate applied, in basis points (2300 = 23%)."
+                          },
                           "gift_card": {
                             "nullable": true,
                             "type": "object",
@@ -1813,6 +1919,11 @@
                             "nullable": true,
                             "type": "string"
                           },
+                          "discord_user_id": {
+                            "nullable": true,
+                            "description": "The buyer's Discord account id, when the order grants Discord roles.",
+                            "type": "string"
+                          },
                           "payment_method": {
                             "nullable": true,
                             "type": "string"
@@ -1821,8 +1932,60 @@
                             "nullable": true,
                             "type": "string"
                           },
+                          "payment_evidence": {
+                            "nullable": true,
+                            "description": "What the payment provider reported about the charge, stored when the order was paid. Null on orders paid before this was recorded.",
+                            "type": "object",
+                            "properties": {
+                              "card_brand": {
+                                "nullable": true,
+                                "type": "string"
+                              },
+                              "card_country": {
+                                "nullable": true,
+                                "type": "string"
+                              },
+                              "wallet": {
+                                "nullable": true,
+                                "type": "string"
+                              },
+                              "billing_country": {
+                                "nullable": true,
+                                "type": "string"
+                              },
+                              "risk_level": {
+                                "nullable": true,
+                                "type": "string"
+                              },
+                              "risk_score": {
+                                "nullable": true,
+                                "type": "integer",
+                                "minimum": -9007199254740991,
+                                "maximum": 9007199254740991
+                              },
+                              "three_d_secure": {
+                                "nullable": true,
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "card_brand",
+                              "card_country",
+                              "wallet",
+                              "billing_country",
+                              "risk_level",
+                              "risk_score",
+                              "three_d_secure"
+                            ],
+                            "additionalProperties": false
+                          },
                           "decline_reason": {
                             "nullable": true,
+                            "type": "string"
+                          },
+                          "withdrawal_waiver_at": {
+                            "nullable": true,
+                            "description": "When the buyer agreed to immediate delivery and to losing the 14-day right of withdrawal. Null when no consent was recorded.",
                             "type": "string"
                           },
                           "refunded_at": {
@@ -1846,13 +2009,18 @@
                           "subtotal",
                           "discount",
                           "tax_amount",
+                          "tax_country",
+                          "tax_rate_bps",
                           "gift_card",
                           "total",
                           "coupon_code",
                           "delivery_target",
+                          "discord_user_id",
                           "payment_method",
                           "card_last4",
+                          "payment_evidence",
                           "decline_reason",
+                          "withdrawal_waiver_at",
                           "created",
                           "paid_at"
                         ],
@@ -2066,6 +2234,79 @@
                               "currency"
                             ],
                             "additionalProperties": false
+                          },
+                          "purchase": {
+                            "nullable": true,
+                            "description": "What iPago buys this line from you at: your RRP minus iPago's margin, per unit and for the line. Null on lines sold before purchase prices were recorded.",
+                            "type": "object",
+                            "properties": {
+                              "rrp_unit": {
+                                "type": "object",
+                                "properties": {
+                                  "amount": {
+                                    "type": "integer",
+                                    "minimum": -9007199254740991,
+                                    "maximum": 9007199254740991
+                                  },
+                                  "currency": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "amount",
+                                  "currency"
+                                ],
+                                "additionalProperties": false
+                              },
+                              "margin_bps": {
+                                "type": "integer",
+                                "minimum": -9007199254740991,
+                                "maximum": 9007199254740991
+                              },
+                              "unit": {
+                                "type": "object",
+                                "properties": {
+                                  "amount": {
+                                    "type": "integer",
+                                    "minimum": -9007199254740991,
+                                    "maximum": 9007199254740991
+                                  },
+                                  "currency": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "amount",
+                                  "currency"
+                                ],
+                                "additionalProperties": false
+                              },
+                              "total": {
+                                "type": "object",
+                                "properties": {
+                                  "amount": {
+                                    "type": "integer",
+                                    "minimum": -9007199254740991,
+                                    "maximum": 9007199254740991
+                                  },
+                                  "currency": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "amount",
+                                  "currency"
+                                ],
+                                "additionalProperties": false
+                              }
+                            },
+                            "required": [
+                              "rrp_unit",
+                              "margin_bps",
+                              "unit",
+                              "total"
+                            ],
+                            "additionalProperties": false
                           }
                         },
                         "required": [
@@ -2074,7 +2315,8 @@
                           "product",
                           "name",
                           "quantity",
-                          "unit_price"
+                          "unit_price",
+                          "purchase"
                         ],
                         "additionalProperties": false
                       }
@@ -2133,6 +2375,17 @@
                       ],
                       "additionalProperties": false
                     },
+                    "tax_country": {
+                      "nullable": true,
+                      "description": "Buyer country VAT was charged for (ISO alpha-2, lowercase). Null when it was never resolved.",
+                      "type": "string"
+                    },
+                    "tax_rate_bps": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991,
+                      "description": "VAT rate applied, in basis points (2300 = 23%)."
+                    },
                     "gift_card": {
                       "nullable": true,
                       "type": "object",
@@ -2187,6 +2440,11 @@
                       "nullable": true,
                       "type": "string"
                     },
+                    "discord_user_id": {
+                      "nullable": true,
+                      "description": "The buyer's Discord account id, when the order grants Discord roles.",
+                      "type": "string"
+                    },
                     "payment_method": {
                       "nullable": true,
                       "type": "string"
@@ -2195,8 +2453,60 @@
                       "nullable": true,
                       "type": "string"
                     },
+                    "payment_evidence": {
+                      "nullable": true,
+                      "description": "What the payment provider reported about the charge, stored when the order was paid. Null on orders paid before this was recorded.",
+                      "type": "object",
+                      "properties": {
+                        "card_brand": {
+                          "nullable": true,
+                          "type": "string"
+                        },
+                        "card_country": {
+                          "nullable": true,
+                          "type": "string"
+                        },
+                        "wallet": {
+                          "nullable": true,
+                          "type": "string"
+                        },
+                        "billing_country": {
+                          "nullable": true,
+                          "type": "string"
+                        },
+                        "risk_level": {
+                          "nullable": true,
+                          "type": "string"
+                        },
+                        "risk_score": {
+                          "nullable": true,
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        },
+                        "three_d_secure": {
+                          "nullable": true,
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "card_brand",
+                        "card_country",
+                        "wallet",
+                        "billing_country",
+                        "risk_level",
+                        "risk_score",
+                        "three_d_secure"
+                      ],
+                      "additionalProperties": false
+                    },
                     "decline_reason": {
                       "nullable": true,
+                      "type": "string"
+                    },
+                    "withdrawal_waiver_at": {
+                      "nullable": true,
+                      "description": "When the buyer agreed to immediate delivery and to losing the 14-day right of withdrawal. Null when no consent was recorded.",
                       "type": "string"
                     },
                     "refunded_at": {
@@ -2220,13 +2530,18 @@
                     "subtotal",
                     "discount",
                     "tax_amount",
+                    "tax_country",
+                    "tax_rate_bps",
                     "gift_card",
                     "total",
                     "coupon_code",
                     "delivery_target",
+                    "discord_user_id",
                     "payment_method",
                     "card_last4",
+                    "payment_evidence",
                     "decline_reason",
+                    "withdrawal_waiver_at",
                     "created",
                     "paid_at"
                   ],
@@ -3284,6 +3599,15 @@
                               "admin"
                             ]
                           },
+                          "fault": {
+                            "type": "string",
+                            "enum": [
+                              "unset",
+                              "supplier",
+                              "ipago"
+                            ],
+                            "description": "iPago's finding on who caused the dispute. The supplier pays the dispute fee only for supplier."
+                          },
                           "created": {
                             "type": "string"
                           },
@@ -3304,6 +3628,7 @@
                           "evidence_submitted_at",
                           "evidence_text",
                           "evidence_submitted_by",
+                          "fault",
                           "created",
                           "closed_at"
                         ],
@@ -3492,6 +3817,15 @@
                         "admin"
                       ]
                     },
+                    "fault": {
+                      "type": "string",
+                      "enum": [
+                        "unset",
+                        "supplier",
+                        "ipago"
+                      ],
+                      "description": "iPago's finding on who caused the dispute. The supplier pays the dispute fee only for supplier."
+                    },
                     "created": {
                       "type": "string"
                     },
@@ -3512,6 +3846,7 @@
                     "evidence_submitted_at",
                     "evidence_text",
                     "evidence_submitted_by",
+                    "fault",
                     "created",
                     "closed_at"
                   ],
@@ -7402,6 +7737,96 @@
                       "nullable": true,
                       "type": "string"
                     },
+                    "banner_url": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "announcement": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "content_blocks": {
+                      "type": "array",
+                      "items": {
+                        "oneOf": [
+                          {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "type": {
+                                "type": "string",
+                                "enum": [
+                                  "text"
+                                ]
+                              },
+                              "position": {
+                                "type": "string",
+                                "enum": [
+                                  "top",
+                                  "bottom"
+                                ],
+                                "description": "Where the block sits on the storefront home page: above (top) or below (bottom) the product list."
+                              },
+                              "title": {
+                                "type": "string"
+                              },
+                              "body": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "type",
+                              "position"
+                            ],
+                            "additionalProperties": false
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "type": {
+                                "type": "string",
+                                "enum": [
+                                  "image"
+                                ]
+                              },
+                              "position": {
+                                "type": "string",
+                                "enum": [
+                                  "top",
+                                  "bottom"
+                                ],
+                                "description": "Where the block sits on the storefront home page: above (top) or below (bottom) the product list."
+                              },
+                              "title": {
+                                "type": "string"
+                              },
+                              "image_url": {
+                                "type": "string"
+                              },
+                              "alt": {
+                                "type": "string"
+                              },
+                              "link_url": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "type",
+                              "position",
+                              "image_url"
+                            ],
+                            "additionalProperties": false
+                          }
+                        ]
+                      }
+                    },
                     "theme": {
                       "type": "string"
                     },
@@ -7465,6 +7890,9 @@
                     "description",
                     "accent_color",
                     "logo_url",
+                    "banner_url",
+                    "announcement",
+                    "content_blocks",
                     "theme",
                     "appearance",
                     "payment_methods",
@@ -7846,6 +8274,10 @@
                           },
                           "on_sale": {
                             "type": "boolean"
+                          },
+                          "requires_discord": {
+                            "type": "boolean",
+                            "description": "Buying it grants Discord roles, so the buyer must link their Discord account first."
                           }
                         },
                         "required": [
@@ -7862,7 +8294,8 @@
                           "created",
                           "updated",
                           "original_price",
-                          "on_sale"
+                          "on_sale",
+                          "requires_discord"
                         ],
                         "additionalProperties": false
                       }
@@ -8102,6 +8535,10 @@
                     },
                     "on_sale": {
                       "type": "boolean"
+                    },
+                    "requires_discord": {
+                      "type": "boolean",
+                      "description": "Buying it grants Discord roles, so the buyer must link their Discord account first."
                     }
                   },
                   "required": [
@@ -8118,7 +8555,8 @@
                     "created",
                     "updated",
                     "original_price",
-                    "on_sale"
+                    "on_sale",
+                    "requires_discord"
                   ],
                   "additionalProperties": false
                 }
@@ -8739,6 +9177,10 @@
                       ],
                       "additionalProperties": false
                     },
+                    "requires_discord": {
+                      "type": "boolean",
+                      "description": "Something in the basket grants Discord roles: checkout needs discord_link."
+                    },
                     "expires_at": {
                       "type": "string"
                     },
@@ -8757,6 +9199,7 @@
                     "total",
                     "coupon",
                     "gift_card",
+                    "requires_discord",
                     "expires_at",
                     "token"
                   ],
@@ -9071,6 +9514,10 @@
                       ],
                       "additionalProperties": false
                     },
+                    "requires_discord": {
+                      "type": "boolean",
+                      "description": "Something in the basket grants Discord roles: checkout needs discord_link."
+                    },
                     "expires_at": {
                       "type": "string"
                     }
@@ -9086,6 +9533,7 @@
                     "total",
                     "coupon",
                     "gift_card",
+                    "requires_discord",
                     "expires_at"
                   ],
                   "additionalProperties": false
@@ -9425,6 +9873,10 @@
                       ],
                       "additionalProperties": false
                     },
+                    "requires_discord": {
+                      "type": "boolean",
+                      "description": "Something in the basket grants Discord roles: checkout needs discord_link."
+                    },
                     "expires_at": {
                       "type": "string"
                     }
@@ -9440,6 +9892,7 @@
                     "total",
                     "coupon",
                     "gift_card",
+                    "requires_discord",
                     "expires_at"
                   ],
                   "additionalProperties": false
@@ -9807,6 +10260,10 @@
                       ],
                       "additionalProperties": false
                     },
+                    "requires_discord": {
+                      "type": "boolean",
+                      "description": "Something in the basket grants Discord roles: checkout needs discord_link."
+                    },
                     "expires_at": {
                       "type": "string"
                     }
@@ -9822,6 +10279,7 @@
                     "total",
                     "coupon",
                     "gift_card",
+                    "requires_discord",
                     "expires_at"
                   ],
                   "additionalProperties": false
@@ -10158,6 +10616,10 @@
                       ],
                       "additionalProperties": false
                     },
+                    "requires_discord": {
+                      "type": "boolean",
+                      "description": "Something in the basket grants Discord roles: checkout needs discord_link."
+                    },
                     "expires_at": {
                       "type": "string"
                     }
@@ -10173,6 +10635,7 @@
                     "total",
                     "coupon",
                     "gift_card",
+                    "requires_discord",
                     "expires_at"
                   ],
                   "additionalProperties": false
@@ -10530,6 +10993,10 @@
                       ],
                       "additionalProperties": false
                     },
+                    "requires_discord": {
+                      "type": "boolean",
+                      "description": "Something in the basket grants Discord roles: checkout needs discord_link."
+                    },
                     "expires_at": {
                       "type": "string"
                     }
@@ -10545,6 +11012,7 @@
                     "total",
                     "coupon",
                     "gift_card",
+                    "requires_discord",
                     "expires_at"
                   ],
                   "additionalProperties": false
@@ -10881,6 +11349,10 @@
                       ],
                       "additionalProperties": false
                     },
+                    "requires_discord": {
+                      "type": "boolean",
+                      "description": "Something in the basket grants Discord roles: checkout needs discord_link."
+                    },
                     "expires_at": {
                       "type": "string"
                     }
@@ -10896,6 +11368,7 @@
                     "total",
                     "coupon",
                     "gift_card",
+                    "requires_discord",
                     "expires_at"
                   ],
                   "additionalProperties": false
@@ -11253,6 +11726,10 @@
                       ],
                       "additionalProperties": false
                     },
+                    "requires_discord": {
+                      "type": "boolean",
+                      "description": "Something in the basket grants Discord roles: checkout needs discord_link."
+                    },
                     "expires_at": {
                       "type": "string"
                     }
@@ -11268,6 +11745,7 @@
                     "total",
                     "coupon",
                     "gift_card",
+                    "requires_discord",
                     "expires_at"
                   ],
                   "additionalProperties": false
@@ -11390,9 +11868,19 @@
                     "type": "string"
                   },
                   "country": {
+                    "description": "Ignored for VAT: the country comes from the storefront server.",
                     "type": "string",
                     "minLength": 2,
                     "maxLength": 2
+                  },
+                  "withdrawal_waiver": {
+                    "description": "True once the buyer has ticked that they want delivery to start right away and that they lose the 14-day right of withdrawal once it has. Required on storefront checkouts.",
+                    "type": "boolean"
+                  },
+                  "discord_link": {
+                    "description": "The signed link token iPago handed back after the buyer linked their Discord account (POST /v1/storefront/{slug}/discord/authorize). Required when the purchase grants Discord roles.",
+                    "type": "string",
+                    "maxLength": 2048
                   }
                 }
               }
@@ -11452,7 +11940,16 @@
                       ]
                     },
                     "id": {
-                      "type": "string"
+                      "type": "string",
+                      "description": "The order id for a one-time checkout. For a subscription checkout, the checkout session id; the subscription itself arrives with the subscription.created webhook once the first payment succeeds."
+                    },
+                    "mode": {
+                      "type": "string",
+                      "enum": [
+                        "payment",
+                        "subscription"
+                      ],
+                      "description": "payment charges once. subscription charges the first period now and renews every billing interval."
                     },
                     "client_secret": {
                       "type": "string"
@@ -11476,12 +11973,14 @@
                         "amount",
                         "currency"
                       ],
-                      "additionalProperties": false
+                      "additionalProperties": false,
+                      "description": "What the buyer pays now, VAT included. For a subscription, the first period."
                     }
                   },
                   "required": [
                     "object",
                     "id",
+                    "mode",
                     "client_secret",
                     "status",
                     "total"
@@ -11745,6 +12244,15 @@
                     "type": "string",
                     "minLength": 2,
                     "maxLength": 2
+                  },
+                  "withdrawal_waiver": {
+                    "description": "True once the buyer has ticked that they want delivery to start right away and that they lose the 14-day right of withdrawal once it has. Required on storefront checkouts.",
+                    "type": "boolean"
+                  },
+                  "discord_link": {
+                    "description": "The signed link token iPago handed back after the buyer linked their Discord account (POST /v1/storefront/{slug}/discord/authorize). Required when the purchase grants Discord roles.",
+                    "type": "string",
+                    "maxLength": 2048
                   }
                 },
                 "required": [
@@ -11993,6 +12501,225 @@
           }
         },
         "summary": "Start a subscription checkout",
+        "tags": [
+          "Baskets"
+        ],
+        "security": []
+      }
+    },
+    "/v1/storefront/{slug}/discord/authorize": {
+      "post": {
+        "operationId": "authorizeStorefrontDiscord",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "return_url": {
+                    "type": "string",
+                    "maxLength": 2048,
+                    "description": "Where Discord's answer lands: a page of this storefront. It gets discord_link=<token> on success, or discord_error=<code>."
+                  }
+                },
+                "required": [
+                  "return_url"
+                ]
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "name": "preview",
+            "required": false
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "live",
+                "test"
+              ]
+            },
+            "in": "query",
+            "name": "mode",
+            "required": false
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "slug",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "object": {
+                      "type": "string",
+                      "enum": [
+                        "discord_authorization"
+                      ]
+                    },
+                    "url": {
+                      "type": "string",
+                      "description": "Send the buyer here. Discord returns them to return_url with discord_link (or discord_error) in the query."
+                    }
+                  },
+                  "required": [
+                    "object",
+                    "url"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "type": {
+                          "type": "string"
+                        },
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "param": {
+                          "type": "string"
+                        },
+                        "request_id": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "type",
+                        "code",
+                        "message",
+                        "request_id"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "type": {
+                          "type": "string"
+                        },
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "param": {
+                          "type": "string"
+                        },
+                        "request_id": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "type",
+                        "code",
+                        "message",
+                        "request_id"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "type": {
+                          "type": "string"
+                        },
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "param": {
+                          "type": "string"
+                        },
+                        "request_id": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "type",
+                        "code",
+                        "message",
+                        "request_id"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        },
+        "summary": "Link a Discord account",
+        "description": "Only needed when a product grants Discord roles. Send the buyer to the returned url; they come back to return_url with discord_link, which checkout and subscribe take.",
         "tags": [
           "Baskets"
         ],

@@ -58,6 +58,17 @@ GET https://api.ipago.io/v1/orders
 | `data[].items[].unit_price` | `object` | Yes |   |
 | `data[].items[].unit_price.amount` | `integer` | Yes |   |
 | `data[].items[].unit_price.currency` | `string` | Yes |   |
+| `data[].items[].purchase` | `object or null` | Yes | What iPago buys this line from you at: your RRP minus iPago's margin, per unit and for the line. Null on lines sold before purchase prices were recorded. |
+| `data[].items[].purchase.rrp_unit` | `object` | Yes |   |
+| `data[].items[].purchase.rrp_unit.amount` | `integer` | Yes |   |
+| `data[].items[].purchase.rrp_unit.currency` | `string` | Yes |   |
+| `data[].items[].purchase.margin_bps` | `integer` | Yes |   |
+| `data[].items[].purchase.unit` | `object` | Yes |   |
+| `data[].items[].purchase.unit.amount` | `integer` | Yes |   |
+| `data[].items[].purchase.unit.currency` | `string` | Yes |   |
+| `data[].items[].purchase.total` | `object` | Yes |   |
+| `data[].items[].purchase.total.amount` | `integer` | Yes |   |
+| `data[].items[].purchase.total.currency` | `string` | Yes |   |
 | `data[].subtotal` | `object` | Yes |   |
 | `data[].subtotal.amount` | `integer` | Yes |   |
 | `data[].subtotal.currency` | `string` | Yes |   |
@@ -67,6 +78,8 @@ GET https://api.ipago.io/v1/orders
 | `data[].tax_amount` | `object` | Yes |   |
 | `data[].tax_amount.amount` | `integer` | Yes |   |
 | `data[].tax_amount.currency` | `string` | Yes |   |
+| `data[].tax_country` | `string or null` | Yes | Buyer country VAT was charged for (ISO alpha-2, lowercase). Null when it was never resolved. |
+| `data[].tax_rate_bps` | `integer` | Yes | VAT rate applied, in basis points (2300 = 23%). |
 | `data[].gift_card` | `object or null` | Yes |   |
 | `data[].gift_card.amount` | `object` | Yes |   |
 | `data[].gift_card.amount.amount` | `integer` | Yes |   |
@@ -76,9 +89,19 @@ GET https://api.ipago.io/v1/orders
 | `data[].total.currency` | `string` | Yes |   |
 | `data[].coupon_code` | `string or null` | Yes |   |
 | `data[].delivery_target` | `string or null` | Yes |   |
+| `data[].discord_user_id` | `string or null` | Yes | The buyer's Discord account id, when the order grants Discord roles. |
 | `data[].payment_method` | `string or null` | Yes |   |
 | `data[].card_last4` | `string or null` | Yes |   |
+| `data[].payment_evidence` | `object or null` | Yes | What the payment provider reported about the charge, stored when the order was paid. Null on orders paid before this was recorded. |
+| `data[].payment_evidence.card_brand` | `string or null` | Yes |   |
+| `data[].payment_evidence.card_country` | `string or null` | Yes |   |
+| `data[].payment_evidence.wallet` | `string or null` | Yes |   |
+| `data[].payment_evidence.billing_country` | `string or null` | Yes |   |
+| `data[].payment_evidence.risk_level` | `string or null` | Yes |   |
+| `data[].payment_evidence.risk_score` | `integer or null` | Yes |   |
+| `data[].payment_evidence.three_d_secure` | `string or null` | Yes |   |
 | `data[].decline_reason` | `string or null` | Yes |   |
+| `data[].withdrawal_waiver_at` | `string or null` | Yes | When the buyer agreed to immediate delivery and to losing the 14-day right of withdrawal. Null when no consent was recorded. |
 | `data[].refunded_at` | `string or null` | No |   |
 | `data[].created` | `string` | Yes |   |
 | `data[].paid_at` | `string or null` | Yes |   |
@@ -134,6 +157,17 @@ GET https://api.ipago.io/v1/orders/{id}
 | `items[].unit_price` | `object` | Yes |   |
 | `items[].unit_price.amount` | `integer` | Yes |   |
 | `items[].unit_price.currency` | `string` | Yes |   |
+| `items[].purchase` | `object or null` | Yes | What iPago buys this line from you at: your RRP minus iPago's margin, per unit and for the line. Null on lines sold before purchase prices were recorded. |
+| `items[].purchase.rrp_unit` | `object` | Yes |   |
+| `items[].purchase.rrp_unit.amount` | `integer` | Yes |   |
+| `items[].purchase.rrp_unit.currency` | `string` | Yes |   |
+| `items[].purchase.margin_bps` | `integer` | Yes |   |
+| `items[].purchase.unit` | `object` | Yes |   |
+| `items[].purchase.unit.amount` | `integer` | Yes |   |
+| `items[].purchase.unit.currency` | `string` | Yes |   |
+| `items[].purchase.total` | `object` | Yes |   |
+| `items[].purchase.total.amount` | `integer` | Yes |   |
+| `items[].purchase.total.currency` | `string` | Yes |   |
 | `subtotal` | `object` | Yes |   |
 | `subtotal.amount` | `integer` | Yes |   |
 | `subtotal.currency` | `string` | Yes |   |
@@ -143,6 +177,8 @@ GET https://api.ipago.io/v1/orders/{id}
 | `tax_amount` | `object` | Yes |   |
 | `tax_amount.amount` | `integer` | Yes |   |
 | `tax_amount.currency` | `string` | Yes |   |
+| `tax_country` | `string or null` | Yes | Buyer country VAT was charged for (ISO alpha-2, lowercase). Null when it was never resolved. |
+| `tax_rate_bps` | `integer` | Yes | VAT rate applied, in basis points (2300 = 23%). |
 | `gift_card` | `object or null` | Yes |   |
 | `gift_card.amount` | `object` | Yes |   |
 | `gift_card.amount.amount` | `integer` | Yes |   |
@@ -152,9 +188,19 @@ GET https://api.ipago.io/v1/orders/{id}
 | `total.currency` | `string` | Yes |   |
 | `coupon_code` | `string or null` | Yes |   |
 | `delivery_target` | `string or null` | Yes |   |
+| `discord_user_id` | `string or null` | Yes | The buyer's Discord account id, when the order grants Discord roles. |
 | `payment_method` | `string or null` | Yes |   |
 | `card_last4` | `string or null` | Yes |   |
+| `payment_evidence` | `object or null` | Yes | What the payment provider reported about the charge, stored when the order was paid. Null on orders paid before this was recorded. |
+| `payment_evidence.card_brand` | `string or null` | Yes |   |
+| `payment_evidence.card_country` | `string or null` | Yes |   |
+| `payment_evidence.wallet` | `string or null` | Yes |   |
+| `payment_evidence.billing_country` | `string or null` | Yes |   |
+| `payment_evidence.risk_level` | `string or null` | Yes |   |
+| `payment_evidence.risk_score` | `integer or null` | Yes |   |
+| `payment_evidence.three_d_secure` | `string or null` | Yes |   |
 | `decline_reason` | `string or null` | Yes |   |
+| `withdrawal_waiver_at` | `string or null` | Yes | When the buyer agreed to immediate delivery and to losing the 14-day right of withdrawal. Null when no consent was recorded. |
 | `refunded_at` | `string or null` | No |   |
 | `created` | `string` | Yes |   |
 | `paid_at` | `string or null` | Yes |   |

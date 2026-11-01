@@ -54,6 +54,7 @@ GET https://api.ipago.io/v1/disputes
 | `data[].evidence_submitted_at` | `string or null` | Yes |   |
 | `data[].evidence_text` | `string or null` | Yes |   |
 | `data[].evidence_submitted_by` | `string or null` | Yes | One of `merchant`, `admin`. |
+| `data[].fault` | `string` | Yes | One of `unset`, `supplier`, `ipago`. iPago's finding on who caused the dispute. The supplier pays the dispute fee only for supplier. |
 | `data[].created` | `string` | Yes |   |
 | `data[].closed_at` | `string or null` | Yes |   |
 | `has_more` | `boolean` | Yes |   |
@@ -104,6 +105,7 @@ GET https://api.ipago.io/v1/disputes/{id}
 | `evidence_submitted_at` | `string or null` | Yes |   |
 | `evidence_text` | `string or null` | Yes |   |
 | `evidence_submitted_by` | `string or null` | Yes | One of `merchant`, `admin`. |
+| `fault` | `string` | Yes | One of `unset`, `supplier`, `ipago`. iPago's finding on who caused the dispute. The supplier pays the dispute fee only for supplier. |
 | `created` | `string` | Yes |   |
 | `closed_at` | `string or null` | Yes |   |
 
